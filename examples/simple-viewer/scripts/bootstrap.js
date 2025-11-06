@@ -1,11 +1,7 @@
-const env = (typeof import.meta !== "undefined" && import.meta.env) || {};
-const baseUrl = (env.CESIUM_BASE_URL ?? "/Cesium/").replace(/\/?$/, "/");
+const baseUrl = (window.CESIUM_BASE_URL ?? "/Cesium/").replace(/\/?$/, "/");
 window.CESIUM_BASE_URL = baseUrl;
 
-const ionToken = env.CESIUM_ION_TOKEN;
-if (ionToken) {
-  window.CESIUM_ION_TOKEN = ionToken;
-}
+const ionToken = window.CESIUM_ION_TOKEN ?? null;
 
 async function ensureCesium() {
   if (!window.Cesium) {

@@ -6,6 +6,7 @@ filehash = false
 inject_scripts = false
 watch = ["../leptos-cesium"]
 
-[[build.env]]
-name = "CESIUM_ION_TOKEN"
-file = ".env.local"
+[[hooks]]
+stage = "pre_build"
+command = "node"
+command_arguments = ["scripts/generate_cesium_env.js"]
