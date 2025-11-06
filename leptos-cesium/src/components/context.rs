@@ -45,12 +45,9 @@ impl CesiumViewerContext {
     /// Returns the viewer, cloning the underlying JS handle if this is the correct thread.
     #[cfg(target_arch = "wasm32")]
     pub fn viewer(&self) -> Option<Viewer> {
-        self.viewer.get().map(|value| {
-            value
-                .value()
-                .clone()
-                .unchecked_into::<Viewer>()
-        })
+        self.viewer
+            .get()
+            .map(|value| value.value().clone().unchecked_into::<Viewer>())
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -61,12 +58,9 @@ impl CesiumViewerContext {
     /// Returns the viewer without tracking reactive dependencies.
     #[cfg(target_arch = "wasm32")]
     pub fn viewer_untracked(&self) -> Option<Viewer> {
-        self.viewer.get_untracked().map(|value| {
-            value
-                .value()
-                .clone()
-                .unchecked_into::<Viewer>()
-        })
+        self.viewer
+            .get_untracked()
+            .map(|value| value.value().clone().unchecked_into::<Viewer>())
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -79,7 +73,9 @@ impl CesiumViewerContext {
         if self.is_valid() {
             self.viewer.read_only()
         } else {
-            panic!("Accessing Cesium viewer from a different thread. Probably running on the server.");
+            panic!(
+                "Accessing Cesium viewer from a different thread. Probably running on the server."
+            );
         }
     }
 

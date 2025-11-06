@@ -3,9 +3,4 @@ target = "index.html"
 dist = "dist"
 static_dir = "public"
 filehash = false
-watch = ["../leptos-cesium"]
-
-[[hooks]]
-stage = "pre_build"
-command = "node"
-command_arguments = ["scripts/generate_cesium_env.js"]
+watch = ["../../leptos-cesium"]

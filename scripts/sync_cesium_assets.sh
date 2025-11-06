@@ -7,8 +7,6 @@ VERSION="${1:-$DEFAULT_VERSION}"
 
 VENDOR_BASE="$ROOT_DIR/vendor/Cesium/$VERSION"
 VENDOR_BUILD="$VENDOR_BASE/Build/Cesium"
-LEGACY_BUILD="$ROOT_DIR/Cesium-$VERSION/Build/Cesium"
-ZIP_PATH="$ROOT_DIR/Cesium-$VERSION.zip"
 
 link_or_copy_build() {
   local source_dir="$1"
@@ -31,23 +29,46 @@ link_or_copy_build() {
   fi
 }
 
+validate_cesium_build() {
+  local build_dir="$1"
+
+  if [[ ! -f "$build_dir/Cesium.js" ]]; then
+    echo "ERROR: Invalid Cesium build - missing Cesium.js" >&2
+    return 1
+  fi
+
+  if [[ ! -d "$build_dir/Workers" ]]; then
+    echo "ERROR: Invalid Cesium build - missing Workers directory" >&2
+    return 1
+  fi
+
+  if [[ ! -d "$build_dir/Assets" ]]; then
+    echo "ERROR: Invalid Cesium build - missing Assets directory" >&2
+    return 1
+  fi
+
+  return 0
+}
+
 ensure_vendor_copy() {
-  if [[ -d "$VENDOR_BUILD" ]]; then
-    echo "Using vendorized Cesium build at $VENDOR_BUILD"
-    return
+  if [[ ! -d "$VENDOR_BUILD" ]]; then
+    echo "ERROR: Cesium build not found at $VENDOR_BUILD" >&2
+    echo "" >&2
+    echo "To install Cesium:" >&2
+    echo "  1. Download Cesium-$VERSION.zip from https://cesium.com/downloads/" >&2
+    echo "  2. Extract to $ROOT_DIR/" >&2
+    echo "  3. Move Cesium-$VERSION/Build to $VENDOR_BASE/" >&2
+    echo "" >&2
+    echo "Expected structure: $VENDOR_BUILD/Cesium.js" >&2
+    exit 1
   fi
 
-  if [[ -d "$LEGACY_BUILD" ]]; then
-    echo "Vendorizing existing Cesium build from $LEGACY_BUILD"
-    mkdir -p "$VENDOR_BASE"
-    cp -R "$ROOT_DIR/Cesium-$VERSION"/Build "$VENDOR_BASE/"
-    return
+  if ! validate_cesium_build "$VENDOR_BUILD"; then
+    echo "ERROR: Cesium build at $VENDOR_BUILD is incomplete or corrupted" >&2
+    exit 1
   fi
 
-  echo "ERROR: Cesium build not found for version $VERSION." >&2
-  echo "Download the official Cesium package (e.g. $ZIP_PATH) and extract it" >&2
-  echo "so that either $VENDOR_BUILD or $LEGACY_BUILD exists before rerunning." >&2
-  exit 1
+  echo "Using Cesium build at $VENDOR_BUILD"
 }
 
 main() {

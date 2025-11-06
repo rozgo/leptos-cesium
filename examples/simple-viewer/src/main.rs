@@ -19,8 +19,12 @@ use web_sys::console;
 
 #[component]
 pub fn App() -> impl IntoView {
+    // Load Cesium Ion token from environment variable at build time
+    let ion_token = option_env!("CESIUM_ION_TOKEN").map(|s| s.to_string());
+
     view! {
         <ViewerContainer
+            ion_token=ion_token
             class="cesium-viewer".to_string()
             style="width: 100%; height: 100%;".to_string()
         >
@@ -67,12 +71,8 @@ fn SceneBootstrap() -> impl IntoView {
                 &JsValue::from_f64(12.0),
             )
             .expect("point pixelSize");
-            Reflect::set(
-                &options,
-                &JsValue::from_str("point"),
-                &JsValue::from(point),
-            )
-            .expect("point set");
+            Reflect::set(&options, &JsValue::from_str("point"), &JsValue::from(point))
+                .expect("point set");
 
             Reflect::set(
                 &options,

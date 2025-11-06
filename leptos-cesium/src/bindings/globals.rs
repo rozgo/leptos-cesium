@@ -17,16 +17,14 @@ pub fn set_base_url(base_url: &str) {
         ));
         return;
     };
-    let Some(build_module_url) =
-        Reflect::get(&cesium, &JsValue::from_str("buildModuleUrl")).ok()
+    let Some(build_module_url) = Reflect::get(&cesium, &JsValue::from_str("buildModuleUrl")).ok()
     else {
         console::warn_1(&JsValue::from_str(
             "Cesium.buildModuleUrl missing; cannot set base URL",
         ));
         return;
     };
-    let Some(set_base) =
-        Reflect::get(&build_module_url, &JsValue::from_str("setBaseUrl")).ok()
+    let Some(set_base) = Reflect::get(&build_module_url, &JsValue::from_str("setBaseUrl")).ok()
     else {
         console::warn_1(&JsValue::from_str(
             "Cesium.buildModuleUrl.setBaseUrl missing; cannot set base URL",
@@ -54,7 +52,11 @@ pub fn set_ion_default_access_token(token: &str) {
     let global = global();
     if let Ok(cesium) = Reflect::get(&global, &JsValue::from_str("Cesium")) {
         if let Ok(ion) = Reflect::get(&cesium, &JsValue::from_str("Ion")) {
-            let _ = Reflect::set(&ion, &JsValue::from_str("defaultAccessToken"), &JsValue::from_str(token));
+            let _ = Reflect::set(
+                &ion,
+                &JsValue::from_str("defaultAccessToken"),
+                &JsValue::from_str(token),
+            );
         }
     }
 }

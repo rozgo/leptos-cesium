@@ -5,7 +5,7 @@ use leptos::{html::Div, prelude::*};
 use crate::components::provide_cesium_context;
 
 #[cfg(target_arch = "wasm32")]
-use crate::bindings::Viewer;
+use crate::bindings::{set_default_access_token, Viewer};
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsValue;
@@ -14,10 +14,19 @@ use web_sys::{console, HtmlElement};
 
 /// Minimal Cesium viewer container component.
 ///
-/// This sets up the viewer context for descendants. Actual Cesium viewer instantiation will be
-/// wired in once bindings are available.
+/// This sets up the viewer context for descendants and creates a Cesium Viewer instance.
+///
+/// # Props
+///
+/// * `ion_token` - Optional Cesium Ion access token. If provided, sets the default access token
+///   before creating the viewer. Use `env!("CESIUM_ION_TOKEN")` to load from environment.
+/// * `class` - Optional CSS class for the container div
+/// * `style` - Optional inline styles for the container div
+/// * `node_ref` - Optional node reference to access the underlying DOM element
+/// * `children` - Child components (entities, data sources, etc.)
 #[component]
 pub fn ViewerContainer(
+    #[prop(optional, into)] ion_token: Signal<Option<String>>,
     #[prop(optional)] class: String,
     #[prop(optional)] style: String,
     #[prop(optional, default = NodeRef::new())] node_ref: NodeRef<Div>,
@@ -27,9 +36,6 @@ pub fn ViewerContainer(
 
     #[cfg(target_arch = "wasm32")]
     {
-        let node_ref = node_ref.clone();
-        let viewer_context = viewer_context;
-
         Effect::new(move |_| {
             console::debug_1(&JsValue::from_str("ViewerContainer: effect tick"));
             if viewer_context.viewer_untracked().is_some() {
@@ -47,6 +53,15 @@ pub fn ViewerContainer(
             };
 
             let element: HtmlElement = div.into();
+
+            // Set Ion token if provided
+            if let Some(token) = ion_token.get() {
+                console::debug_1(&JsValue::from_str(
+                    "ViewerContainer: setting Cesium Ion access token.",
+                ));
+                set_default_access_token(&token);
+            }
+
             console::debug_1(&JsValue::from_str(
                 "ViewerContainer: constructing Cesium.Viewer instance.",
             ));
