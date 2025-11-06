@@ -14,6 +14,8 @@ use leptos_cesium::cesium::Viewer;
 use leptos_cesium::core::JsRwSignal;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::{JsCast, JsValue};
+#[cfg(target_arch = "wasm32")]
+use web_sys::console;
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -32,13 +34,21 @@ pub fn App() -> impl IntoView {
 fn SceneBootstrap() -> impl IntoView {
     let viewer_context = use_cesium_context().expect("Cesium viewer context");
     let entity_handle: JsRwSignal<Option<JsValue>> = JsRwSignal::new_local(None);
+    let (is_ready, set_ready) = signal(false);
 
     Effect::new(move |_| {
+        console::debug_1(&JsValue::from_str("SceneBootstrap: effect tick"));
         if entity_handle.get().is_some() {
+            console::debug_1(&JsValue::from_str(
+                "SceneBootstrap: entity already created; skipping.",
+            ));
             return;
         }
 
         let Some(entity_js) = viewer_context.with_viewer(|viewer: Viewer| {
+            console::debug_1(&JsValue::from_str(
+                "SceneBootstrap: viewer available; creating entity.",
+            ));
             let entities = viewer.entities();
 
             let options = Object::new();
@@ -73,25 +83,46 @@ fn SceneBootstrap() -> impl IntoView {
 
             let options_value: JsValue = options.into();
             let entity = entities.add_with_options(&options_value);
+            console::debug_1(&JsValue::from_str(
+                "SceneBootstrap: entity added to viewer.",
+            ));
             JsValue::from(entity)
         }) else {
+            console::debug_1(&JsValue::from_str(
+                "SceneBootstrap: viewer not ready yet; waiting next tick.",
+            ));
             return;
         };
 
         entity_handle.set(Some(entity_js));
+        set_ready.set(true);
     });
 
     let cleanup_context = viewer_context;
     on_cleanup(move || {
+        console::debug_1(&JsValue::from_str(
+            "SceneBootstrap: cleanup invoked; removing entity if present.",
+        ));
         if let Some(entity_js) = entity_handle.get_untracked() {
             cleanup_context.with_viewer(|viewer: Viewer| {
                 let entity = entity_js.clone().unchecked_into();
                 viewer.entities().remove(&entity);
+                console::debug_1(&JsValue::from_str(
+                    "SceneBootstrap: entity removed from viewer.",
+                ));
             });
         }
+        set_ready.set(false);
     });
 
-    view! { <p>"Loading Cesium..."</p> }
+    view! {
+        <Show
+            when=move || is_ready.get()
+            fallback=|| view! { <p>"Loading Cesium..."</p> }
+        >
+            {|| view! { <></> }}
+        </Show>
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]

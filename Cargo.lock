@@ -1552,6 +1552,7 @@ dependencies = [
  "leptos",
  "leptos-cesium",
  "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
