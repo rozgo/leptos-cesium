@@ -8,13 +8,13 @@
 - Viewer/entity context scaffolding in place with SSR-aware thread checks and helper provision functions.
 - Asset workflow operational via `scripts/sync_cesium_assets.sh`, syncing a vendorized `Cesium-1.135` build into each example's `public` directory.
 - Minimal manual bindings added for `Cesium.Viewer` (constructor/destroy) plus `buildModuleUrl.setBaseUrl`; `ViewerContainer` now instantiates a real viewer on wasm targets.
-- `examples/simple-viewer` mounts a placeholder `ViewerContainer`, giving us a working CSR smoke test (`cargo check` clean apart from placeholder warnings).
+- Hand-rolled entity/Cartesian bindings allow `examples/simple-viewer` to add a point entity once the viewer mounts (CSR smoke test still passes, now with initial scene setup).
 
 ## Near-Term Next Steps
 1. Flesh out viewer creation options (basic `ViewerOptions` pass-through, animation/timeline toggles) and make base URL overrides ergonomic.
-2. Hand-roll essential entity bindings (entity collection add/remove, minimal Cartesian helpers) so components can manipulate real Cesium primitives.
-3. Update `examples/simple-viewer` to exercise the live viewer (ensure widget CSS/assets flow) and document the runtime requirements.
-4. Kick tooling/docs back into gear after we confirm rendering (defer cargo-make/hooks until functionality is proven).
+2. Extend entity helpers (context add/remove APIs, typed graphics options) building on the basic bindings.
+3. Update `examples/simple-viewer` to include widget CSS guidance and verify assets/Base URL paths work with `cargo leptos`.
+4. Kick tooling/docs back into gear after rendering is verified end-to-end (defer cargo-make/hooks until functionality is proven).
 
 ## Phase 1: Project Setup & Infrastructure
 
@@ -83,9 +83,9 @@ leptos-cesium/
 - [ ] Add a wasm smoke test that mounts/destroys the viewer
 
 ### 6. Entities and scene primitives
-- [ ] Bind `Cesium.Entity` creation/removal with a lightweight wrapper
+- [x] Bind `Cesium.Entity` creation/removal with a lightweight wrapper
 - [ ] Wire entity collection helpers on the viewer context
-- [ ] Provide a temporary Cartesian3 constructor for positioning primitives
+- [x] Provide a temporary Cartesian3 constructor for positioning primitives
 - [ ] Exercise entity add/remove in wasm tests
 
 ## Phase 3: Core Infrastructure (leptos-leaflet patterns)

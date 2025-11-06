@@ -1,20 +1,17 @@
 //! Context types wiring Cesium state through the Leptos component tree.
 
 use leptos::prelude::*;
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{JsCast, JsValue};
 
 use crate::{
     cesium::{Entity, Viewer},
     core::{JsReadSignal, JsRwSignal, ThreadSafeJsValue},
 };
 
-#[cfg(target_arch = "wasm32")]
-use crate::core::IntoThreadSafeJsValue;
-
 /// Context exposing the active Cesium viewer to descendants.
 #[derive(Debug, Clone, Copy)]
 pub struct CesiumViewerContext {
-    viewer: JsRwSignal<Option<ThreadSafeJsValue<Viewer>>>,
+    viewer: JsRwSignal<Option<ThreadSafeJsValue<JsValue>>>,
     thread_id: std::thread::ThreadId,
 }
 
@@ -28,46 +25,57 @@ impl CesiumViewerContext {
     }
 
     /// Record the viewer instance in the context.
-    pub fn set_viewer(&self, viewer: &Viewer) {
+    #[cfg(target_arch = "wasm32")]
+    pub fn set_viewer(&self, viewer: Viewer) {
         if !self.is_valid() {
             leptos::logging::error!(
                 "Accessing Cesium viewer from a different thread. Probably running on the server."
             );
             return;
         }
-        #[cfg(target_arch = "wasm32")]
-        self.viewer
-            .set(Some(viewer.clone().into_thread_safe_js_value()));
-        #[cfg(not(target_arch = "wasm32"))]
+        let value: JsValue = viewer.into();
+        self.viewer.set(Some(ThreadSafeJsValue::new(value)));
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn set_viewer(&self, viewer: Viewer) {
         let _ = viewer;
     }
 
     /// Returns the viewer, cloning the underlying JS handle if this is the correct thread.
-    pub fn viewer(&self) -> Option<ThreadSafeJsValue<Viewer>> {
-        if self.is_valid() {
-            self.viewer.get()
-        } else {
-            leptos::logging::error!(
-                "Accessing Cesium viewer from a different thread. Probably running on the server."
-            );
-            None
-        }
+    #[cfg(target_arch = "wasm32")]
+    pub fn viewer(&self) -> Option<Viewer> {
+        self.viewer.get().map(|value| {
+            value
+                .value()
+                .clone()
+                .unchecked_into::<Viewer>()
+        })
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn viewer(&self) -> Option<Viewer> {
+        None
     }
 
     /// Returns the viewer without tracking reactive dependencies.
-    pub fn viewer_untracked(&self) -> Option<ThreadSafeJsValue<Viewer>> {
-        if self.is_valid() {
-            self.viewer.get_untracked()
-        } else {
-            leptos::logging::error!(
-                "Accessing Cesium viewer from a different thread. Probably running on the server."
-            );
-            None
-        }
+    #[cfg(target_arch = "wasm32")]
+    pub fn viewer_untracked(&self) -> Option<Viewer> {
+        self.viewer.get_untracked().map(|value| {
+            value
+                .value()
+                .clone()
+                .unchecked_into::<Viewer>()
+        })
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn viewer_untracked(&self) -> Option<Viewer> {
+        None
     }
 
     /// Returns a read-only signal for the viewer.
-    pub fn viewer_signal(&self) -> JsReadSignal<Option<ThreadSafeJsValue<Viewer>>> {
+    pub fn viewer_signal(&self) -> JsReadSignal<Option<ThreadSafeJsValue<JsValue>>> {
         if self.is_valid() {
             self.viewer.read_only()
         } else {
@@ -83,12 +91,24 @@ impl CesiumViewerContext {
     }
 
     /// Executes a closure with the viewer reference if it is available on this thread.
+    #[cfg(target_arch = "wasm32")]
     pub fn with_viewer<F, R>(&self, f: F) -> Option<R>
     where
-        F: FnOnce(&Viewer) -> R,
+        F: FnOnce(Viewer) -> R,
     {
-        let viewer_ts = self.viewer_untracked()?;
-        Some(f(viewer_ts.value()))
+        let viewer = self
+            .viewer
+            .get_untracked()
+            .map(|value| value.value().clone().unchecked_into::<Viewer>())?;
+        Some(f(viewer))
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn with_viewer<F, R>(&self, _f: F) -> Option<R>
+    where
+        F: FnOnce(Viewer) -> R,
+    {
+        None
     }
 
     fn is_valid(&self) -> bool {
@@ -117,7 +137,7 @@ pub fn use_cesium_context() -> Option<CesiumViewerContext> {
 /// Context exposing entity handles within a viewer.
 #[derive(Debug, Clone, Copy)]
 pub struct CesiumEntityContext {
-    entity: JsRwSignal<Option<ThreadSafeJsValue<Entity>>>,
+    entity: JsRwSignal<Option<ThreadSafeJsValue<JsValue>>>,
     thread_id: std::thread::ThreadId,
 }
 
@@ -129,43 +149,64 @@ impl CesiumEntityContext {
         }
     }
 
-    pub fn set_entity(&self, entity: &Entity) {
+    #[cfg(target_arch = "wasm32")]
+    pub fn set_entity(&self, entity: Entity) {
         if !self.is_valid() {
             leptos::logging::error!(
                 "Accessing Cesium entity from a different thread. Probably running on the server."
             );
             return;
         }
-        #[cfg(target_arch = "wasm32")]
-        self.entity
-            .set(Some(entity.clone().into_thread_safe_js_value()));
-        #[cfg(not(target_arch = "wasm32"))]
+        let value: JsValue = entity.into();
+        self.entity.set(Some(ThreadSafeJsValue::new(value)));
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn set_entity(&self, entity: Entity) {
         let _ = entity;
     }
 
     pub fn entity<T: JsCast>(&self) -> Option<T> {
         if self.is_valid() {
-            self.entity
-                .get()
-                .and_then(|value| value.value().clone().dyn_into::<T>().ok())
+            #[cfg(target_arch = "wasm32")]
+            {
+                return self
+                    .entity
+                    .get()
+                    .and_then(|value| value.value().clone().dyn_into::<T>().ok());
+            }
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                let _ = std::marker::PhantomData::<T>;
+                return None;
+            }
         } else {
             leptos::logging::error!(
                 "Accessing Cesium entity from a different thread. Probably running on the server."
             );
-            None
+            return None;
         }
     }
 
     pub fn entity_untracked<T: JsCast>(&self) -> Option<T> {
         if self.is_valid() {
-            self.entity
-                .get_untracked()
-                .and_then(|value| value.value().clone().dyn_into::<T>().ok())
+            #[cfg(target_arch = "wasm32")]
+            {
+                return self
+                    .entity
+                    .get_untracked()
+                    .and_then(|value| value.value().clone().dyn_into::<T>().ok());
+            }
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                let _ = std::marker::PhantomData::<T>;
+                return None;
+            }
         } else {
             leptos::logging::error!(
                 "Accessing Cesium entity from a different thread. Probably running on the server."
             );
-            None
+            return None;
         }
     }
 

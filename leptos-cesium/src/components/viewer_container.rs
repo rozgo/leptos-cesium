@@ -5,13 +5,10 @@ use leptos::{html::Div, prelude::*};
 use crate::components::provide_cesium_context;
 
 #[cfg(target_arch = "wasm32")]
-use crate::{
-    bindings::{set_base_url, Viewer},
-    core::JsRwSignal,
-};
+use crate::bindings::Viewer;
 
 #[cfg(target_arch = "wasm32")]
-use wasm_bindgen::{JsCast, JsValue};
+use wasm_bindgen::JsValue;
 #[cfg(target_arch = "wasm32")]
 use web_sys::HtmlElement;
 
@@ -24,25 +21,17 @@ pub fn ViewerContainer(
     #[prop(optional)] class: String,
     #[prop(optional)] style: String,
     #[prop(optional, default = NodeRef::new())] node_ref: NodeRef<Div>,
-    #[prop(optional)] base_url: Option<String>,
     children: Children,
 ) -> impl IntoView {
     let viewer_context = provide_cesium_context();
 
     #[cfg(target_arch = "wasm32")]
-    let viewer_handle: JsRwSignal<Option<Viewer>> = JsRwSignal::new_local(None);
-
-    #[cfg(not(target_arch = "wasm32"))]
-    let _ = &base_url;
-
-    #[cfg(target_arch = "wasm32")]
     {
         let node_ref = node_ref.clone();
-        let viewer_handle = viewer_handle.clone();
-        let base_url = base_url.clone();
+        let viewer_context = viewer_context;
 
         Effect::new(move |_| {
-            if viewer_handle.get_untracked().is_some() {
+            if viewer_context.viewer_untracked().is_some() {
                 return;
             }
 
@@ -51,18 +40,16 @@ pub fn ViewerContainer(
             };
 
             let element: HtmlElement = div.into();
-            set_base_url(base_url.as_deref().unwrap_or("/Cesium"));
 
             let viewer = Viewer::new(&element, &JsValue::UNDEFINED);
-            viewer_context.set_viewer(&viewer);
-            viewer_handle.set(Some(viewer));
+            viewer_context.set_viewer(viewer);
         });
     }
 
     on_cleanup(move || {
         #[cfg(target_arch = "wasm32")]
         {
-            if let Some(viewer) = viewer_handle.get_untracked() {
+            if let Some(viewer) = viewer_context.viewer_untracked() {
                 viewer.destroy();
             }
         }

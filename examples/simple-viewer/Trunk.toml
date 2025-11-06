@@ -1,0 +1,11 @@
+[build]
+target = "index.html"
+dist = "dist"
+static_dir = "public"
+filehash = false
+inject_scripts = false
+watch = ["../leptos-cesium"]
+
+[[build.env]]
+name = "CESIUM_ION_TOKEN"
+file = ".env.local"

@@ -8,6 +8,9 @@ use wasm_bindgen::JsValue;
 use web_sys::HtmlElement;
 
 #[cfg(target_arch = "wasm32")]
+use crate::bindings::entity::EntityCollection;
+
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = Cesium, js_name = Viewer)]
@@ -18,8 +21,19 @@ extern "C" {
 
     #[wasm_bindgen(method, js_name = destroy)]
     pub fn destroy(this: &Viewer) -> bool;
+
+    #[wasm_bindgen(method, getter, js_name = entities)]
+    pub fn entities(this: &Viewer) -> EntityCollection;
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug, Clone, Default)]
 pub struct Viewer;
+
+#[cfg(not(target_arch = "wasm32"))]
+impl Viewer {
+    #[allow(dead_code)]
+    pub fn entities(&self) -> crate::bindings::entity::EntityCollection {
+        crate::bindings::entity::EntityCollection::default()
+    }
+}

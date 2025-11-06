@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Leptos Cesium – Simple Viewer</title>
+    <link rel="stylesheet" href="Cesium/Widgets/widgets.css" />
+    <link data-trunk rel="copy-dir" href="public/Cesium" data-target-path="Cesium" />
+    <link
+      data-trunk
+      rel="rust"
+      href="Cargo.toml"
+      data-cargo-features="csr"
+      data-target-path="."
+    />
+    <style>
+      html,
+      body,
+      #root {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        background: #0b0d18;
+        color: #e0e4ff;
+        font-family: sans-serif;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">Loading…</div>
+    <script type="module">
+      const env = (typeof import.meta !== "undefined" && import.meta.env) || {};
+      const baseUrl = (env.CESIUM_BASE_URL ?? "/Cesium/").replace(/\/?$/, "/");
+      window.CESIUM_BASE_URL = baseUrl;
+
+      const ionToken = env.CESIUM_ION_TOKEN;
+
+      function loadCesium() {
+        return new Promise((resolve, reject) => {
+          if (window.Cesium) {
+            resolve();
+            return;
+          }
+
+          if (document.querySelector(`script[data-cesium-loader="true"]`)) {
+            const check = () => {
+              if (window.Cesium) {
+                resolve();
+                return true;
+              }
+              return false;
+            };
+            if (!check()) {
+              const observer = new MutationObserver(() => {
+                if (check()) {
+                  observer.disconnect();
+                }
+              });
+              observer.observe(document.head, { childList: true });
+            }
+            return;
+          }
+
+          const script = document.createElement("script");
+          script.dataset.cesiumLoader = "true";
+          script.src = `${baseUrl}Cesium.js`;
+          script.onload = () => resolve();
+          script.onerror = (error) => reject(error);
+          document.head.appendChild(script);
+        });
+      }
+
+      try {
+        await loadCesium();
+        if (ionToken && window.Cesium?.Ion) {
+          window.Cesium.Ion.defaultAccessToken = ionToken;
+        }
+        const init = (await import("/simple-viewer.js")).default;
+        await init();
+      } catch (err) {
+        console.error("Failed to load viewer:", err);
+      }
+    </script>
+  </body>
+</html>
