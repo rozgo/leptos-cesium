@@ -11,45 +11,62 @@
 
 ## Getting Started
 
-The workspace currently compiles a placeholder crate while bindings and components are being implemented.
+Most day-to-day development happens in the `examples/simple-viewer` crate. The example is built and served with [Trunk](https://trunkrs.dev) so that the Cesium assets, WASM bundle, and environment variables are wired together automatically.
 
-```bash
-# Check formatting and linting
-cargo fmt
-cargo clippy --all-targets --all-features
+### 1. Install prerequisites
 
-# Build the library (no examples yet)
-cargo build
-```
+- Rust toolchain with the `wasm32-unknown-unknown` target
+- `trunk` CLI (`cargo install trunk`)
+- A Cesium bundle extracted somewhere on disk (see below)
 
-### Managing Cesium Assets
+### 2. Vendor Cesium
 
-Cesium requires its runtime assets (Workers, Assets, Widgets, etc.) to be served alongside your application. This repository keeps a single vendor copy per version and syncs it into each example's `public/Cesium` directory via a helper script:
+Download the official Cesium archive (`Cesium-<version>.zip`) and use the helper script to place it under `public/Cesium` for every example:
 
 ```bash
 ./scripts/sync_cesium_assets.sh            # defaults to version 1.135
 ./scripts/sync_cesium_assets.sh 1.136      # sync a different version
 ```
 
-The script will vendorize an existing `Cesium-<version>` directory if present locally. Otherwise, download the official Cesium archive and extract it so that `vendor/Cesium/<version>/Build/Cesium` exists before running the script.
+The script looks for `Cesium-<version>/Build/Cesium` in the repository root. If it exists locally it is copied into `vendor/Cesium/<version>/Build/Cesium` and then linked into each example’s `public/Cesium`.
 
-Each example will set `package.metadata.leptos.assets-dir = "public"` so that `cargo leptos build`/`watch` serve the synced Cesium files automatically.
+### 3. Provide an Ion token
 
-### Running Examples (soon)
+Trunk run hooks read an `.env.local` file before each build and emit a small JavaScript shim consumed by the bootstrap script. Create your own copy (this file stays out of git):
 
-Example applications are being scaffolded now. Once implemented you will be able to:
+```bash
+cp examples/simple-viewer/.env.example examples/simple-viewer/.env.local
+```
+
+Edit `.env.local` and paste a valid Cesium Ion token:
+
+```
+CESIUM_ION_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+### 4. Run the example
 
 ```bash
 cd examples/simple-viewer
-cargo leptos watch
+trunk serve --open
 ```
 
-Make sure `scripts/sync_cesium_assets.sh` has been executed beforehand so `public/Cesium` exists.
+Trunk’s `pre_build` hook (`scripts/generate_cesium_env.js`) reads the token and generates `public/cesium-env.js`. Both the public folder and the generated staging/dist directories receive the same file so the watch loop remains stable. The HTML page loads this script before the WASM bootstrap so `window.CESIUM_ION_TOKEN` is defined before the viewer starts.
 
-## Development Notes
+### What happens at build time?
 
-- Stick to the Leptos conventions used in `leptos-leaflet` (contexts, SSR-safe signals, event builders).
-- Bindings will be generated via `ts-bindgen` against `Cesium-1.135/Source/Cesium.d.ts` into `src/bindings/generated.rs`.
-- `wasm-bindgen-test` smoke tests will validate bindings via `cargo test --target wasm32-unknown-unknown`.
+1. `scripts/generate_cesium_env.js` copies the token into `cesium-env.js` only if the contents changed.
+2. The `copy-dir` asset mirrors `public/Cesium/**` into Trunk’s output.
+3. The standalone bootstrap module (`scripts/bootstrap.js`) loads `Cesium.js`, assigns the token, and *then* imports the WASM bundle that Trunk compiled.
+4. The Leptos example mounts, instantiates a `Cesium.Viewer`, and drops a sample entity.
 
-Contributions are welcome once the base architecture settles.
+### Development Tips
+
+- Run `cargo check` or `cargo test` from the repository root as usual; the example crate depends directly on the workspace library.
+- When updating the Cesium bundle, rerun `./scripts/sync_cesium_assets.sh` and restart Trunk so the `copy-dir` asset picks up the new files.
+- If you rotate Ion tokens, edit `.env.local`; the build hook rewrites `cesium-env.js` on the next build.
+
+## Project Status
+
+- The `simple-viewer` example renders a Cesium globe, sets the viewer context, and adds a sample entity.
+- Core library work is ongoing (bindings, components, events). Contributions are welcome!

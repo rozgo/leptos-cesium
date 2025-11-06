@@ -3,7 +3,7 @@ const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..");
 const envPath = path.join(ROOT, ".env.local");
-const outputPath = path.join(ROOT, "public", "cesium-env.js");
+const publicPath = path.join(ROOT, "public", "cesium-env.js");
 
 let token = null;
 if (fs.existsSync(envPath)) {
@@ -25,25 +25,33 @@ if (fs.existsSync(envPath)) {
 
 const output = `window.CESIUM_ION_TOKEN = ${token ? JSON.stringify(token) : "null"};\n`;
 
-let shouldWrite = true;
-if (fs.existsSync(outputPath)) {
+function writeIfChanged(targetPath) {
   try {
-    const current = fs.readFileSync(outputPath, "utf8");
-    if (current === output) {
-      shouldWrite = false;
-      console.info("[hook] cesium-env.js already up to date");
+    const dir = path.dirname(targetPath);
+    fs.mkdirSync(dir, { recursive: true });
+    if (fs.existsSync(targetPath)) {
+      const current = fs.readFileSync(targetPath, "utf8");
+      if (current === output) {
+        console.info("[hook]", targetPath, "already up to date");
+        return;
+      }
     }
+    fs.writeFileSync(targetPath, output, "utf8");
+    console.info("[hook] Wrote", targetPath, token ? "(token set)" : "(no token)");
   } catch (err) {
-    console.error("[hook] Failed to read existing cesium-env.js:", err);
+    console.error("[hook] Failed to write", targetPath, err);
+    process.exitCode = 1;
   }
 }
 
-if (shouldWrite) {
-  try {
-    fs.writeFileSync(outputPath, output, "utf8");
-    console.info("[hook] Wrote", outputPath, token ? "(token set)" : "(no token)");
-  } catch (err) {
-    console.error("[hook] Failed to write", outputPath, err);
-    process.exitCode = 1;
-  }
+writeIfChanged(publicPath);
+
+const staging = process.env.TRUNK_STAGING_DIR;
+if (staging) {
+  writeIfChanged(path.join(staging, "cesium-env.js"));
+}
+
+const dist = process.env.TRUNK_DIST_DIR;
+if (dist) {
+  writeIfChanged(path.join(dist, "cesium-env.js"));
 }
