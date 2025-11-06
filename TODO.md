@@ -2,19 +2,23 @@
 
 **Goal:** Create a comprehensive Leptos component library for CesiumJS with auto-generated bindings, matching leptos-leaflet's coverage and patterns.
 
-## Progress Summary (2025-11-05)
+## Progress Summary (2025-11-06)
 - Workspace scaffolding mirrors leptos-leaflet: shared Leptos 0.8 dependencies, crate features (`csr`, `hydrate`, `ssr`), and example workspace members.
 - Core utilities ported: thread-safe `JsValue` wrapper with tests plus local-storage JS signal aliases under `src/core`.
 - Viewer/entity context scaffolding in place with SSR-aware thread checks and helper provision functions.
 - Asset workflow operational via `scripts/sync_cesium_assets.sh`, syncing a vendorized `Cesium-1.135` build into each example's `public` directory.
 - Minimal manual bindings added for `Cesium.Viewer` (constructor/destroy) plus `buildModuleUrl.setBaseUrl`; `ViewerContainer` now instantiates a real viewer on wasm targets.
-- Hand-rolled entity/Cartesian bindings allow `examples/simple-viewer` to add a point entity once the viewer mounts (CSR smoke test still passes, now with initial scene setup).
+- Hand-rolled entity/Cartesian bindings allow `examples/simple-viewer` to add a point entity once the viewer mounts.
+- **WORKING**: `simple-viewer` example successfully renders Cesium globe with Bing Maps imagery and entity marker using Trunk build system.
+- Build system uses Trunk (not cargo-leptos) with pre-build hooks for Ion token injection via `scripts/generate_cesium_env.js`.
+- HTML structure finalized: Cesium.js loads synchronously in `<head>`, Ion token set inline, WASM injected in `<body>`, app mounts to body.
 
 ## Near-Term Next Steps
 1. Flesh out viewer creation options (basic `ViewerOptions` pass-through, animation/timeline toggles) and make base URL overrides ergonomic.
 2. Extend entity helpers (context add/remove APIs, typed graphics options) building on the basic bindings.
-3. Update `examples/simple-viewer` to include widget CSS guidance and verify assets/Base URL paths work with `cargo leptos`.
-4. Kick tooling/docs back into gear after rendering is verified end-to-end (defer cargo-make/hooks until functionality is proven).
+3. Create Cesium-specific examples showcasing unique 3D capabilities (terrain, 3D tiles, CZML, time-based animations).
+4. Implement event system with `cesium_events!` macro for mouse/camera/scene events.
+5. Add more comprehensive entity graphics (billboard, label, polygon, polyline, model).
 
 ## Phase 1: Project Setup & Infrastructure
 

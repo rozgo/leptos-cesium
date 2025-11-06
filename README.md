@@ -55,16 +55,19 @@ Trunk’s `pre_build` hook (`scripts/generate_cesium_env.js`) reads the token an
 
 ### What happens at build time?
 
-1. `scripts/generate_cesium_env.js` copies the token into `cesium-env.js` only if the contents changed.
-2. The `copy-dir` asset mirrors `public/Cesium/**` into Trunk’s output.
-3. The standalone bootstrap module (`scripts/bootstrap.js`) loads `Cesium.js`, assigns the token, and *then* imports the WASM bundle that Trunk compiled.
-4. The Leptos example mounts, instantiates a `Cesium.Viewer`, and drops a sample entity.
+1. **Pre-build hook**: `scripts/generate_cesium_env.js` reads `.env.local` and generates `cesium-env.js` with the Ion token
+2. **Asset copying**: `copy-dir` mirrors `public/Cesium/**` into Trunk's dist directory
+3. **Cesium loading**: The HTML loads `cesium-env.js` and `Cesium.js` synchronously in `<head>`
+4. **Token setup**: Inline script sets `Cesium.Ion.defaultAccessToken` from `window.CESIUM_ION_TOKEN`
+5. **WASM loading**: Trunk injects the WASM module loader at the `<link data-trunk rel="rust">` location
+6. **App mounting**: `main()` calls `mount_to_body()` which creates the Leptos app and Cesium viewer
 
 ### Development Tips
 
 - Run `cargo check` or `cargo test` from the repository root as usual; the example crate depends directly on the workspace library.
 - When updating the Cesium bundle, rerun `./scripts/sync_cesium_assets.sh` and restart Trunk so the `copy-dir` asset picks up the new files.
 - If you rotate Ion tokens, edit `.env.local`; the build hook rewrites `cesium-env.js` on the next build.
+- For troubleshooting build/runtime issues, see `CLAUDE.md`
 
 ## Project Status
 
