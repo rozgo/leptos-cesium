@@ -3,7 +3,6 @@ target = "index.html"
 dist = "dist"
 static_dir = "public"
 filehash = false
-inject_scripts = false
 watch = ["../leptos-cesium"]
 
 [[hooks]]

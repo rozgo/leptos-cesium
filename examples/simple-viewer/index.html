@@ -5,20 +5,18 @@
     <title>Leptos Cesium – Simple Viewer</title>
     <link rel="stylesheet" href="Cesium/Widgets/widgets.css" />
     <link data-trunk rel="copy-dir" href="public/Cesium" data-target-path="Cesium" />
-    <link
-      data-trunk
-      rel="rust"
-      href="Cargo.toml"
-      data-cargo-features="csr"
-      data-target-path="."
-    />
     <script src="cesium-env.js"></script>
-    <script data-trunk type="module" src="scripts/bootstrap.js"></script>
+    <script src="Cesium/Cesium.js"></script>
+    <script>
+      // Set Ion token after Cesium loads
+      if (window.CESIUM_ION_TOKEN && window.Cesium?.Ion) {
+        window.Cesium.Ion.defaultAccessToken = window.CESIUM_ION_TOKEN;
+      }
+    </script>
 
     <style>
       html,
-      body,
-      #root {
+      body {
         margin: 0;
         width: 100%;
         height: 100%;
@@ -30,6 +28,6 @@
     </style>
   </head>
   <body>
-    <div id="root"></div>
+    <link data-trunk rel="rust" data-bindgen-target="web" data-wasm-opt="z" />
   </body>
 </html>

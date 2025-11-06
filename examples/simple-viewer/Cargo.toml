@@ -4,9 +4,6 @@ version = "0.0.1"
 edition = "2021"
 publish = false
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
 [dependencies]
 console_error_panic_hook = "0.1"
 leptos = { version = "0.8", default-features = false, features = ["csr"] }
