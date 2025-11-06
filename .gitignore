@@ -1,0 +1,18 @@
+# Build artifacts
+/target/
+/**/target/
+
+# Generated web assets (cargo leptos / wasm-pack)
+/**/pkg/
+/**/dist/
+
+# Cesium bundles (downloaded/vendorized locally)
+/vendor/
+/Cesium-*/
+/Cesium-*.zip
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

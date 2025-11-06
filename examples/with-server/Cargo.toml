@@ -1,0 +1,12 @@
+[package]
+name = "with-server"
+version = "0.0.1"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[package.metadata.leptos]
+assets-dir = "public"

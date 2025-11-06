@@ -1,0 +1,7 @@
+* text=auto
+
+*.wasm binary
+*.glb binary
+*.dae binary
+*.gltf binary
+*.zip binary
