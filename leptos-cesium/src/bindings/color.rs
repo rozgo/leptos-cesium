@@ -31,7 +31,7 @@ fn get_color_property(name: &str) -> Color {
     let color_class =
         Reflect::get(&cesium, &JsValue::from_str("Color")).expect("Cesium.Color to exist");
     Reflect::get(&color_class, &JsValue::from_str(name))
-        .expect(&format!("Cesium.Color.{} to exist", name))
+        .unwrap_or_else(|_| panic!("Cesium.Color.{} to exist", name))
         .unchecked_into::<Color>()
 }
 

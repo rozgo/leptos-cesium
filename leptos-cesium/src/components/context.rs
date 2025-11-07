@@ -166,10 +166,9 @@ impl CesiumEntityContext {
         if self.is_valid() {
             #[cfg(target_arch = "wasm32")]
             {
-                return self
-                    .entity
+                self.entity
                     .get()
-                    .and_then(|value| value.value().clone().dyn_into::<T>().ok());
+                    .and_then(|value| value.value().clone().dyn_into::<T>().ok())
             }
             #[cfg(not(target_arch = "wasm32"))]
             {
@@ -180,7 +179,7 @@ impl CesiumEntityContext {
             leptos::logging::error!(
                 "Accessing Cesium entity from a different thread. Probably running on the server."
             );
-            return None;
+            None
         }
     }
 
@@ -188,10 +187,9 @@ impl CesiumEntityContext {
         if self.is_valid() {
             #[cfg(target_arch = "wasm32")]
             {
-                return self
-                    .entity
+                self.entity
                     .get_untracked()
-                    .and_then(|value| value.value().clone().dyn_into::<T>().ok());
+                    .and_then(|value| value.value().clone().dyn_into::<T>().ok())
             }
             #[cfg(not(target_arch = "wasm32"))]
             {
@@ -202,7 +200,7 @@ impl CesiumEntityContext {
             leptos::logging::error!(
                 "Accessing Cesium entity from a different thread. Probably running on the server."
             );
-            return None;
+            None
         }
     }
 

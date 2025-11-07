@@ -89,10 +89,7 @@ impl<T> ThreadSafeJsValue<T> {
         if self.thread_id == std::thread::current().id() {
             Ok(&self.value)
         } else {
-            Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                NOT_ON_CURRENT_THREAD,
-            ))
+            Err(std::io::Error::other(NOT_ON_CURRENT_THREAD))
         }
     }
 }
