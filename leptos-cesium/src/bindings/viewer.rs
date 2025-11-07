@@ -53,6 +53,9 @@ extern "C" {
     #[wasm_bindgen(method, js_name = flyHome)]
     pub fn fly_home(this: &Camera, duration: f64);
 
+    #[wasm_bindgen(method, js_name = flyTo)]
+    pub fn fly_to(this: &Camera, options: &JsValue);
+
     #[wasm_bindgen(method, js_name = setView)]
     pub fn set_view(this: &Camera, options: &JsValue);
 
@@ -65,6 +68,38 @@ extern "C" {
 
     #[wasm_bindgen(method, setter, js_name = shouldAnimate)]
     pub fn set_should_animate(this: &Clock, value: bool);
+
+    #[wasm_bindgen(method, getter, js_name = currentTime)]
+    pub fn current_time(this: &Clock) -> JsValue;
+
+    #[wasm_bindgen(method, setter, js_name = currentTime)]
+    pub fn set_current_time(this: &Clock, value: &JsValue);
+
+    /// JulianDate for time representation
+    #[wasm_bindgen(js_namespace = Cesium, js_name = JulianDate)]
+    pub type JulianDate;
+}
+
+// Helper function to get current JulianDate using reflection
+#[cfg(target_arch = "wasm32")]
+pub fn julian_date_now() -> JulianDate {
+    use js_sys::{global, Function, Reflect};
+    use wasm_bindgen::{JsCast, JsValue};
+
+    let cesium = Reflect::get(&global(), &JsValue::from_str("Cesium"))
+        .expect("Cesium global to be available");
+    let julian_date_class = Reflect::get(&cesium, &JsValue::from_str("JulianDate"))
+        .expect("Cesium.JulianDate to exist");
+    let now_fn = Reflect::get(&julian_date_class, &JsValue::from_str("now"))
+        .expect("Cesium.JulianDate.now to exist");
+    let now_fn: Function = now_fn
+        .dyn_into()
+        .expect("Cesium.JulianDate.now to be callable");
+
+    now_fn
+        .call0(&julian_date_class)
+        .expect("Cesium.JulianDate.now call to succeed")
+        .unchecked_into::<JulianDate>()
 }
 
 #[cfg(not(target_arch = "wasm32"))]

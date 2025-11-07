@@ -54,7 +54,7 @@ pub fn CzmlDataSource(
                 let add_promise = viewer.data_sources().add(promise);
 
                 // Handle the promise
-                let viewer_ctx_clone = viewer_context.clone();
+                let viewer_ctx_clone = viewer_context;
                 wasm_bindgen_futures::spawn_local(async move {
                     match JsFuture::from(add_promise).await {
                         Ok(data_source_js) => {
