@@ -39,12 +39,27 @@ Download and sync Cesium assets to examples:
 
 The script expects Cesium at `vendor/Cesium/1.135/Build/Cesium` and creates symlinks in each example's `public/Cesium` directory.
 
-### 4. Run an example
+### 4. Run examples
 
+**Simple viewer (basic globe):**
 ```bash
 cd examples/simple-viewer
 trunk serve --open
 ```
+
+**Entities example (shapes and materials):**
+```bash
+cd examples/with-entities
+trunk serve --open
+```
+Demonstrates declarative entity components: rectangles, polygons, ellipses with different materials.
+
+**Server-side rendering:**
+```bash
+cd examples/with-server
+cargo leptos watch
+```
+Visit http://localhost:3000
 
 ### What happens at build time?
 
@@ -57,12 +72,69 @@ trunk serve --open
 
 ### Development Tips
 
-- Run `cargo check` or `cargo test` from the repository root
+- Run `cargo check --target wasm32-unknown-unknown` from the repository root to check library code
 - When updating the Cesium bundle, rerun `./scripts/sync_cesium_assets.sh` and restart Trunk
 - If you rotate Ion tokens, edit `.env.local` and rebuild
 - For troubleshooting, see `CLAUDE.md`
 
+## Features
+
+### Declarative Components
+
+Create Cesium entities with clean, type-safe Rust:
+
+```rust
+use leptos::prelude::*;
+use leptos_cesium::prelude::*;
+
+view! {
+    <ViewerContainer ion_token=token>
+        <Entity name="My Rectangle">
+            <RectangleGraphics
+                coordinates=Rectangle::from_degrees(-110.0, 20.0, -80.0, 25.0)
+                material=Some(Material::color(Color::red().with_alpha(0.5)))
+                outline=Some(true)
+                outline_color=Some(Color::black())
+            />
+        </Entity>
+    </ViewerContainer>
+}
+```
+
+### Supported Graphics
+
+- **RectangleGraphics** - Rectangles on the globe surface
+- **PolygonGraphics** - Polygons with optional holes
+- **EllipseGraphics** - Ellipses with rotation support
+
+### Materials
+
+- **Solid colors** with alpha transparency
+- **Stripe patterns** with builder API:
+  ```rust
+  Material::stripe(
+      StripeOptions::new()
+          .even_color(Color::white())
+          .odd_color(Color::blue())
+          .repeat(5.0)
+          .build()
+  )
+  ```
+
 ## Project Status
 
-- The `simple-viewer` example renders a Cesium globe, sets the viewer context, and adds a sample entity.
-- Core library work is ongoing (bindings, components, events). Contributions are welcome!
+**Implemented:**
+- ✅ ViewerContainer with Ion token support
+- ✅ Entity component with declarative graphics
+- ✅ Rectangle, Polygon, Ellipse graphics components
+- ✅ Material system (Color, Stripe)
+- ✅ Server-side rendering support
+- ✅ Thread-safe JsValue wrappers
+
+**In Progress:**
+- 🚧 Additional graphics types (Box, Cylinder, etc.)
+- 🚧 Data source components
+- 🚧 Event system
+- 🚧 Camera controls
+
+Contributions are welcome!

@@ -203,3 +203,193 @@ view! {
 3. Expand documentation as features land (README, example guides, API docs).
 
 When in doubt, compare behavior and architecture decisions with `leptos-leaflet` and the upstream Leptos workspace for idiomatic practices.
+
+## Code Gotchas & Patterns
+
+### wasm_bindgen Cesium Bindings
+
+**Static properties and namespace methods require reflection:**
+
+Cesium uses namespace objects (not ES6 classes), so `static_method_of` and `getter` attributes don't work for static properties or methods. Use manual reflection instead:
+
+```rust
+// ❌ WRONG - This won't work for Cesium namespace objects
+#[wasm_bindgen(static_method_of = Color, getter, js_name = RED)]
+pub fn red() -> Color;
+
+// ✅ CORRECT - Use reflection to access static properties
+fn get_color_property(name: &str) -> Color {
+    use js_sys::{global, Reflect};
+    use wasm_bindgen::JsCast;
+
+    let cesium = Reflect::get(&global(), &JsValue::from_str("Cesium"))
+        .expect("Cesium global to be available");
+    let color_class = Reflect::get(&cesium, &JsValue::from_str("Color"))
+        .expect("Cesium.Color to exist");
+    Reflect::get(&color_class, &JsValue::from_str(name))
+        .expect(&format!("Cesium.Color.{} to exist", name))
+        .unchecked_into::<Color>()
+}
+
+impl Color {
+    pub fn red() -> Color {
+        get_color_property("RED")
+    }
+}
+```
+
+**Same pattern for static methods like `Rectangle.fromDegrees()`:**
+
+```rust
+pub fn from_degrees(west: f64, south: f64, east: f64, north: f64) -> Rectangle {
+    use js_sys::{global, Function, Reflect};
+    use wasm_bindgen::{JsCast, JsValue};
+
+    let cesium = Reflect::get(&global(), &JsValue::from_str("Cesium"))
+        .expect("Cesium global to be available");
+    let rectangle = Reflect::get(&cesium, &JsValue::from_str("Rectangle"))
+        .expect("Cesium.Rectangle to exist");
+    let from_degrees_fn = Reflect::get(&rectangle, &JsValue::from_str("fromDegrees"))
+        .expect("Cesium.Rectangle.fromDegrees to exist");
+    let from_degrees_fn: Function = from_degrees_fn
+        .dyn_into()
+        .expect("Cesium.Rectangle.fromDegrees to be callable");
+    from_degrees_fn
+        .call4(&rectangle, &JsValue::from_f64(west), &JsValue::from_f64(south),
+               &JsValue::from_f64(east), &JsValue::from_f64(north))
+        .expect("Cesium.Rectangle.fromDegrees to succeed")
+        .unchecked_into::<Rectangle>()
+}
+```
+
+### Clone Trait for wasm_bindgen Types
+
+**Use `#[derive(Clone)]` directly on extern type definitions:**
+
+```rust
+#[wasm_bindgen]
+extern "C" {
+    #[derive(Clone)]  // ✅ Works with wasm_bindgen extern types
+    #[wasm_bindgen(js_namespace = Cesium)]
+    pub type Color;
+}
+```
+
+This generates proper clone implementations for JsValue-based types (ref-counting under the hood).
+
+### Signal Types for JsValue Props
+
+**Use `JsSignal<T>` for JS types, regular `Signal<T>` for primitives:**
+
+```rust
+#[component(transparent)]
+pub fn RectangleGraphics(
+    // JS types use JsSignal (LocalStorage)
+    #[prop(into)]
+    coordinates: JsSignal<Rectangle>,
+
+    #[prop(optional, into)]
+    material: JsSignal<Option<Material>>,
+
+    // Primitives use regular Signal (SyncStorage)
+    #[prop(into)]
+    semi_minor_axis: Signal<f64>,
+
+    #[prop(optional, into)]
+    outline: Signal<Option<bool>>,
+) -> impl IntoView
+```
+
+**Access JsSignal values with `get_untracked()`:**
+
+```rust
+Effect::new(move |_| {
+    // Use get_untracked() for JsSignal (LocalStorage doesn't support get())
+    let coords = coordinates.get_untracked();
+    let mat = material.get_untracked();
+
+    // Use get() for regular Signal
+    let radius = semi_minor_axis.get();
+    let show_outline = outline.get();
+});
+```
+
+### Ergonomic Component Props
+
+**Always use `#[prop(into)]` to allow passing raw values:**
+
+```rust
+// ✅ Users can pass values directly, Leptos converts to signals
+view! {
+    <RectangleGraphics
+        coordinates=Rectangle::from_degrees(-110.0, 20.0, -80.0, 25.0)
+        material=Some(Material::color(Color::red()))
+        outline=Some(true)
+    />
+}
+
+// No need for:
+// coordinates=create_signal(Rectangle::from_degrees(...))
+// The #[prop(into)] attribute handles the conversion
+```
+
+### Builder Pattern for Complex Options
+
+**Use builder pattern for options with multiple fields:**
+
+```rust
+// ✅ Clean, self-documenting API
+StripeOptions::new()
+    .even_color(Color::white())
+    .odd_color(Color::blue())
+    .repeat(5.0)
+    .build()
+
+// ❌ Avoid exposing raw JsValue manipulation to users
+let options = Object::new();
+Reflect::set(&options, &JsValue::from_str("evenColor"), &JsValue::from(Color::white()));
+// ... more boilerplate
+```
+
+### Strongly-Typed Enums Over JsValue
+
+**Create typed enums for polymorphic parameters:**
+
+```rust
+// ✅ Type-safe material enum
+pub enum Material {
+    Color(ThreadSafeJsValue<Color>),
+    Stripe(ThreadSafeJsValue<StripeMaterialProperty>),
+}
+
+impl Material {
+    pub fn color(color: Color) -> Self {
+        Material::Color(ThreadSafeJsValue::new(color))
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn to_js_value(&self) -> JsValue {
+        match self {
+            Material::Color(c) => JsValue::from(c.value().clone()),
+            Material::Stripe(s) => JsValue::from(s.value().clone()),
+        }
+    }
+}
+
+// ❌ Avoid using raw JsValue in public APIs
+#[prop(optional)]
+material: Option<Signal<JsValue>>  // Hard to use, no type safety
+```
+
+### Entity Context Generic Type Specification
+
+**Specify concrete types when calling generic context methods:**
+
+```rust
+// Entity context methods are generic over JsCast types
+if entity_context.entity_untracked::<CesiumEntity>().is_some() {
+    // ... work with entity
+}
+
+// Not just entity_untracked() - compiler needs the type
+```
