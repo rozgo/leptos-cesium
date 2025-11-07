@@ -11,6 +11,9 @@ use js_sys::{Array, Object, Reflect};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsValue;
 
+#[cfg(not(target_arch = "wasm32"))]
+type Array = ();
+
 /// PolylineGraphics component for displaying a polyline on an entity
 #[component(transparent)]
 pub fn PolylineGraphics(

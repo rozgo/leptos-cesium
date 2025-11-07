@@ -11,6 +11,9 @@ use js_sys::{Array, Object, Reflect};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsValue;
 
+#[cfg(not(target_arch = "wasm32"))]
+type Array = ();
+
 /// CorridorGraphics component for displaying a corridor along a path
 #[component(transparent)]
 pub fn CorridorGraphics(

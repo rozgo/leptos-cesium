@@ -11,6 +11,9 @@ use js_sys::{Array, Object, Reflect};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsValue;
 
+#[cfg(not(target_arch = "wasm32"))]
+type Array = ();
+
 /// PolylineVolumeGraphics component for displaying a polyline with a 2D shape extruded along it
 #[component(transparent)]
 pub fn PolylineVolumeGraphics(

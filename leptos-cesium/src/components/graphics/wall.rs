@@ -11,6 +11,9 @@ use js_sys::{Array, Object, Reflect};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsValue;
 
+#[cfg(not(target_arch = "wasm32"))]
+type Array = ();
+
 /// WallGraphics component for displaying a wall between positions on the ground and a height
 #[component(transparent)]
 pub fn WallGraphics(

@@ -23,6 +23,13 @@ use web_sys::{console, HtmlElement};
 /// * `class` - Optional CSS class for the container div
 /// * `style` - Optional inline styles for the container div
 /// * `node_ref` - Optional node reference to access the underlying DOM element
+/// * `animation` - Whether to show animation widget. Defaults to true.
+/// * `timeline` - Whether to show timeline widget. Defaults to true.
+/// * `base_layer_picker` - Whether to show base layer picker. Defaults to true.
+/// * `home_button` - Whether to show home button. Defaults to true.
+/// * `scene_mode_picker` - Whether to show scene mode picker. Defaults to true.
+/// * `navigation_help_button` - Whether to show navigation help button. Defaults to true.
+/// * `fullscreen_button` - Whether to show fullscreen button. Defaults to true.
 /// * `children` - Child components (entities, data sources, etc.)
 #[component]
 pub fn ViewerContainer(
@@ -30,6 +37,13 @@ pub fn ViewerContainer(
     #[prop(optional)] class: String,
     #[prop(optional)] style: String,
     #[prop(optional, default = NodeRef::new())] node_ref: NodeRef<Div>,
+    #[prop(optional, default = true)] animation: bool,
+    #[prop(optional, default = true)] timeline: bool,
+    #[prop(optional, default = true)] base_layer_picker: bool,
+    #[prop(optional, default = true)] home_button: bool,
+    #[prop(optional, default = true)] scene_mode_picker: bool,
+    #[prop(optional, default = true)] navigation_help_button: bool,
+    #[prop(optional, default = true)] fullscreen_button: bool,
     children: Children,
 ) -> impl IntoView {
     let viewer_context = provide_cesium_context();
@@ -66,7 +80,45 @@ pub fn ViewerContainer(
                 "ViewerContainer: constructing Cesium.Viewer instance.",
             ));
 
-            let viewer = Viewer::new(&element, &JsValue::UNDEFINED);
+            // Build viewer options
+            let options = js_sys::Object::new();
+            let _ = js_sys::Reflect::set(
+                &options,
+                &JsValue::from_str("animation"),
+                &JsValue::from_bool(animation),
+            );
+            let _ = js_sys::Reflect::set(
+                &options,
+                &JsValue::from_str("timeline"),
+                &JsValue::from_bool(timeline),
+            );
+            let _ = js_sys::Reflect::set(
+                &options,
+                &JsValue::from_str("baseLayerPicker"),
+                &JsValue::from_bool(base_layer_picker),
+            );
+            let _ = js_sys::Reflect::set(
+                &options,
+                &JsValue::from_str("homeButton"),
+                &JsValue::from_bool(home_button),
+            );
+            let _ = js_sys::Reflect::set(
+                &options,
+                &JsValue::from_str("sceneModePicker"),
+                &JsValue::from_bool(scene_mode_picker),
+            );
+            let _ = js_sys::Reflect::set(
+                &options,
+                &JsValue::from_str("navigationHelpButton"),
+                &JsValue::from_bool(navigation_help_button),
+            );
+            let _ = js_sys::Reflect::set(
+                &options,
+                &JsValue::from_str("fullscreenButton"),
+                &JsValue::from_bool(fullscreen_button),
+            );
+
+            let viewer = Viewer::new(&element, &options.into());
             console::debug_1(&JsValue::from_str(
                 "ViewerContainer: viewer created; storing in context.",
             ));
