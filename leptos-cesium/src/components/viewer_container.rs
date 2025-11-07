@@ -71,6 +71,20 @@ pub fn ViewerContainer(
                 "ViewerContainer: viewer created; storing in context.",
             ));
             viewer_context.set_viewer(viewer);
+
+            // Remove cesium-viewer-bottom
+            if let Some(document) = web_sys::window().and_then(|w| w.document()) {
+                if let Some(bottom_bar) = document
+                    .query_selector(".cesium-viewer-bottom")
+                    .ok()
+                    .flatten()
+                {
+                    bottom_bar.remove();
+                    console::debug_1(&JsValue::from_str(
+                        "ViewerContainer: removed .cesium-viewer-bottom",
+                    ));
+                }
+            }
         });
     }
 
