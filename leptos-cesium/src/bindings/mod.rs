@@ -3,6 +3,7 @@
 pub mod cartesian2;
 pub mod color;
 pub mod coordinates;
+pub mod data_source;
 pub mod entity;
 pub mod generated;
 pub mod globals;
@@ -16,6 +17,7 @@ pub mod viewer;
 pub use cartesian2::*;
 pub use color::*;
 pub use coordinates::*;
+pub use data_source::*;
 pub use entity::*;
 #[allow(unused_imports)]
 pub use generated::*;

@@ -1,5 +1,5 @@
 [workspace]
-members = ["leptos-cesium", "examples/simple-viewer", "examples/with-server", "examples/with-entities"]
+members = ["leptos-cesium", "examples/simple-viewer", "examples/with-server", "examples/with-entities", "examples/czml-viewer"]
 resolver = "2"
 
 [workspace.package]

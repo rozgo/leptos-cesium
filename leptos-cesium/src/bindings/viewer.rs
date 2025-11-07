@@ -8,6 +8,8 @@ use wasm_bindgen::JsValue;
 use web_sys::HtmlElement;
 
 #[cfg(target_arch = "wasm32")]
+use crate::bindings::data_source::DataSourceCollection;
+#[cfg(target_arch = "wasm32")]
 use crate::bindings::entity::EntityCollection;
 
 #[cfg(target_arch = "wasm32")]
@@ -25,6 +27,12 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = entities)]
     pub fn entities(this: &Viewer) -> EntityCollection;
 
+    #[wasm_bindgen(method, getter, js_name = dataSources)]
+    pub fn data_sources(this: &Viewer) -> DataSourceCollection;
+
+    #[wasm_bindgen(method, getter, js_name = camera)]
+    pub fn camera(this: &Viewer) -> Camera;
+
     #[wasm_bindgen(method, js_name = zoomTo)]
     pub fn zoom_to(this: &Viewer, target: &JsValue) -> js_sys::Promise;
 
@@ -34,6 +42,16 @@ extern "C" {
         target: &JsValue,
         offset: &JsValue,
     ) -> js_sys::Promise;
+
+    /// Camera for controlling the view
+    #[wasm_bindgen(js_namespace = Cesium, js_name = Camera)]
+    pub type Camera;
+
+    #[wasm_bindgen(method, js_name = flyHome)]
+    pub fn fly_home(this: &Camera, duration: f64);
+
+    #[wasm_bindgen(method, js_name = setView)]
+    pub fn set_view(this: &Camera, options: &JsValue);
 }
 
 #[cfg(not(target_arch = "wasm32"))]

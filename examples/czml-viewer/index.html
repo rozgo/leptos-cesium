@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Leptos Cesium – CZML Viewer</title>
+    <link rel="stylesheet" href="Cesium/Widgets/widgets.css" />
+    <link data-trunk rel="copy-dir" href="public/Cesium" data-target-path="Cesium" />
+    <script src="Cesium/Cesium.js"></script>
+
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        background: #0b0d18;
+        color: #e0e4ff;
+        font-family: sans-serif;
+        overflow: hidden;
+      }
+
+      .controls {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 1000;
+        display: flex;
+        gap: 8px;
+      }
+
+      .controls button {
+        background: rgba(11, 13, 24, 0.9);
+        color: #e0e4ff;
+        border: 1px solid #3a4d6f;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+      }
+
+      .controls button:hover {
+        background: rgba(31, 43, 64, 0.95);
+        border-color: #5a7d9f;
+      }
+
+      .controls button:active {
+        transform: scale(0.98);
+      }
+    </style>
+  </head>
+  <body>
+    <link data-trunk rel="rust" data-bindgen-target="web" data-wasm-opt="z" />
+  </body>
+</html>

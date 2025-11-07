@@ -44,7 +44,7 @@ pub fn ViewerContainer(
     #[prop(optional, default = true)] scene_mode_picker: bool,
     #[prop(optional, default = true)] navigation_help_button: bool,
     #[prop(optional, default = true)] fullscreen_button: bool,
-    children: Children,
+    #[prop(optional)] children: Option<Children>,
 ) -> impl IntoView {
     let viewer_context = provide_cesium_context();
 
@@ -169,7 +169,7 @@ pub fn ViewerContainer(
 
     view! {
         <div node_ref=node_ref class=class style=style>
-            {children()}
+            {children.map(|c| c())}
         </div>
     }
 }

@@ -345,6 +345,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "czml-viewer"
+version = "0.0.1"
+dependencies = [
+ "console_error_panic_hook",
+ "leptos",
+ "leptos-cesium",
+]
+
+[[package]]
 name = "dashmap"
 version = "6.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -990,6 +999,7 @@ dependencies = [
  "thiserror 2.0.17",
  "tracing",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
  "wasm-bindgen-test",
  "web-sys",
 ]
