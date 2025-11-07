@@ -6,13 +6,19 @@ fn App() -> impl IntoView {
     let ion_token = option_env!("CESIUM_ION_TOKEN").map(|s| s.to_string());
 
     // Signals to control which CZML file to load
-    let (czml_url, set_czml_url) = signal("".to_string());
+    // Start with satellites loaded by default
+    let (czml_url, set_czml_url) = signal("SampleData/simple.czml".to_string());
 
     // Signal to trigger fly home
     let (fly_home_trigger, set_fly_home_trigger) = signal(());
 
     // Signal to control vehicle camera view
     let (show_vehicle_camera, set_show_vehicle_camera) = signal(false);
+
+    // Trigger initial fly home after a brief delay to ensure viewer is ready
+    Effect::new(move |_| {
+        set_fly_home_trigger.set(());
+    });
 
     // Button handlers
     let on_satellites = move |_| {
@@ -22,7 +28,7 @@ fn App() -> impl IntoView {
     };
 
     let on_vehicle = move |_| {
-        set_czml_url.set("SampleData/Vehicle.czml".to_string());
+        set_czml_url.set("SampleData/vehicle.czml".to_string());
         set_show_vehicle_camera.set(true);
     };
 

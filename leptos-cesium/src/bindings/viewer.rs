@@ -33,6 +33,9 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = camera)]
     pub fn camera(this: &Viewer) -> Camera;
 
+    #[wasm_bindgen(method, getter, js_name = clock)]
+    pub fn clock(this: &Viewer) -> Clock;
+
     #[wasm_bindgen(method, js_name = zoomTo)]
     pub fn zoom_to(this: &Viewer, target: &JsValue) -> js_sys::Promise;
 
@@ -52,6 +55,16 @@ extern "C" {
 
     #[wasm_bindgen(method, js_name = setView)]
     pub fn set_view(this: &Camera, options: &JsValue);
+
+    /// Clock for controlling time and animation
+    #[wasm_bindgen(js_namespace = Cesium, js_name = Clock)]
+    pub type Clock;
+
+    #[wasm_bindgen(method, getter, js_name = shouldAnimate)]
+    pub fn should_animate(this: &Clock) -> bool;
+
+    #[wasm_bindgen(method, setter, js_name = shouldAnimate)]
+    pub fn set_should_animate(this: &Clock, value: bool);
 }
 
 #[cfg(not(target_arch = "wasm32"))]

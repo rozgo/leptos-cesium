@@ -30,6 +30,7 @@ use web_sys::{console, HtmlElement};
 /// * `scene_mode_picker` - Whether to show scene mode picker. Defaults to true.
 /// * `navigation_help_button` - Whether to show navigation help button. Defaults to true.
 /// * `fullscreen_button` - Whether to show fullscreen button. Defaults to true.
+/// * `should_animate` - Whether animations should play automatically. Defaults to true. Required for CZML animations.
 /// * `children` - Child components (entities, data sources, etc.)
 #[component]
 pub fn ViewerContainer(
@@ -44,6 +45,7 @@ pub fn ViewerContainer(
     #[prop(optional, default = true)] scene_mode_picker: bool,
     #[prop(optional, default = true)] navigation_help_button: bool,
     #[prop(optional, default = true)] fullscreen_button: bool,
+    #[prop(optional, default = true)] should_animate: bool,
     #[prop(optional)] children: Option<Children>,
 ) -> impl IntoView {
     let viewer_context = provide_cesium_context();
@@ -117,6 +119,11 @@ pub fn ViewerContainer(
                 &JsValue::from_str("fullscreenButton"),
                 &JsValue::from_bool(fullscreen_button),
             );
+            let _ = js_sys::Reflect::set(
+                &options,
+                &JsValue::from_str("shouldAnimate"),
+                &JsValue::from_bool(should_animate),
+            );
 
             let viewer = Viewer::new(&element, &options.into());
             console::debug_1(&JsValue::from_str(
@@ -150,6 +157,7 @@ pub fn ViewerContainer(
                 scene_mode_picker,
                 navigation_help_button,
                 fullscreen_button,
+                should_animate,
             );
         }
     });

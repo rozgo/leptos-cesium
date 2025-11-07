@@ -20,11 +20,56 @@ extern "C" {
     #[wasm_bindgen(js_namespace = Cesium, js_name = CzmlDataSource)]
     pub type CzmlDataSource;
 
-    #[wasm_bindgen(static_method_of = CzmlDataSource, js_name = load)]
-    pub fn load(url: &str) -> js_sys::Promise;
+    #[wasm_bindgen(method, getter, js_name = clock)]
+    pub fn clock(this: &CzmlDataSource) -> DataSourceClock;
 
-    #[wasm_bindgen(static_method_of = CzmlDataSource, js_name = load)]
-    pub fn load_with_options(url: &str, options: &JsValue) -> js_sys::Promise;
+    /// DataSource clock that defines the time range
+    #[wasm_bindgen(js_namespace = Cesium, js_name = DataSourceClock)]
+    pub type DataSourceClock;
+}
+
+// Helper to call CzmlDataSource.load() using reflection
+#[cfg(target_arch = "wasm32")]
+pub fn czml_data_source_load(url: &str) -> js_sys::Promise {
+    use js_sys::{global, Function, Reflect};
+    use wasm_bindgen::JsCast;
+
+    let cesium = Reflect::get(&global(), &JsValue::from_str("Cesium"))
+        .expect("Cesium global to be available");
+    let czml_data_source = Reflect::get(&cesium, &JsValue::from_str("CzmlDataSource"))
+        .expect("Cesium.CzmlDataSource to exist");
+    let load_fn = Reflect::get(&czml_data_source, &JsValue::from_str("load"))
+        .expect("Cesium.CzmlDataSource.load to exist");
+    let load_fn: Function = load_fn
+        .dyn_into()
+        .expect("Cesium.CzmlDataSource.load to be callable");
+
+    load_fn
+        .call1(&czml_data_source, &JsValue::from_str(url))
+        .expect("Cesium.CzmlDataSource.load to succeed")
+        .unchecked_into::<js_sys::Promise>()
+}
+
+// Helper to call CzmlDataSource.load() with options
+#[cfg(target_arch = "wasm32")]
+pub fn czml_data_source_load_with_options(url: &str, options: &JsValue) -> js_sys::Promise {
+    use js_sys::{global, Function, Reflect};
+    use wasm_bindgen::JsCast;
+
+    let cesium = Reflect::get(&global(), &JsValue::from_str("Cesium"))
+        .expect("Cesium global to be available");
+    let czml_data_source = Reflect::get(&cesium, &JsValue::from_str("CzmlDataSource"))
+        .expect("Cesium.CzmlDataSource to exist");
+    let load_fn = Reflect::get(&czml_data_source, &JsValue::from_str("load"))
+        .expect("Cesium.CzmlDataSource.load to exist");
+    let load_fn: Function = load_fn
+        .dyn_into()
+        .expect("Cesium.CzmlDataSource.load to be callable");
+
+    load_fn
+        .call2(&czml_data_source, &JsValue::from_str(url), options)
+        .expect("Cesium.CzmlDataSource.load to succeed")
+        .unchecked_into::<js_sys::Promise>()
 }
 
 #[cfg(not(target_arch = "wasm32"))]
