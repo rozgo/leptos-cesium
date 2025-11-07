@@ -56,11 +56,7 @@ impl PolylineGlowOptions {
         let options = Object::new();
 
         if let Some(color) = self.color {
-            let _ = Reflect::set(
-                &options,
-                &JsValue::from_str("color"),
-                &JsValue::from(color),
-            );
+            let _ = Reflect::set(&options, &JsValue::from_str("color"), &JsValue::from(color));
         }
         if let Some(glow_power) = self.glow_power {
             let _ = Reflect::set(

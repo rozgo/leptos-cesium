@@ -47,8 +47,7 @@ pub fn WallGraphics(
 ) -> impl IntoView {
     #[cfg(target_arch = "wasm32")]
     {
-        let entity_context =
-            use_entity_context().expect("WallGraphics must be a child of Entity");
+        let entity_context = use_entity_context().expect("WallGraphics must be a child of Entity");
 
         Effect::new(move |_| {
             entity_context.with_entity(|entity| {

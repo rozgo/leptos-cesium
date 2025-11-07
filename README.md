@@ -2,6 +2,8 @@
 
 `leptos-cesium` will provide a CesiumJS component library for the [Leptos](https://github.com/leptos-rs/leptos) framework. The goal is to mirror the ergonomics of `leptos-leaflet` while exposing Cesium concepts (viewer, entities, data sources, events) through idiomatic Leptos components.
 
+![cesium-with-entities](docs/cesium-with-entities.jpg)
+
 ## Repository Layout
 
 - `leptos-cesium/` – main library crate (bindings, components, core utilities)
@@ -52,7 +54,7 @@ trunk serve --open
 cd examples/with-entities
 trunk serve --open
 ```
-Demonstrates declarative entity components: rectangles, polygons, ellipses with different materials.
+Demonstrates declarative entity components: 2D shapes (rectangles, polygons, ellipses), 3D primitives (boxes, spheres, cylinders), paths (polylines, corridors, walls), and various materials (colors, stripes, checkerboard, glow).
 
 **Server-side rendering:**
 ```bash
@@ -103,38 +105,83 @@ view! {
 
 ### Supported Graphics
 
+**2D Shapes:**
 - **RectangleGraphics** - Rectangles on the globe surface
 - **PolygonGraphics** - Polygons with optional holes
 - **EllipseGraphics** - Ellipses with rotation support
 
+**3D Primitives:**
+- **BoxGraphics** - Cuboid shapes with customizable dimensions
+- **EllipsoidGraphics** - Spheres and ellipsoids with radii control
+- **CylinderGraphics** - Cylinders and cones with adjustable radii
+
+**Paths & Volumes:**
+- **PolylineGraphics** - Lines with width and material styling
+- **WallGraphics** - Vertical walls with height control
+- **CorridorGraphics** - Corridor paths with width and extrusion
+- **PolylineVolumeGraphics** - Custom 2D shapes extruded along paths
+
 ### Materials
 
-- **Solid colors** with alpha transparency
-- **Stripe patterns** with builder API:
-  ```rust
-  Material::stripe(
-      StripeOptions::new()
-          .even_color(Color::white())
-          .odd_color(Color::blue())
-          .repeat(5.0)
-          .build()
-  )
-  ```
+All materials use a fluent builder API for clean, type-safe configuration:
+
+**Color Material:**
+```rust
+Material::color(Color::red().with_alpha(0.5))
+```
+
+**Stripe Material:**
+```rust
+Material::stripe(
+    StripeOptions::new()
+        .even_color(Color::white())
+        .odd_color(Color::blue())
+        .repeat(5.0)
+        .build()
+)
+```
+
+**Checkerboard Material:**
+```rust
+Material::checkerboard(
+    CheckerboardOptions::new()
+        .even_color(Color::white())
+        .odd_color(Color::black())
+        .repeat(Cartesian2::new(20.0, 6.0))
+        .build()
+)
+```
+
+**Polyline Glow Material:**
+```rust
+Material::polyline_glow(
+    PolylineGlowOptions::new()
+        .color(Color::deepskyblue())
+        .glow_power(0.25)
+        .build()
+)
+```
 
 ## Project Status
 
 **Implemented:**
 - ✅ ViewerContainer with Ion token support
 - ✅ Entity component with declarative graphics
-- ✅ Rectangle, Polygon, Ellipse graphics components
-- ✅ Material system (Color, Stripe)
+- ✅ 2D Graphics: Rectangle, Polygon, Ellipse
+- ✅ 3D Primitives: Box, Ellipsoid, Cylinder
+- ✅ Paths & Volumes: Polyline, Wall, Corridor, PolylineVolume
+- ✅ Materials: Color, Stripe, Checkerboard, PolylineGlow
+- ✅ Viewer controls: zoomTo, entities access
 - ✅ Server-side rendering support
 - ✅ Thread-safe JsValue wrappers
+- ✅ Cartesian2/Cartesian3 coordinate helpers
 
 **In Progress:**
-- 🚧 Additional graphics types (Box, Cylinder, etc.)
-- 🚧 Data source components
-- 🚧 Event system
-- 🚧 Camera controls
+- 🚧 Additional graphics types (Model, Billboard, Label, etc.)
+- 🚧 Data source components (GeoJSON, CZML, KML)
+- 🚧 Event system (click, hover, etc.)
+- 🚧 Camera controls (flyTo, lookAt, etc.)
+- 🚧 Imagery providers
+- 🚧 Terrain providers
 
 Contributions are welcome!

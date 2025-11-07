@@ -11,7 +11,6 @@ pub mod polyline_volume;
 pub mod rectangle;
 pub mod wall;
 
-pub use r#box::*;
 pub use corridor::*;
 pub use cylinder::*;
 pub use ellipse::*;
@@ -19,5 +18,6 @@ pub use ellipsoid::*;
 pub use polygon::*;
 pub use polyline::*;
 pub use polyline_volume::*;
+pub use r#box::*;
 pub use rectangle::*;
 pub use wall::*;
