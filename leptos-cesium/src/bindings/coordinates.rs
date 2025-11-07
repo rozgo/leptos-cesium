@@ -9,6 +9,9 @@ extern "C" {
     #[derive(Clone)]
     #[wasm_bindgen(js_namespace = Cesium, js_name = Cartesian3)]
     pub type Cartesian3;
+
+    #[wasm_bindgen(constructor, js_namespace = Cesium, js_class = Cartesian3)]
+    pub fn new(x: f64, y: f64, z: f64) -> Cartesian3;
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -40,6 +43,13 @@ pub fn cartesian3_from_degrees(longitude: f64, latitude: f64, height: f64) -> Ca
 #[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug, Clone, Default)]
 pub struct Cartesian3;
+
+#[cfg(not(target_arch = "wasm32"))]
+impl Cartesian3 {
+    pub fn new(_x: f64, _y: f64, _z: f64) -> Self {
+        Cartesian3
+    }
+}
 
 #[cfg(target_arch = "wasm32")]
 pub fn cartesian3_from_degrees_array(degrees: &[f64]) -> js_sys::Array {

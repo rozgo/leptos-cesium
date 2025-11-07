@@ -24,6 +24,12 @@ extern "C" {
 
     #[wasm_bindgen(method, getter, js_name = entities)]
     pub fn entities(this: &Viewer) -> EntityCollection;
+
+    #[wasm_bindgen(method, js_name = zoomTo)]
+    pub fn zoom_to(this: &Viewer, target: &JsValue) -> js_sys::Promise;
+
+    #[wasm_bindgen(method, js_name = zoomTo)]
+    pub fn zoom_to_with_offset(this: &Viewer, target: &JsValue, offset: &JsValue) -> js_sys::Promise;
 }
 
 #[cfg(not(target_arch = "wasm32"))]

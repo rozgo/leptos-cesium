@@ -9,8 +9,9 @@ pub use crate::components::*;
 // Re-export common bindings (selective to avoid conflicts)
 pub use crate::bindings::{
     cartesian3_from_degrees, cartesian3_from_degrees_array, cartesian3_from_degrees_array_heights,
-    Cartesian2, Cartesian3, Color, Material, PolygonHierarchy, Rectangle, StripeMaterialProperty,
-    StripeOptions, Viewer,
+    Cartesian2, Cartesian3, CheckerboardMaterialProperty, CheckerboardOptions, Color, Material,
+    PolygonHierarchy, PolylineGlowMaterialProperty, PolylineGlowOptions, Rectangle,
+    StripeMaterialProperty, StripeOptions, Viewer,
 };
 
 // Re-export math utilities
