@@ -173,7 +173,7 @@ impl CesiumEntityContext {
             #[cfg(not(target_arch = "wasm32"))]
             {
                 let _ = std::marker::PhantomData::<T>;
-                return None;
+                None
             }
         } else {
             leptos::logging::error!(
@@ -194,7 +194,7 @@ impl CesiumEntityContext {
             #[cfg(not(target_arch = "wasm32"))]
             {
                 let _ = std::marker::PhantomData::<T>;
-                return None;
+                None
             }
         } else {
             leptos::logging::error!(

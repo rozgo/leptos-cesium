@@ -48,9 +48,9 @@ pub fn ViewerContainer(
 ) -> impl IntoView {
     let viewer_context = provide_cesium_context();
 
-    #[cfg(target_arch = "wasm32")]
-    {
-        Effect::new(move |_| {
+    Effect::new(move |_| {
+        #[cfg(target_arch = "wasm32")]
+        {
             console::debug_1(&JsValue::from_str("ViewerContainer: effect tick"));
             if viewer_context.viewer_untracked().is_some() {
                 console::debug_1(&JsValue::from_str(
@@ -137,8 +137,22 @@ pub fn ViewerContainer(
                     ));
                 }
             }
-        });
-    }
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let _ = (
+                ion_token,
+                animation,
+                timeline,
+                base_layer_picker,
+                home_button,
+                scene_mode_picker,
+                navigation_help_button,
+                fullscreen_button,
+            );
+        }
+    });
 
     on_cleanup(move || {
         #[cfg(target_arch = "wasm32")]

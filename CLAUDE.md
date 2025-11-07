@@ -393,3 +393,99 @@ if entity_context.entity_untracked::<CesiumEntity>().is_some() {
 
 // Not just entity_untracked() - compiler needs the type
 ```
+
+### SSR/WASM Conditional Compilation Pattern
+
+**Always consume component props in both SSR and WASM builds to avoid warnings:**
+
+Since Cesium bindings are only available in WASM (`target_arch = "wasm32"`), but Leptos components run in both SSR and browser contexts, you must ensure props are consumed in all build configurations.
+
+**❌ WRONG - Causes "unused variable" warnings in SSR builds:**
+```rust
+#[component]
+pub fn ViewerContainer(
+    #[prop(into)] ion_token: Signal<Option<String>>,
+    #[prop(optional)] animation: bool,
+) -> impl IntoView {
+    Effect::new(move |_| {
+        #[cfg(target_arch = "wasm32")]
+        {
+            // Props only used here - unused in SSR!
+            if let Some(token) = ion_token.get() {
+                set_default_access_token(&token);
+            }
+            // use animation...
+        }
+    });
+}
+```
+
+**✅ CORRECT - Consume props in both contexts:**
+
+**Pattern 1: For components with Effects (ViewerContainer, Entity):**
+```rust
+#[component]
+pub fn ViewerContainer(
+    #[prop(into)] ion_token: Signal<Option<String>>,
+    #[prop(optional)] animation: bool,
+) -> impl IntoView {
+    Effect::new(move |_| {
+        #[cfg(target_arch = "wasm32")]
+        {
+            if let Some(token) = ion_token.get() {
+                set_default_access_token(&token);
+            }
+            // use animation...
+        }
+
+        // Consume props in SSR builds to avoid warnings
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let _ = (ion_token, animation);
+        }
+    });
+}
+```
+
+**Pattern 2: For transparent graphics components:**
+```rust
+#[component(transparent)]
+pub fn PointGraphics(
+    #[prop(into)] pixel_size: Signal<f64>,
+    #[prop(optional, into)] color: JsSignal<Option<Color>>,
+) -> impl IntoView {
+    #[cfg(target_arch = "wasm32")]
+    {
+        let entity_context = use_entity_context().expect("PointGraphics must be a child of Entity");
+        Effect::new(move |_| {
+            // use pixel_size, color...
+        });
+    }
+
+    // Consume props in SSR builds
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let _ = (pixel_size, color);
+    }
+}
+```
+
+**Import organization:**
+- Move imports used only in WASM code to `#[cfg(target_arch = "wasm32")]` blocks
+- Keep common imports (leptos, component props) unconditional
+- Example:
+```rust
+use leptos::prelude::*;  // Used in all contexts
+use crate::core::JsSignal;  // Used in all contexts
+
+#[cfg(target_arch = "wasm32")]
+use crate::components::use_cesium_context;  // Only used in WASM
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::JsValue;  // Only used in WASM
+```
+
+**Why this matters:**
+- `cargo leptos build` compiles for both SSR (native) and browser (WASM)
+- Props captured by Effect closures but not used in SSR trigger warnings
+- Zero-cost: `let _ = (...)` is optimized away at compile time
+- Ensures clean builds: `cargo leptos build` should produce zero warnings

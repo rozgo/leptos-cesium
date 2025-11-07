@@ -2,13 +2,15 @@
 
 use leptos::prelude::*;
 
-use crate::components::{extend_context_with_entity, use_cesium_context};
+use crate::components::extend_context_with_entity;
 use crate::core::JsSignal;
 
 #[cfg(target_arch = "wasm32")]
 use crate::bindings::Viewer;
 #[cfg(target_arch = "wasm32")]
 use crate::bindings::{Cartesian3, Entity as CesiumEntity};
+#[cfg(target_arch = "wasm32")]
+use crate::components::use_cesium_context;
 #[cfg(target_arch = "wasm32")]
 use js_sys::{Object, Reflect};
 #[cfg(target_arch = "wasm32")]
@@ -40,10 +42,11 @@ pub fn Entity(
     let entity_context = extend_context_with_entity();
 
     #[cfg(target_arch = "wasm32")]
-    {
-        let viewer_context = use_cesium_context().expect("Entity must be inside ViewerContainer");
+    let viewer_context = use_cesium_context().expect("Entity must be inside ViewerContainer");
 
-        Effect::new(move |_| {
+    Effect::new(move |_| {
+        #[cfg(target_arch = "wasm32")]
+        {
             console::debug_1(&JsValue::from_str("Entity: effect tick"));
             if entity_context.entity_untracked::<CesiumEntity>().is_some() {
                 console::debug_1(&JsValue::from_str("Entity: entity already exists"));
@@ -95,8 +98,13 @@ pub fn Entity(
                 console::debug_1(&JsValue::from_str("Entity: entity created"));
                 entity_context.set_entity(entity);
             });
-        });
-    }
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let _ = (name, position, description, show);
+        }
+    });
 
     on_cleanup(move || {
         #[cfg(target_arch = "wasm32")]

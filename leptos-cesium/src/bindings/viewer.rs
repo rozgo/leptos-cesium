@@ -44,6 +44,6 @@ pub struct Viewer;
 impl Viewer {
     #[allow(dead_code)]
     pub fn entities(&self) -> crate::bindings::entity::EntityCollection {
-        crate::bindings::entity::EntityCollection::default()
+        crate::bindings::entity::EntityCollection
     }
 }
