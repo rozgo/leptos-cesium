@@ -84,6 +84,13 @@ trunk serve --open
 ```
 Demonstrates declarative entity components: 2D shapes (rectangles, polygons, ellipses), 3D primitives (boxes, spheres, cylinders), paths (polylines, corridors, walls), and various materials (colors, stripes, checkerboard, glow).
 
+**CZML data loading (satellites, animations):**
+```bash
+cd examples/czml-viewer
+trunk serve --open
+```
+Demonstrates CZML data source loading with automatic clock synchronization and camera controls.
+
 **Server-side rendering:**
 ```bash
 cd examples/with-server
@@ -149,6 +156,9 @@ view! {
 - **CorridorGraphics** - Corridor paths with width and extrusion
 - **PolylineVolumeGraphics** - Custom 2D shapes extruded along paths
 
+**Points & Markers:**
+- **PointGraphics** - Point markers with pixel size and color customization
+
 ### Materials
 
 All materials use a fluent builder API for clean, type-safe configuration:
@@ -190,26 +200,87 @@ Material::polyline_glow(
 )
 ```
 
+### Camera Controls
+
+Declarative camera positioning and animation:
+
+```rust
+use leptos_cesium::prelude::*;
+
+view! {
+    <ViewerContainer ion_token=token>
+        // Instant camera positioning
+        <CameraSetView
+            destination=Cartesian3::from_degrees(-75.0, 40.0, 1000.0)
+            orientation=HeadingPitchRoll::new(0.0, -90.0, 0.0)
+        />
+
+        // Animated flight to location
+        <CameraFlyTo
+            destination=Cartesian3::from_degrees(-122.4, 37.8, 5000.0)
+            duration=Some(3.0)
+        />
+
+        // Fly to home view
+        <CameraFlyHome duration=Some(2.0) />
+
+        // Zoom to entity bounds
+        <CameraFlyToBoundingSphere
+            bounding_sphere=entity_bounds
+            offset=Some(HeadingPitchRange::new(0.0, -45.0, 1000.0))
+        />
+
+        // Reset clock to current time
+        <ClockReset />
+    </ViewerContainer>
+}
+```
+
+### Data Sources
+
+Load dynamic data from CZML format:
+
+```rust
+use leptos_cesium::prelude::*;
+
+view! {
+    <ViewerContainer ion_token=token>
+        <CzmlDataSource
+            url="satellite-orbit.czml"
+            clear_existing=true
+        />
+    </ViewerContainer>
+}
+```
+
+CZML data sources automatically synchronize the viewer clock with animation timelines.
+
 ## Project Status
 
 **Implemented:**
-- ✅ ViewerContainer with Ion token support
+- ✅ ViewerContainer with Ion token support and configurable UI widgets
 - ✅ Entity component with declarative graphics
 - ✅ 2D Graphics: Rectangle, Polygon, Ellipse
 - ✅ 3D Primitives: Box, Ellipsoid, Cylinder
 - ✅ Paths & Volumes: Polyline, Wall, Corridor, PolylineVolume
-- ✅ Materials: Color, Stripe, Checkerboard, PolylineGlow
-- ✅ Viewer controls: zoomTo, entities access
-- ✅ Server-side rendering support
-- ✅ Thread-safe JsValue wrappers
-- ✅ Cartesian2/Cartesian3 coordinate helpers
+- ✅ Points: PointGraphics with pixel size and color control
+- ✅ Materials: Color, Stripe, Checkerboard, PolylineGlow (all with builder APIs)
+- ✅ Camera Controls: CameraFlyTo, CameraSetView, CameraFlyHome, CameraFlyToBoundingSphere
+- ✅ Clock Controls: ClockReset for animation timeline management
+- ✅ Data Sources: CZML with automatic clock synchronization
+- ✅ Coordinate Helpers: Cartesian2, Cartesian3, Rectangle, PolygonHierarchy
+- ✅ Math Utilities: to_radians, to_degrees, HeadingPitchRoll, HeadingPitchRange
+- ✅ Server-side rendering support with thread-safe JsValue wrappers
+- ✅ Builder APIs for complex options (FlyToOptions, SetViewOptions, StripeOptions, etc.)
 
-**In Progress:**
-- 🚧 Additional graphics types (Model, Billboard, Label, etc.)
-- 🚧 Data source components (GeoJSON, CZML, KML)
-- 🚧 Event system (click, hover, etc.)
-- 🚧 Camera controls (flyTo, lookAt, etc.)
-- 🚧 Imagery providers
-- 🚧 Terrain providers
+**Planned:**
+- 🔲 Additional graphics types (Model, Billboard, Label, Path)
+- 🔲 Additional data sources (GeoJSON, KML)
+- 🔲 Event system (click, hover, entity selection)
+- 🔲 Additional camera controls (lookAt, viewer tracking)
+- 🔲 Imagery providers (custom base layers)
+- 🔲 Terrain providers (custom terrain data)
+- 🔲 PostProcessing effects
+- 🔲 Primitives API (low-level rendering)
 
 Contributions are welcome!
