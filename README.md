@@ -4,6 +4,34 @@
 
 ![cesium-with-entities](docs/cesium-with-entities.jpg)
 
+## Gallery
+
+<table>
+  <tr>
+    <td width="33%" align="center">
+      <img src="docs/cesium-satellites.jpg" alt="Satellite Orbits" width="100%">
+      <br>
+      <b>Satellite Tracking</b>
+      <br>
+      Visualize satellite orbits and trajectories
+    </td>
+    <td width="33%" align="center">
+      <img src="docs/cesium-terrain.jpg" alt="3D Terrain" width="100%">
+      <br>
+      <b>3D Terrain</b>
+      <br>
+      High-resolution terrain and imagery
+    </td>
+    <td width="33%" align="center">
+      <img src="docs/cesium-vehicle.jpg" alt="Vehicle Tracking" width="100%">
+      <br>
+      <b>Vehicle Paths</b>
+      <br>
+      Track vehicles and paths over terrain
+    </td>
+  </tr>
+</table>
+
 ## Repository Layout
 
 - `leptos-cesium/` – main library crate (bindings, components, core utilities)
