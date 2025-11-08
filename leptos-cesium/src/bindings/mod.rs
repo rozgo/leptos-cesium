@@ -1,5 +1,6 @@
 //! Cesium bindings entry point.
 
+pub mod camera;
 pub mod cartesian2;
 pub mod color;
 pub mod coordinates;
@@ -14,6 +15,7 @@ pub mod polygon_hierarchy;
 pub mod rectangle;
 pub mod viewer;
 
+pub use camera::*;
 pub use cartesian2::*;
 pub use color::*;
 pub use coordinates::*;

@@ -65,8 +65,8 @@ fn App() -> impl IntoView {
                 {move || {
                     show_vehicle_camera.get().then(|| view! {
                         <CameraSetView
-                            destination=Some(cartesian3_from_degrees(-116.52, 35.02, 95000.0))
-                            heading=Some(6.0)
+                            destination=cartesian3_from_degrees(-116.52, 35.02, 95000.0)
+                            orientation=Some(HeadingPitchRoll::new(6.0, -0.5, 0.0))
                         />
                     })
                 }}

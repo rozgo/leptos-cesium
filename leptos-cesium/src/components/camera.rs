@@ -5,16 +5,17 @@ use leptos::prelude::*;
 use crate::core::JsSignal;
 
 #[cfg(target_arch = "wasm32")]
-use crate::bindings::{julian_date_now, Cartesian3, Viewer};
+use crate::bindings::{
+    julian_date_now, BoundingSphere, Cartesian3, FlyToOptions, HeadingPitchRange, HeadingPitchRoll,
+    SetViewOptions, Viewer,
+};
 #[cfg(target_arch = "wasm32")]
 use crate::components::use_cesium_context;
 #[cfg(target_arch = "wasm32")]
-use js_sys::{Object, Reflect};
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::JsValue;
+use wasm_bindgen::{JsCast, JsValue};
 
 #[cfg(not(target_arch = "wasm32"))]
-use crate::bindings::Cartesian3;
+use crate::bindings::{BoundingSphere, Cartesian3, HeadingPitchRange, HeadingPitchRoll};
 
 /// Camera fly home component that triggers camera to return to home view
 ///
@@ -70,8 +71,8 @@ pub fn CameraFlyHome(
 /// view! {
 ///     <ViewerContainer>
 ///         <CameraSetView
-///             destination=Some(cartesian3_from_degrees(-116.52, 35.02, 95000.0))
-///             heading=Some(6.0)
+///             destination=cartesian3_from_degrees(-116.52, 35.02, 95000.0)
+///             orientation=Some(HeadingPitchRoll::new(6.0, -0.5, 0.0))
 ///         />
 ///     </ViewerContainer>
 /// }
@@ -79,17 +80,11 @@ pub fn CameraFlyHome(
 #[component(transparent)]
 pub fn CameraSetView(
     /// Camera destination (Cartesian3)
+    #[prop(into)]
+    destination: JsSignal<Cartesian3>,
+    /// Camera orientation (heading, pitch, roll)
     #[prop(optional, into)]
-    destination: JsSignal<Option<Cartesian3>>,
-    /// Heading in radians
-    #[prop(optional, into)]
-    heading: Signal<Option<f64>>,
-    /// Pitch in radians
-    #[prop(optional, into)]
-    pitch: Signal<Option<f64>>,
-    /// Roll in radians
-    #[prop(optional, into)]
-    roll: Signal<Option<f64>>,
+    orientation: JsSignal<Option<HeadingPitchRoll>>,
 ) -> impl IntoView {
     #[cfg(target_arch = "wasm32")]
     {
@@ -97,59 +92,24 @@ pub fn CameraSetView(
             use_cesium_context().expect("CameraSetView must be inside ViewerContainer");
 
         Effect::new(move |_| {
+            let dest = destination.get_untracked();
+            let orient = orientation.get_untracked();
+
             viewer_context.with_viewer(|viewer: Viewer| {
-                let view_options = Object::new();
+                let mut options = SetViewOptions::new(dest);
 
-                // Set destination if provided
-                if let Some(dest) = destination.get_untracked() {
-                    let _ = Reflect::set(
-                        &view_options,
-                        &JsValue::from_str("destination"),
-                        &JsValue::from(dest),
-                    );
+                if let Some(o) = orient {
+                    options = options.orientation(o);
                 }
 
-                // Set orientation if any orientation prop is provided
-                if heading.get().is_some() || pitch.get().is_some() || roll.get().is_some() {
-                    let orientation = Object::new();
-
-                    if let Some(h) = heading.get() {
-                        let _ = Reflect::set(
-                            &orientation,
-                            &JsValue::from_str("heading"),
-                            &JsValue::from_f64(h),
-                        );
-                    }
-                    if let Some(p) = pitch.get() {
-                        let _ = Reflect::set(
-                            &orientation,
-                            &JsValue::from_str("pitch"),
-                            &JsValue::from_f64(p),
-                        );
-                    }
-                    if let Some(r) = roll.get() {
-                        let _ = Reflect::set(
-                            &orientation,
-                            &JsValue::from_str("roll"),
-                            &JsValue::from_f64(r),
-                        );
-                    }
-
-                    let _ = Reflect::set(
-                        &view_options,
-                        &JsValue::from_str("orientation"),
-                        &orientation,
-                    );
-                }
-
-                viewer.camera().set_view(&view_options.into());
+                viewer.camera().set_view(&options.build());
             });
         });
     }
 
     #[cfg(not(target_arch = "wasm32"))]
     {
-        let _ = (destination, heading, pitch, roll);
+        let _ = (destination, orientation);
     }
 }
 
@@ -161,8 +121,8 @@ pub fn CameraSetView(
 /// view! {
 ///     <ViewerContainer>
 ///         <CameraFlyTo
-///             destination=Some(cartesian3_from_degrees(-116.52, 35.02, 95000.0))
-///             heading=Some(6.0)
+///             destination=cartesian3_from_degrees(-116.52, 35.02, 95000.0)
+///             orientation=Some(HeadingPitchRoll::new(6.0, -0.5, 0.0))
 ///             duration=2.0
 ///         />
 ///     </ViewerContainer>
@@ -171,20 +131,17 @@ pub fn CameraSetView(
 #[component(transparent)]
 pub fn CameraFlyTo(
     /// Camera destination (Cartesian3)
+    #[prop(into)]
+    destination: JsSignal<Cartesian3>,
+    /// Camera orientation (heading, pitch, roll)
     #[prop(optional, into)]
-    destination: JsSignal<Option<Cartesian3>>,
-    /// Heading in radians
-    #[prop(optional, into)]
-    heading: Signal<Option<f64>>,
-    /// Pitch in radians
-    #[prop(optional, into)]
-    pitch: Signal<Option<f64>>,
-    /// Roll in radians
-    #[prop(optional, into)]
-    roll: Signal<Option<f64>>,
+    orientation: JsSignal<Option<HeadingPitchRoll>>,
     /// Duration of flight in seconds (default: 3.0)
-    #[prop(optional, into)]
+    #[prop(optional, into, default = 3.0.into())]
     duration: Signal<f64>,
+    /// Offset from destination (heading, pitch, range)
+    #[prop(optional, into)]
+    offset: JsSignal<Option<HeadingPitchRange>>,
 ) -> impl IntoView {
     #[cfg(target_arch = "wasm32")]
     {
@@ -192,69 +149,112 @@ pub fn CameraFlyTo(
             use_cesium_context().expect("CameraFlyTo must be inside ViewerContainer");
 
         Effect::new(move |_| {
-            // Skip if no destination
-            let Some(dest) = destination.get_untracked() else {
-                return;
-            };
+            let dest = destination.get_untracked();
+            let orient = orientation.get_untracked();
+            let dur = duration.get();
+            let off = offset.get_untracked();
 
             viewer_context.with_viewer(|viewer: Viewer| {
-                let fly_options = Object::new();
+                let mut options = FlyToOptions::new(dest).duration(dur);
 
-                // Set destination
-                let _ = Reflect::set(
-                    &fly_options,
-                    &JsValue::from_str("destination"),
-                    &JsValue::from(dest),
-                );
-
-                // Set duration
-                let _ = Reflect::set(
-                    &fly_options,
-                    &JsValue::from_str("duration"),
-                    &JsValue::from_f64(duration.get()),
-                );
-
-                // Set orientation if any orientation prop is provided
-                if heading.get().is_some() || pitch.get().is_some() || roll.get().is_some() {
-                    let orientation = Object::new();
-
-                    if let Some(h) = heading.get() {
-                        let _ = Reflect::set(
-                            &orientation,
-                            &JsValue::from_str("heading"),
-                            &JsValue::from_f64(h),
-                        );
-                    }
-                    if let Some(p) = pitch.get() {
-                        let _ = Reflect::set(
-                            &orientation,
-                            &JsValue::from_str("pitch"),
-                            &JsValue::from_f64(p),
-                        );
-                    }
-                    if let Some(r) = roll.get() {
-                        let _ = Reflect::set(
-                            &orientation,
-                            &JsValue::from_str("roll"),
-                            &JsValue::from_f64(r),
-                        );
-                    }
-
-                    let _ = Reflect::set(
-                        &fly_options,
-                        &JsValue::from_str("orientation"),
-                        &orientation,
-                    );
+                if let Some(o) = orient {
+                    options = options.orientation(o);
                 }
 
-                viewer.camera().fly_to(&fly_options.into());
+                if let Some(offset_val) = off {
+                    options = options.offset(offset_val);
+                }
+
+                viewer.camera().fly_to(&options.build());
             });
         });
     }
 
     #[cfg(not(target_arch = "wasm32"))]
     {
-        let _ = (destination, heading, pitch, roll, duration);
+        let _ = (destination, orientation, duration, offset);
+    }
+}
+
+/// Camera fly to bounding sphere component for animated camera movement to fit an entity or target
+///
+/// This component flies the camera to a position where the entire bounding sphere is visible.
+/// Useful for "zoom to entity" functionality.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// view! {
+///     <ViewerContainer>
+///         <CameraFlyToBoundingSphere
+///             target=bounding_sphere_signal
+///             offset=Some(HeadingPitchRange::new(0.0, -0.5, 0.0))
+///             duration=2.0
+///         />
+///     </ViewerContainer>
+/// }
+/// ```
+#[component(transparent)]
+pub fn CameraFlyToBoundingSphere(
+    /// Bounding sphere to fly to
+    #[prop(into)]
+    target: JsSignal<BoundingSphere>,
+    /// Offset from the bounding sphere (heading, pitch, range)
+    #[prop(optional, into)]
+    offset: JsSignal<Option<HeadingPitchRange>>,
+    /// Duration of flight in seconds (default: 3.0)
+    #[prop(optional, into, default = 3.0.into())]
+    duration: Signal<f64>,
+) -> impl IntoView {
+    #[cfg(target_arch = "wasm32")]
+    {
+        let viewer_context =
+            use_cesium_context().expect("CameraFlyToBoundingSphere must be inside ViewerContainer");
+
+        Effect::new(move |_| {
+            let sphere = target.get_untracked();
+            let off = offset.get_untracked();
+            let dur = duration.get();
+
+            viewer_context.with_viewer(|viewer: Viewer| {
+                use js_sys::{Object, Reflect};
+
+                let options = Object::new();
+
+                // Set duration
+                let _ = Reflect::set(
+                    &options,
+                    &JsValue::from_str("duration"),
+                    &JsValue::from_f64(dur),
+                );
+
+                // Set offset if provided
+                if let Some(offset_val) = off {
+                    let _ = Reflect::set(
+                        &options,
+                        &JsValue::from_str("offset"),
+                        &JsValue::from(offset_val),
+                    );
+                }
+
+                // Call camera.flyToBoundingSphere(sphere, options)
+                use js_sys::{Function, Reflect as JsReflect};
+                let camera = viewer.camera();
+                let fly_to_bs_fn =
+                    JsReflect::get(&camera, &JsValue::from_str("flyToBoundingSphere"))
+                        .expect("Camera.flyToBoundingSphere to exist");
+                let fly_to_bs_fn: Function = fly_to_bs_fn
+                    .dyn_into()
+                    .expect("Camera.flyToBoundingSphere to be callable");
+
+                let _ = fly_to_bs_fn.call2(&camera, &JsValue::from(sphere), &options.into());
+            });
+        });
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let _ = (target, offset, duration);
     }
 }
 
