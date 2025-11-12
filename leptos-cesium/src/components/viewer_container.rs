@@ -46,10 +46,12 @@ pub fn ViewerContainer(
     #[prop(optional, default = true)] navigation_help_button: bool,
     #[prop(optional, default = true)] fullscreen_button: bool,
     #[prop(optional, default = true)] should_animate: bool,
+    #[prop(optional, into, default = true.into())] globe: Signal<bool>,
     #[prop(optional)] children: Option<Children>,
 ) -> impl IntoView {
     let viewer_context = provide_cesium_context();
 
+    // Create viewer once (doesn't re-run when signals change due to untracked access)
     Effect::new(move |_| {
         #[cfg(target_arch = "wasm32")]
         {
@@ -70,8 +72,8 @@ pub fn ViewerContainer(
 
             let element: HtmlElement = div.into();
 
-            // Set Ion token if provided
-            if let Some(token) = ion_token.get() {
+            // Set Ion token if provided (untracked so changes don't recreate viewer)
+            if let Some(token) = ion_token.get_untracked() {
                 console::debug_1(&JsValue::from_str(
                     "ViewerContainer: setting Cesium Ion access token.",
                 ));
@@ -82,7 +84,7 @@ pub fn ViewerContainer(
                 "ViewerContainer: constructing Cesium.Viewer instance.",
             ));
 
-            // Build viewer options
+            // Build viewer options (always start with globe visible)
             let options = js_sys::Object::new();
             let _ = js_sys::Reflect::set(
                 &options,
@@ -159,6 +161,36 @@ pub fn ViewerContainer(
                 fullscreen_button,
                 should_animate,
             );
+        }
+    });
+
+    // Separate effect to control globe visibility dynamically
+    Effect::new(move |_| {
+        #[cfg(target_arch = "wasm32")]
+        {
+            let show_globe = globe.get();
+            viewer_context.with_viewer(|viewer: Viewer| {
+                let scene = viewer.scene();
+                // Access scene.globe and set its show property
+                if let Ok(globe_obj) = js_sys::Reflect::get(&scene, &JsValue::from_str("globe")) {
+                    if !globe_obj.is_undefined() && !globe_obj.is_null() {
+                        let _ = js_sys::Reflect::set(
+                            &globe_obj,
+                            &JsValue::from_str("show"),
+                            &JsValue::from_bool(show_globe),
+                        );
+                        console::log_1(&JsValue::from_str(&format!(
+                            "ViewerContainer: globe visibility set to {}",
+                            show_globe
+                        )));
+                    }
+                }
+            });
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let _ = globe;
         }
     });
 

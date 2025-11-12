@@ -36,6 +36,9 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = clock)]
     pub fn clock(this: &Viewer) -> Clock;
 
+    #[wasm_bindgen(method, getter, js_name = scene)]
+    pub fn scene(this: &Viewer) -> Scene;
+
     #[wasm_bindgen(method, js_name = zoomTo)]
     pub fn zoom_to(this: &Viewer, target: &JsValue) -> js_sys::Promise;
 
@@ -78,6 +81,26 @@ extern "C" {
     /// JulianDate for time representation
     #[wasm_bindgen(js_namespace = Cesium, js_name = JulianDate)]
     pub type JulianDate;
+
+    /// Scene contains the primitives and other visual elements
+    #[wasm_bindgen(js_namespace = Cesium, js_name = Scene)]
+    pub type Scene;
+
+    #[wasm_bindgen(method, getter, js_name = primitives)]
+    pub fn primitives(this: &Scene) -> PrimitiveCollection;
+
+    /// Collection of primitives in the scene
+    #[wasm_bindgen(js_namespace = Cesium, js_name = PrimitiveCollection)]
+    pub type PrimitiveCollection;
+
+    #[wasm_bindgen(method, js_name = add)]
+    pub fn add(this: &PrimitiveCollection, primitive: &JsValue) -> JsValue;
+
+    #[wasm_bindgen(method, js_name = remove)]
+    pub fn remove(this: &PrimitiveCollection, primitive: &JsValue) -> bool;
+
+    #[wasm_bindgen(method, js_name = removeAll)]
+    pub fn remove_all(this: &PrimitiveCollection);
 }
 
 // Helper function to get current JulianDate using reflection

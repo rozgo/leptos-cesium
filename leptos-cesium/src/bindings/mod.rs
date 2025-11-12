@@ -13,6 +13,7 @@ pub mod materials;
 pub mod math;
 pub mod polygon_hierarchy;
 pub mod rectangle;
+pub mod tileset;
 pub mod viewer;
 
 pub use camera::*;
@@ -29,4 +30,5 @@ pub use materials::*;
 pub use math::*;
 pub use polygon_hierarchy::*;
 pub use rectangle::*;
+pub use tileset::*;
 pub use viewer::*;

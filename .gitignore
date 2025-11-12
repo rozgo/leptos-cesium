@@ -10,7 +10,7 @@
 /vendor/
 /Cesium-*/
 /Cesium-*.zip
-examples/with-server/public
+/**/public/Cesium
 
 # OS / editor junk
 .DS_Store
