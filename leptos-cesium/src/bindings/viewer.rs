@@ -1,9 +1,9 @@
 //! Minimal Cesium viewer bindings needed to bootstrap rendering.
 
 #[cfg(target_arch = "wasm32")]
-use wasm_bindgen::prelude::*;
-#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsValue;
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
 #[cfg(target_arch = "wasm32")]
 use web_sys::HtmlElement;
 
@@ -106,7 +106,7 @@ extern "C" {
 // Helper function to get current JulianDate using reflection
 #[cfg(target_arch = "wasm32")]
 pub fn julian_date_now() -> JulianDate {
-    use js_sys::{global, Function, Reflect};
+    use js_sys::{Function, Reflect, global};
     use wasm_bindgen::{JsCast, JsValue};
 
     let cesium = Reflect::get(&global(), &JsValue::from_str("Cesium"))

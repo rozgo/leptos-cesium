@@ -11,7 +11,7 @@ use std::{
 };
 
 use paste::paste;
-use wasm_bindgen::{convert::IntoWasmAbi, JsValue};
+use wasm_bindgen::{JsValue, convert::IntoWasmAbi};
 
 const NOT_ON_CURRENT_THREAD: &str = "ThreadSafeJsValue is not on the current thread";
 

@@ -1,0 +1,77 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "United States (Continental)"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-125, 49], [-125, 25], [-66, 25], [-66, 49], [-125, 49]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Brazil"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-73, 5], [-73, -33], [-35, -33], [-35, 5], [-73, 5]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Australia"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [113, -10], [113, -43], [153, -43], [153, -10], [113, -10]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "China"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [73, 53], [73, 18], [135, 18], [135, 53], [73, 53]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Africa (Simplified)"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-17, 37], [-17, -35], [52, -35], [52, 37], [-17, 37]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Europe (Simplified)"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-10, 71], [-10, 36], [40, 36], [40, 71], [-10, 71]
+        ]]
+      }
+    }
+  ]
+}

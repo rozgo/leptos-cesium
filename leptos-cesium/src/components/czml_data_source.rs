@@ -3,7 +3,7 @@
 use leptos::prelude::*;
 
 #[cfg(target_arch = "wasm32")]
-use crate::bindings::{czml_data_source_load, Viewer};
+use crate::bindings::{Viewer, czml_data_source_load};
 #[cfg(target_arch = "wasm32")]
 use crate::components::use_cesium_context;
 #[cfg(target_arch = "wasm32")]

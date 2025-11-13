@@ -16,7 +16,7 @@ extern "C" {
 
 #[cfg(target_arch = "wasm32")]
 pub fn cartesian3_from_degrees(longitude: f64, latitude: f64, height: f64) -> Cartesian3 {
-    use js_sys::{global, Function, Reflect};
+    use js_sys::{Function, Reflect, global};
     use wasm_bindgen::{JsCast, JsValue};
 
     let cesium = Reflect::get(&global(), &JsValue::from_str("Cesium"))
@@ -53,7 +53,7 @@ impl Cartesian3 {
 
 #[cfg(target_arch = "wasm32")]
 pub fn cartesian3_from_degrees_array(degrees: &[f64]) -> js_sys::Array {
-    use js_sys::{global, Array, Function, Reflect};
+    use js_sys::{Array, Function, Reflect, global};
     use wasm_bindgen::{JsCast, JsValue};
 
     let cesium = Reflect::get(&global(), &JsValue::from_str("Cesium"))
@@ -80,7 +80,7 @@ pub fn cartesian3_from_degrees_array(degrees: &[f64]) -> js_sys::Array {
 
 #[cfg(target_arch = "wasm32")]
 pub fn cartesian3_from_degrees_array_heights(degrees: &[f64]) -> js_sys::Array {
-    use js_sys::{global, Array, Function, Reflect};
+    use js_sys::{Array, Function, Reflect, global};
     use wasm_bindgen::{JsCast, JsValue};
 
     let cesium = Reflect::get(&global(), &JsValue::from_str("Cesium"))

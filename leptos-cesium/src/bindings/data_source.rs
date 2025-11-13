@@ -31,7 +31,7 @@ extern "C" {
 // Helper to call CzmlDataSource.load() using reflection
 #[cfg(target_arch = "wasm32")]
 pub fn czml_data_source_load(url: &str) -> js_sys::Promise {
-    use js_sys::{global, Function, Reflect};
+    use js_sys::{Function, Reflect, global};
     use wasm_bindgen::JsCast;
 
     let cesium = Reflect::get(&global(), &JsValue::from_str("Cesium"))
@@ -53,7 +53,7 @@ pub fn czml_data_source_load(url: &str) -> js_sys::Promise {
 // Helper to call CzmlDataSource.load() with options
 #[cfg(target_arch = "wasm32")]
 pub fn czml_data_source_load_with_options(url: &str, options: &JsValue) -> js_sys::Promise {
-    use js_sys::{global, Function, Reflect};
+    use js_sys::{Function, Reflect, global};
     use wasm_bindgen::JsCast;
 
     let cesium = Reflect::get(&global(), &JsValue::from_str("Cesium"))

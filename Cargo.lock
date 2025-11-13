@@ -591,6 +591,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "geojson"
+version = "0.0.1"
+dependencies = [
+ "console_error_panic_hook",
+ "leptos",
+ "leptos-cesium",
+]
+
+[[package]]
 name = "getrandom"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"

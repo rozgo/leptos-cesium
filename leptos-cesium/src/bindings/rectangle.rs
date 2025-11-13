@@ -13,7 +13,7 @@ extern "C" {
 
 #[cfg(target_arch = "wasm32")]
 pub fn from_degrees(west: f64, south: f64, east: f64, north: f64) -> Rectangle {
-    use js_sys::{global, Function, Reflect};
+    use js_sys::{Function, Reflect, global};
     use wasm_bindgen::{JsCast, JsValue};
 
     let cesium = Reflect::get(&global(), &JsValue::from_str("Cesium"))

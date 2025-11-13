@@ -7,6 +7,7 @@ pub mod coordinates;
 pub mod data_source;
 pub mod entity;
 pub mod generated;
+pub mod geojson;
 pub mod globals;
 pub mod ion;
 pub mod materials;
@@ -24,6 +25,7 @@ pub use data_source::*;
 pub use entity::*;
 #[allow(unused_imports)]
 pub use generated::*;
+pub use geojson::*;
 pub use globals::*;
 pub use ion::*;
 pub use materials::*;

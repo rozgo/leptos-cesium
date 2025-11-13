@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Leptos Cesium – GeoJSON Viewer</title>
+    <link rel="stylesheet" href="Cesium/Widgets/widgets.css" />
+    <link data-trunk rel="copy-dir" href="public/Cesium" data-target-path="Cesium" />
+    <link data-trunk rel="copy-dir" href="public/SampleData" data-target-path="SampleData" />
+    <script src="Cesium/Cesium.js"></script>
+
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        background: #0b0d18;
+        color: #e0e4ff;
+        font-family: sans-serif;
+        overflow: hidden;
+      }
+
+      .controls {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 1000;
+        background: rgba(11, 13, 24, 0.9);
+        border: 1px solid #3a4d6f;
+        border-radius: 6px;
+        padding: 12px;
+        backdrop-filter: blur(10px);
+      }
+
+      .controls h3 {
+        margin: 0 0 10px 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: #b0b8ff;
+      }
+
+      .button-group {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .controls button {
+        background: rgba(31, 43, 64, 0.8);
+        color: #e0e4ff;
+        border: 1px solid #3a4d6f;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.2s;
+      }
+
+      .controls button:hover {
+        background: rgba(51, 63, 84, 0.95);
+        border-color: #5a7d9f;
+      }
+
+      .controls button.active {
+        background: rgba(70, 90, 140, 0.9);
+        border-color: #7a9dbf;
+      }
+
+      .controls button:active {
+        transform: scale(0.98);
+      }
+
+      .style-controls {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 8px;
+        align-items: center;
+        font-size: 12px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #3a4d6f;
+      }
+
+      .style-controls label {
+        color: #b0b8ff;
+      }
+
+      .style-controls input[type="checkbox"] {
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <link data-trunk rel="rust" data-bindgen-target="web" data-wasm-opt="z" />
+  </body>
+</html>

@@ -5,12 +5,12 @@ use leptos::{html::Div, prelude::*};
 use crate::components::provide_cesium_context;
 
 #[cfg(target_arch = "wasm32")]
-use crate::bindings::{set_default_access_token, Viewer};
+use crate::bindings::{Viewer, set_default_access_token};
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsValue;
 #[cfg(target_arch = "wasm32")]
-use web_sys::{console, HtmlElement};
+use web_sys::{HtmlElement, console};
 
 /// Minimal Cesium viewer container component.
 ///

@@ -1,12 +1,11 @@
 [package]
 name = "leptos-cesium"
-version = "0.0.1"
-edition = "2021"
-authors = ["Vertex Studio"]
 description = "Cesium components for the Leptos web framework."
-license = "MIT OR Apache-2.0"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
 readme = "../README.md"
-repository = "https://github.com/vertexstudio/leptos-cesium"
 
 [lib]
 crate-type = ["rlib", "cdylib"]

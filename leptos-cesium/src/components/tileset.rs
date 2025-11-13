@@ -4,8 +4,8 @@ use leptos::prelude::*;
 
 #[cfg(target_arch = "wasm32")]
 use crate::bindings::{
-    create_google_photorealistic_3d_tileset, Cesium3DTilesetOptions,
-    GooglePhotorealistic3DTilesApiOptions, Viewer,
+    Cesium3DTilesetOptions, GooglePhotorealistic3DTilesApiOptions, Viewer,
+    create_google_photorealistic_3d_tileset,
 };
 #[cfg(target_arch = "wasm32")]
 use crate::components::use_cesium_context;

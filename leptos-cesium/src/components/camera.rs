@@ -6,8 +6,8 @@ use crate::core::JsSignal;
 
 #[cfg(target_arch = "wasm32")]
 use crate::bindings::{
-    julian_date_now, BoundingSphere, Cartesian3, FlyToOptions, HeadingPitchRange, HeadingPitchRoll,
-    SetViewOptions, Viewer,
+    BoundingSphere, Cartesian3, FlyToOptions, HeadingPitchRange, HeadingPitchRoll, SetViewOptions,
+    Viewer, julian_date_now,
 };
 #[cfg(target_arch = "wasm32")]
 use crate::components::use_cesium_context;

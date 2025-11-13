@@ -23,7 +23,7 @@ extern "C" {
 // Helper to get static color properties
 #[cfg(target_arch = "wasm32")]
 fn get_color_property(name: &str) -> Color {
-    use js_sys::{global, Reflect};
+    use js_sys::{Reflect, global};
     use wasm_bindgen::JsCast;
 
     let cesium = Reflect::get(&global(), &JsValue::from_str("Cesium"))

@@ -7,7 +7,7 @@ use wasm_bindgen::JsValue;
 
 #[cfg(target_arch = "wasm32")]
 pub fn set_base_url(base_url: &str) {
-    use js_sys::{global, Function, Reflect};
+    use js_sys::{Function, Reflect, global};
     use web_sys::console;
 
     let global = global();
@@ -47,7 +47,7 @@ pub fn set_base_url(base_url: &str) {
 
 #[cfg(target_arch = "wasm32")]
 pub fn set_ion_default_access_token(token: &str) {
-    use js_sys::{global, Reflect};
+    use js_sys::{Reflect, global};
 
     let global = global();
     if let Ok(cesium) = Reflect::get(&global, &JsValue::from_str("Cesium")) {
