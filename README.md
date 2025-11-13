@@ -1,6 +1,6 @@
-# leptos-cesium (WIP)
+# leptos-cesium
 
-`leptos-cesium` will provide a CesiumJS component library for the [Leptos](https://github.com/leptos-rs/leptos) framework. The goal is to mirror the ergonomics of `leptos-leaflet` while exposing Cesium concepts (viewer, entities, data sources, events) through idiomatic Leptos components.
+`leptos-cesium` provides a CesiumJS component library for the [Leptos](https://github.com/leptos-rs/leptos) framework. It mirrors the ergonomics of `leptos-leaflet` while exposing Cesium concepts (viewer, entities, data sources, 3D tiles) through idiomatic Leptos components.
 
 ![cesium-with-entities](docs/cesium-with-entities.jpg)
 
@@ -35,7 +35,7 @@
 ## Repository Layout
 
 - `leptos-cesium/` – main library crate (bindings, components, core utilities)
-- `examples/` – example Leptos apps showcasing Cesium usage (WIP)
+- `examples/` – example Leptos apps showcasing Cesium usage
 - `vendor/Cesium/<version>/` – canonical location for downloaded Cesium bundles (populated via the helper script)
 - `scripts/` – utility scripts (`sync_cesium_assets.sh`)
 
@@ -90,6 +90,20 @@ cd examples/czml-viewer
 trunk serve --open
 ```
 Demonstrates CZML data source loading with automatic clock synchronization and camera controls.
+
+**GeoJSON data loading (maps, geographic features):**
+```bash
+cd examples/geojson
+trunk serve --open
+```
+Demonstrates GeoJSON data source loading with custom styling for polygons, polylines, and point markers. Features reactive layer switching and styling options.
+
+**Camera controls (animated positioning):**
+```bash
+cd examples/camera-control
+trunk serve --open
+```
+Demonstrates declarative camera controls including fly-to animations, view positioning, and camera movements.
 
 **Server-side rendering:**
 ```bash
@@ -238,6 +252,8 @@ view! {
 
 ### Data Sources
 
+**CZML Data Source:**
+
 Load dynamic data from CZML format:
 
 ```rust
@@ -255,6 +271,52 @@ view! {
 
 CZML data sources automatically synchronize the viewer clock with animation timelines.
 
+**GeoJSON Data Source:**
+
+Load and style GeoJSON or TopoJSON data:
+
+```rust
+use leptos_cesium::prelude::*;
+
+view! {
+    <ViewerContainer ion_token=token>
+        <GeoJsonDataSource
+            url="data/countries.geojson"
+            stroke=Color::blue()
+            stroke_width=2.0
+            fill=Color::cyan().with_alpha(0.3)
+            marker_color=Color::red()
+            marker_size=24.0
+            clamp_to_ground=false
+        />
+    </ViewerContainer>
+}
+```
+
+Supports extensive styling options for polygons, polylines, and point markers.
+
+### 3D Tiles
+
+Load high-resolution 3D tile datasets:
+
+**Google Photorealistic 3D Tiles:**
+
+```rust
+use leptos_cesium::prelude::*;
+
+view! {
+    <ViewerContainer ion_token=token>
+        <GooglePhotorealistic3DTiles
+            google_api_key=None  // Uses Cesium Ion asset by default
+            cache_bytes=Some(1536000000)
+            enable_collision=Some(true)
+        />
+    </ViewerContainer>
+}
+```
+
+Loads Google's photorealistic 3D tiles via Cesium Ion or directly with a Google Maps API key.
+
 ## Project Status
 
 **Implemented:**
@@ -267,15 +329,17 @@ CZML data sources automatically synchronize the viewer clock with animation time
 - ✅ Materials: Color, Stripe, Checkerboard, PolylineGlow (all with builder APIs)
 - ✅ Camera Controls: CameraFlyTo, CameraSetView, CameraFlyHome, CameraFlyToBoundingSphere
 - ✅ Clock Controls: ClockReset for animation timeline management
-- ✅ Data Sources: CZML with automatic clock synchronization
+- ✅ Data Sources: CZML with automatic clock synchronization, GeoJSON with extensive styling options
+- ✅ 3D Tiles: Google Photorealistic 3D Tiles with cache and collision controls
 - ✅ Coordinate Helpers: Cartesian2, Cartesian3, Rectangle, PolygonHierarchy
 - ✅ Math Utilities: to_radians, to_degrees, HeadingPitchRoll, HeadingPitchRange
 - ✅ Server-side rendering support with thread-safe JsValue wrappers
-- ✅ Builder APIs for complex options (FlyToOptions, SetViewOptions, StripeOptions, etc.)
+- ✅ Builder APIs for complex options (FlyToOptions, SetViewOptions, StripeOptions, GeoJsonLoadOptions, etc.)
 
 **Planned:**
 - 🔲 Additional graphics types (Model, Billboard, Label, Path)
-- 🔲 Additional data sources (GeoJSON, KML)
+- 🔲 Additional data sources (KML, GPX)
+- 🔲 Custom 3D Tileset loading (from URL or Ion asset ID)
 - 🔲 Event system (click, hover, entity selection)
 - 🔲 Additional camera controls (lookAt, viewer tracking)
 - 🔲 Imagery providers (custom base layers)
