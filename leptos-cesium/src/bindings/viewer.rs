@@ -3,11 +3,9 @@
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlElement;
 
-use crate::bindings::data_source::DataSourceCollection;
-use crate::bindings::entity::EntityCollection;
-
-#[cfg(target_arch = "wasm32")]
 use crate::bindings::JulianDate;
+use crate::bindings::data_source::DataSourceCollection;
+use crate::bindings::entity::{Entity, EntityCollection};
 
 #[wasm_bindgen]
 extern "C" {
@@ -47,10 +45,10 @@ extern "C" {
 
     /// Selected entity property (get/set)
     #[wasm_bindgen(method, getter, js_name = selectedEntity)]
-    pub fn selected_entity(this: &Viewer) -> JsValue;
+    pub fn selected_entity(this: &Viewer) -> Option<Entity>;
 
     #[wasm_bindgen(method, setter, js_name = selectedEntity)]
-    pub fn set_selected_entity(this: &Viewer, entity: &JsValue);
+    pub fn set_selected_entity(this: &Viewer, entity: Option<&Entity>);
 
     /// Event fired when the selected entity changes
     #[wasm_bindgen(method, getter, js_name = selectedEntityChanged)]
@@ -90,10 +88,10 @@ extern "C" {
     pub fn set_should_animate(this: &Clock, value: bool);
 
     #[wasm_bindgen(method, getter, js_name = currentTime)]
-    pub fn current_time(this: &Clock) -> JsValue;
+    pub fn current_time(this: &Clock) -> JulianDate;
 
     #[wasm_bindgen(method, setter, js_name = currentTime)]
-    pub fn set_current_time(this: &Clock, value: &JsValue);
+    pub fn set_current_time(this: &Clock, value: &JulianDate);
 
     /// Scene contains the primitives and other visual elements
     #[wasm_bindgen(js_namespace = Cesium, js_name = Scene)]

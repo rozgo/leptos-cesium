@@ -98,8 +98,23 @@ main() {
 
   while IFS= read -r -d '' example; do
     local target="$example/public/Cesium"
-    echo "Syncing Cesium assets to $target"
-    link_or_copy_build "$source_dir" "$target"
+    local example_name="$(basename "$example")"
+
+    # cargo-leptos doesn't handle directory symlinks, so force copy for server examples
+    if [[ "$example_name" == "with-server" ]]; then
+      echo "Syncing Cesium assets to $target (forcing copy for cargo-leptos compatibility)"
+      # Remove symlink if it exists
+      rm -rf "$target"
+      mkdir -p "$target"
+      if command -v rsync >/dev/null 2>&1; then
+        rsync -a --delete "$source_dir/" "$target/"
+      else
+        cp -R "$source_dir/." "$target/"
+      fi
+    else
+      echo "Syncing Cesium assets to $target"
+      link_or_copy_build "$source_dir" "$target"
+    fi
     synced_any=true
   done < <(find "$examples_dir" -mindepth 1 -maxdepth 1 -type d -print0)
 

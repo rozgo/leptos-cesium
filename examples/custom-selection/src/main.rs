@@ -231,24 +231,11 @@ fn CustomSelectionPanel() -> impl IntoView {
 
 // Helper function to format Cartesian3 position
 fn format_cartesian3(cart: &leptos_cesium::bindings::Cartesian3) -> String {
-    use js_sys::Reflect;
-    use wasm_bindgen::JsValue;
-
-    // Extract x, y, z from Cartesian3
-    let x = Reflect::get(cart.as_ref(), &JsValue::from_str("x"))
-        .ok()
-        .and_then(|v| v.as_f64());
-    let y = Reflect::get(cart.as_ref(), &JsValue::from_str("y"))
-        .ok()
-        .and_then(|v| v.as_f64());
-    let z = Reflect::get(cart.as_ref(), &JsValue::from_str("z"))
-        .ok()
-        .and_then(|v| v.as_f64());
-
-    match (x, y, z) {
-        (Some(x), Some(y), Some(z)) => format!("({:.2}, {:.2}, {:.2})", x, y, z),
-        _ => "N/A".to_string(),
-    }
+    // Use the proper getters instead of reflection
+    let x = cart.x();
+    let y = cart.y();
+    let z = cart.z();
+    format!("({:.2}, {:.2}, {:.2})", x, y, z)
 }
 
 #[component]

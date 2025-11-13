@@ -10,6 +10,18 @@ extern "C" {
 
     #[wasm_bindgen(constructor, js_namespace = Cesium, js_class = Cartesian3)]
     pub fn new(x: f64, y: f64, z: f64) -> Cartesian3;
+
+    /// Gets the x component of the Cartesian3
+    #[wasm_bindgen(method, getter)]
+    pub fn x(this: &Cartesian3) -> f64;
+
+    /// Gets the y component of the Cartesian3
+    #[wasm_bindgen(method, getter)]
+    pub fn y(this: &Cartesian3) -> f64;
+
+    /// Gets the z component of the Cartesian3
+    #[wasm_bindgen(method, getter)]
+    pub fn z(this: &Cartesian3) -> f64;
 }
 
 /// Internal helper using reflection to call Cesium.Cartesian3.fromDegrees

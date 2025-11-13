@@ -291,7 +291,7 @@ pub fn ClockReset(
                 let clock = viewer.clock();
                 // Reset to current time
                 let now = julian_date_now();
-                clock.set_current_time(&JsValue::from(now));
+                clock.set_current_time(&now);
                 // Stop animation
                 clock.set_should_animate(false);
             });

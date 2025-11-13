@@ -46,17 +46,7 @@ pub fn App() -> impl IntoView {
                             animation=false
                             timeline=false
                             style="width: 100%; height: 100%;".to_string()
-                        >
-                            <Entity
-                                name=Some("Statue of Liberty".to_string())
-                                position=Some(Cartesian3::from_degrees(-74.0445, 40.6892, 150.0))
-                            >
-                                <PointGraphics
-                                    pixel_size=12.0
-                                    color=Some(Color::red())
-                                />
-                            </Entity>
-                        </ViewerContainer>
+                        />
                     }/>
                 </Routes>
             </main>

@@ -7,6 +7,30 @@ extern "C" {
     #[derive(Clone)]
     #[wasm_bindgen(js_namespace = Cesium)]
     pub type Rectangle;
+
+    /// Gets the west coordinate in radians
+    #[wasm_bindgen(method, getter)]
+    pub fn west(this: &Rectangle) -> f64;
+
+    /// Gets the south coordinate in radians
+    #[wasm_bindgen(method, getter)]
+    pub fn south(this: &Rectangle) -> f64;
+
+    /// Gets the east coordinate in radians
+    #[wasm_bindgen(method, getter)]
+    pub fn east(this: &Rectangle) -> f64;
+
+    /// Gets the north coordinate in radians
+    #[wasm_bindgen(method, getter)]
+    pub fn north(this: &Rectangle) -> f64;
+
+    /// Gets the width of the rectangle in radians
+    #[wasm_bindgen(method, getter)]
+    pub fn width(this: &Rectangle) -> f64;
+
+    /// Gets the height of the rectangle in radians
+    #[wasm_bindgen(method, getter)]
+    pub fn height(this: &Rectangle) -> f64;
 }
 
 /// Internal helper using reflection to call Cesium.Rectangle.fromDegrees
