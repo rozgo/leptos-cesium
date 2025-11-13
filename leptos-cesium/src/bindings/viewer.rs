@@ -54,6 +54,17 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = selectedEntityChanged)]
     pub fn selected_entity_changed(this: &Viewer) -> Event;
 
+    /// Tracked entity property (get/set) - the entity currently being tracked by the camera
+    #[wasm_bindgen(method, getter, js_name = trackedEntity)]
+    pub fn tracked_entity(this: &Viewer) -> Option<Entity>;
+
+    #[wasm_bindgen(method, setter, js_name = trackedEntity)]
+    pub fn set_tracked_entity(this: &Viewer, entity: Option<&Entity>);
+
+    /// Event fired when the tracked entity changes
+    #[wasm_bindgen(method, getter, js_name = trackedEntityChanged)]
+    pub fn tracked_entity_changed(this: &Viewer) -> Event;
+
     /// Cesium Event type for event handling
     #[wasm_bindgen(js_namespace = Cesium, js_name = Event)]
     pub type Event;
@@ -112,6 +123,13 @@ extern "C" {
 
     #[wasm_bindgen(method, js_name = removeAll)]
     pub fn remove_all(this: &PrimitiveCollection);
+}
+
+impl Viewer {
+    /// Clears the tracked entity (convenience method)
+    pub fn clear_tracked_entity(&self) {
+        self.set_tracked_entity(None);
+    }
 }
 
 // Helper function to get current JulianDate using reflection
