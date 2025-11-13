@@ -11,8 +11,9 @@ extern "C" {
     pub type Rectangle;
 }
 
+/// Internal helper using reflection to call Cesium.Rectangle.fromDegrees
 #[cfg(target_arch = "wasm32")]
-pub fn from_degrees(west: f64, south: f64, east: f64, north: f64) -> Rectangle {
+fn from_degrees_impl(west: f64, south: f64, east: f64, north: f64) -> Rectangle {
     use js_sys::{Function, Reflect, global};
     use wasm_bindgen::{JsCast, JsValue};
 
@@ -39,8 +40,11 @@ pub fn from_degrees(west: f64, south: f64, east: f64, north: f64) -> Rectangle {
 
 #[cfg(target_arch = "wasm32")]
 impl Rectangle {
+    /// Create a Rectangle from west, south, east, north coordinates in degrees.
+    ///
+    /// Calls Cesium.Rectangle.fromDegrees internally.
     pub fn from_degrees(west: f64, south: f64, east: f64, north: f64) -> Self {
-        from_degrees(west, south, east, north)
+        from_degrees_impl(west, south, east, north)
     }
 }
 

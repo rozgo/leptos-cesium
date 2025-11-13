@@ -49,6 +49,27 @@ extern "C" {
         offset: &JsValue,
     ) -> js_sys::Promise;
 
+    /// Selected entity property (get/set)
+    #[wasm_bindgen(method, getter, js_name = selectedEntity)]
+    pub fn selected_entity(this: &Viewer) -> JsValue;
+
+    #[wasm_bindgen(method, setter, js_name = selectedEntity)]
+    pub fn set_selected_entity(this: &Viewer, entity: &JsValue);
+
+    /// Event fired when the selected entity changes
+    #[wasm_bindgen(method, getter, js_name = selectedEntityChanged)]
+    pub fn selected_entity_changed(this: &Viewer) -> Event;
+
+    /// Cesium Event type for event handling
+    #[wasm_bindgen(js_namespace = Cesium, js_name = Event)]
+    pub type Event;
+
+    #[wasm_bindgen(method, js_name = addEventListener)]
+    pub fn add_event_listener(this: &Event, listener: &js_sys::Function);
+
+    #[wasm_bindgen(method, js_name = removeEventListener)]
+    pub fn remove_event_listener(this: &Event, listener: &js_sys::Function);
+
     /// Camera for controlling the view
     #[wasm_bindgen(js_namespace = Cesium, js_name = Camera)]
     pub type Camera;

@@ -345,6 +345,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "custom-selection"
+version = "0.1.0"
+dependencies = [
+ "console_error_panic_hook",
+ "js-sys",
+ "leptos",
+ "leptos-cesium",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "czml-viewer"
 version = "0.0.1"
 dependencies = [

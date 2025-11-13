@@ -237,7 +237,5 @@ impl GeoJsonLoadOptions {
 
     /// Build the options object (SSR stub)
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn build(self) -> () {
-        ()
-    }
+    pub fn build(self) {}
 }

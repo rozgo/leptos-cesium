@@ -14,8 +14,9 @@ extern "C" {
     pub fn new(x: f64, y: f64, z: f64) -> Cartesian3;
 }
 
+/// Internal helper using reflection to call Cesium.Cartesian3.fromDegrees
 #[cfg(target_arch = "wasm32")]
-pub fn cartesian3_from_degrees(longitude: f64, latitude: f64, height: f64) -> Cartesian3 {
+fn cartesian3_from_degrees_impl(longitude: f64, latitude: f64, height: f64) -> Cartesian3 {
     use js_sys::{Function, Reflect, global};
     use wasm_bindgen::{JsCast, JsValue};
 
@@ -40,6 +41,30 @@ pub fn cartesian3_from_degrees(longitude: f64, latitude: f64, height: f64) -> Ca
         .expect("Result of Cesium.Cartesian3.fromDegrees to be a Cartesian3")
 }
 
+#[cfg(target_arch = "wasm32")]
+impl Cartesian3 {
+    /// Create a Cartesian3 from longitude, latitude, and height in degrees.
+    ///
+    /// Calls Cesium.Cartesian3.fromDegrees internally.
+    pub fn from_degrees(longitude: f64, latitude: f64, height: f64) -> Self {
+        cartesian3_from_degrees_impl(longitude, latitude, height)
+    }
+
+    /// Create an array of Cartesian3 positions from a flat array of longitude, latitude pairs.
+    ///
+    /// Calls Cesium.Cartesian3.fromDegreesArray internally.
+    pub fn from_degrees_array(degrees: &[f64]) -> js_sys::Array {
+        cartesian3_from_degrees_array_impl(degrees)
+    }
+
+    /// Create an array of Cartesian3 positions from a flat array of longitude, latitude, height triples.
+    ///
+    /// Calls Cesium.Cartesian3.fromDegreesArrayHeights internally.
+    pub fn from_degrees_array_heights(degrees: &[f64]) -> js_sys::Array {
+        cartesian3_from_degrees_array_heights_impl(degrees)
+    }
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug, Clone, Default)]
 pub struct Cartesian3;
@@ -49,11 +74,24 @@ impl Cartesian3 {
     pub fn new(_x: f64, _y: f64, _z: f64) -> Self {
         Cartesian3
     }
+
+    pub fn from_degrees(_longitude: f64, _latitude: f64, _height: f64) -> Self {
+        Cartesian3
+    }
+
+    pub fn from_degrees_array(_degrees: &[f64]) -> js_sys::Array {
+        js_sys::Array::new()
+    }
+
+    pub fn from_degrees_array_heights(_degrees: &[f64]) -> js_sys::Array {
+        js_sys::Array::new()
+    }
 }
 
+/// Internal helper using reflection to call Cesium.Cartesian3.fromDegreesArray
 #[cfg(target_arch = "wasm32")]
-pub fn cartesian3_from_degrees_array(degrees: &[f64]) -> js_sys::Array {
-    use js_sys::{Array, Function, Reflect, global};
+fn cartesian3_from_degrees_array_impl(degrees: &[f64]) -> js_sys::Array {
+    use js_sys::{Function, Reflect, global};
     use wasm_bindgen::{JsCast, JsValue};
 
     let cesium = Reflect::get(&global(), &JsValue::from_str("Cesium"))
@@ -66,21 +104,21 @@ pub fn cartesian3_from_degrees_array(degrees: &[f64]) -> js_sys::Array {
         .dyn_into()
         .expect("Cesium.Cartesian3.fromDegreesArray to be callable");
 
-    let degrees_array = Array::new();
-    for &value in degrees {
-        degrees_array.push(&JsValue::from_f64(value));
-    }
+    // Use serde_wasm_bindgen to convert the slice to a JavaScript array
+    let degrees_array =
+        serde_wasm_bindgen::to_value(&degrees).expect("Failed to serialize degrees array");
 
     from_degrees_array_fn
-        .call1(&cartesian3, &degrees_array)
+        .call1(&JsValue::undefined(), &degrees_array)
         .expect("Cesium.Cartesian3.fromDegreesArray call to succeed")
         .dyn_into()
         .expect("Result of Cesium.Cartesian3.fromDegreesArray to be an Array")
 }
 
+/// Internal helper using reflection to call Cesium.Cartesian3.fromDegreesArrayHeights
 #[cfg(target_arch = "wasm32")]
-pub fn cartesian3_from_degrees_array_heights(degrees: &[f64]) -> js_sys::Array {
-    use js_sys::{Array, Function, Reflect, global};
+fn cartesian3_from_degrees_array_heights_impl(degrees: &[f64]) -> js_sys::Array {
+    use js_sys::{Function, Reflect, global};
     use wasm_bindgen::{JsCast, JsValue};
 
     let cesium = Reflect::get(&global(), &JsValue::from_str("Cesium"))
@@ -94,30 +132,13 @@ pub fn cartesian3_from_degrees_array_heights(degrees: &[f64]) -> js_sys::Array {
         .dyn_into()
         .expect("Cesium.Cartesian3.fromDegreesArrayHeights to be callable");
 
-    let degrees_array = Array::new();
-    for &value in degrees {
-        degrees_array.push(&JsValue::from_f64(value));
-    }
+    // Use serde_wasm_bindgen to convert the slice to a JavaScript array
+    let degrees_array =
+        serde_wasm_bindgen::to_value(&degrees).expect("Failed to serialize degrees array");
 
     from_degrees_array_heights_fn
-        .call1(&cartesian3, &degrees_array)
+        .call1(&JsValue::undefined(), &degrees_array)
         .expect("Cesium.Cartesian3.fromDegreesArrayHeights call to succeed")
         .dyn_into()
         .expect("Result of Cesium.Cartesian3.fromDegreesArrayHeights to be an Array")
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-#[allow(dead_code)]
-pub fn cartesian3_from_degrees(_longitude: f64, _latitude: f64, _height: f64) -> Cartesian3 {
-    Cartesian3
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-pub fn cartesian3_from_degrees_array(_degrees: &[f64]) -> Vec<Cartesian3> {
-    vec![]
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-pub fn cartesian3_from_degrees_array_heights(_degrees: &[f64]) -> Vec<Cartesian3> {
-    vec![]
 }

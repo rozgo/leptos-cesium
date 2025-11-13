@@ -71,7 +71,7 @@ pub fn CameraFlyHome(
 /// view! {
 ///     <ViewerContainer>
 ///         <CameraSetView
-///             destination=cartesian3_from_degrees(-116.52, 35.02, 95000.0)
+///             destination=Cartesian3::from_degrees(-116.52, 35.02, 95000.0)
 ///             orientation=Some(HeadingPitchRoll::new(6.0, -0.5, 0.0))
 ///         />
 ///     </ViewerContainer>
@@ -121,7 +121,7 @@ pub fn CameraSetView(
 /// view! {
 ///     <ViewerContainer>
 ///         <CameraFlyTo
-///             destination=cartesian3_from_degrees(-116.52, 35.02, 95000.0)
+///             destination=Cartesian3::from_degrees(-116.52, 35.02, 95000.0)
 ///             orientation=Some(HeadingPitchRoll::new(6.0, -0.5, 0.0))
 ///             duration=2.0
 ///         />

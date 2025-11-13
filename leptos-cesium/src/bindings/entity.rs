@@ -14,6 +14,26 @@ extern "C" {
     #[wasm_bindgen(constructor, js_namespace = Cesium, js_class = Entity)]
     pub fn new(options: &JsValue) -> Entity;
 
+    /// Entity name property
+    #[wasm_bindgen(method, getter, js_name = name)]
+    pub fn name(this: &Entity) -> JsValue;
+
+    /// Entity description property
+    #[wasm_bindgen(method, getter, js_name = description)]
+    pub fn description(this: &Entity) -> JsValue;
+
+    /// Entity id property
+    #[wasm_bindgen(method, getter, js_name = id)]
+    pub fn id(this: &Entity) -> String;
+
+    /// Entity position property
+    #[wasm_bindgen(method, getter, js_name = position)]
+    pub fn position(this: &Entity) -> JsValue;
+
+    /// Entity properties (custom properties bag)
+    #[wasm_bindgen(method, getter, js_name = properties)]
+    pub fn properties(this: &Entity) -> JsValue;
+
     #[wasm_bindgen(js_namespace = Cesium, js_name = EntityCollection)]
     pub type EntityCollection;
 

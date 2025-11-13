@@ -49,7 +49,7 @@ pub fn App() -> impl IntoView {
                         >
                             <Entity
                                 name=Some("Statue of Liberty".to_string())
-                                position=Some(cartesian3_from_degrees(-74.0445, 40.6892, 150.0))
+                                position=Some(Cartesian3::from_degrees(-74.0445, 40.6892, 150.0))
                             >
                                 <PointGraphics
                                     pixel_size=12.0

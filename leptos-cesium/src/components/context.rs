@@ -4,7 +4,8 @@ use leptos::prelude::*;
 use wasm_bindgen::{JsCast, JsValue};
 
 use crate::{
-    cesium::{Entity, Viewer},
+    bindings::Entity,
+    cesium::Viewer,
     core::{JsReadSignal, JsRwSignal, ThreadSafeJsValue},
 };
 
@@ -12,6 +13,10 @@ use crate::{
 #[derive(Debug, Clone, Copy)]
 pub struct CesiumViewerContext {
     viewer: JsRwSignal<Option<ThreadSafeJsValue<JsValue>>>,
+    selected_entity: JsRwSignal<Option<ThreadSafeJsValue<JsValue>>>,
+    /// Reactive trigger that increments when selection changes
+    /// Use this to trigger reactivity in components
+    selection_version: RwSignal<usize>,
     thread_id: std::thread::ThreadId,
 }
 
@@ -20,6 +25,8 @@ impl CesiumViewerContext {
     pub fn new() -> Self {
         Self {
             viewer: JsRwSignal::new_local(None),
+            selected_entity: JsRwSignal::new_local(None),
+            selection_version: RwSignal::new(0),
             thread_id: std::thread::current().id(),
         }
     }
@@ -105,6 +112,120 @@ impl CesiumViewerContext {
         F: FnOnce(Viewer) -> R,
     {
         None
+    }
+
+    /// Set the selected entity (strongly-typed).
+    #[cfg(target_arch = "wasm32")]
+    pub fn set_selected_entity(&self, entity: Option<Entity>) {
+        if !self.is_valid() {
+            leptos::logging::error!(
+                "Accessing Cesium viewer from a different thread. Probably running on the server."
+            );
+            return;
+        }
+        if let Some(e) = entity {
+            let value: JsValue = e.into();
+            self.selected_entity
+                .set(Some(ThreadSafeJsValue::new(value)));
+        } else {
+            self.selected_entity.set(None);
+        }
+        // Increment version to trigger reactivity
+        self.selection_version.update(|v| *v += 1);
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn set_selected_entity(&self, entity: Option<Entity>) {
+        let _ = entity;
+    }
+
+    /// Set the selected entity from a JsValue (used internally by event listener).
+    #[cfg(target_arch = "wasm32")]
+    pub(crate) fn set_selected_entity_from_js(&self, entity: JsValue) {
+        if !self.is_valid() {
+            leptos::logging::error!(
+                "Accessing Cesium viewer from a different thread. Probably running on the server."
+            );
+            return;
+        }
+        if entity.is_undefined() || entity.is_null() {
+            self.selected_entity.set(None);
+        } else {
+            self.selected_entity
+                .set(Some(ThreadSafeJsValue::new(entity)));
+        }
+        // Increment version to trigger reactivity
+        self.selection_version.update(|v| *v += 1);
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn set_selected_entity_from_js(&self, entity: JsValue) {
+        let _ = entity;
+    }
+
+    /// Returns the selected entity (strongly-typed as Entity).
+    #[cfg(target_arch = "wasm32")]
+    pub fn selected_entity(&self) -> Option<Entity> {
+        self.selected_entity
+            .get()
+            .and_then(|value| value.value().clone().dyn_into::<Entity>().ok())
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn selected_entity(&self) -> Option<Entity> {
+        None
+    }
+
+    /// Returns the selected entity without tracking reactive dependencies.
+    #[cfg(target_arch = "wasm32")]
+    pub fn selected_entity_untracked(&self) -> Option<Entity> {
+        self.selected_entity
+            .get_untracked()
+            .and_then(|value| value.value().clone().dyn_into::<Entity>().ok())
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn selected_entity_untracked(&self) -> Option<Entity> {
+        None
+    }
+
+    /// Returns the selected entity as a specific type (for advanced use cases).
+    #[cfg(target_arch = "wasm32")]
+    pub fn selected_entity_as<T: JsCast>(&self) -> Option<T> {
+        self.selected_entity
+            .get()
+            .and_then(|value| value.value().clone().dyn_into::<T>().ok())
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn selected_entity_as<T: JsCast>(&self) -> Option<T> {
+        let _ = std::marker::PhantomData::<T>;
+        None
+    }
+
+    /// Returns a read-only signal for the selected entity.
+    pub fn selected_entity_signal(&self) -> JsReadSignal<Option<ThreadSafeJsValue<JsValue>>> {
+        if self.is_valid() {
+            self.selected_entity.read_only()
+        } else {
+            panic!(
+                "Accessing Cesium viewer from a different thread. Probably running on the server."
+            );
+        }
+    }
+
+    /// Clear the selected entity.
+    pub fn clear_selected_entity(&self) {
+        if self.is_valid() {
+            self.selected_entity.set(None);
+            self.selection_version.update(|v| *v += 1);
+        }
+    }
+
+    /// Returns a reactive signal that updates when selection changes.
+    /// Use this to trigger reactivity, then call selected_entity() to get the entity.
+    pub fn selection_version(&self) -> ReadSignal<usize> {
+        self.selection_version.read_only()
     }
 
     fn is_valid(&self) -> bool {

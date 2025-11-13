@@ -11,8 +11,7 @@ pub use crate::bindings::{
     BoundingSphere, Cartesian2, Cartesian3, CheckerboardMaterialProperty, CheckerboardOptions,
     Color, HeadingPitchRange, HeadingPitchRoll, Material, PolygonHierarchy,
     PolylineGlowMaterialProperty, PolylineGlowOptions, Rectangle, StripeMaterialProperty,
-    StripeOptions, Viewer, cartesian3_from_degrees, cartesian3_from_degrees_array,
-    cartesian3_from_degrees_array_heights,
+    StripeOptions, Viewer,
 };
 
 // Re-export math utilities

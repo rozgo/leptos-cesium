@@ -8,7 +8,7 @@ use crate::components::provide_cesium_context;
 use crate::bindings::{Viewer, set_default_access_token};
 
 #[cfg(target_arch = "wasm32")]
-use wasm_bindgen::JsValue;
+use wasm_bindgen::{JsCast, JsValue};
 #[cfg(target_arch = "wasm32")]
 use web_sys::{HtmlElement, console};
 
@@ -30,6 +30,8 @@ use web_sys::{HtmlElement, console};
 /// * `scene_mode_picker` - Whether to show scene mode picker. Defaults to true.
 /// * `navigation_help_button` - Whether to show navigation help button. Defaults to true.
 /// * `fullscreen_button` - Whether to show fullscreen button. Defaults to true.
+/// * `info_box` - Whether to show the default InfoBox widget when entities are selected. Defaults to true.
+/// * `selection_indicator` - Whether to show the green selection indicator when entities are selected. Defaults to true.
 /// * `should_animate` - Whether animations should play automatically. Defaults to true. Required for CZML animations.
 /// * `children` - Child components (entities, data sources, etc.)
 #[component]
@@ -45,6 +47,8 @@ pub fn ViewerContainer(
     #[prop(optional, default = true)] scene_mode_picker: bool,
     #[prop(optional, default = true)] navigation_help_button: bool,
     #[prop(optional, default = true)] fullscreen_button: bool,
+    #[prop(optional, default = true)] info_box: bool,
+    #[prop(optional, default = true)] selection_indicator: bool,
     #[prop(optional, default = true)] should_animate: bool,
     #[prop(optional, into, default = true.into())] globe: Signal<bool>,
     #[prop(optional)] children: Option<Children>,
@@ -123,6 +127,16 @@ pub fn ViewerContainer(
             );
             let _ = js_sys::Reflect::set(
                 &options,
+                &JsValue::from_str("infoBox"),
+                &JsValue::from_bool(info_box),
+            );
+            let _ = js_sys::Reflect::set(
+                &options,
+                &JsValue::from_str("selectionIndicator"),
+                &JsValue::from_bool(selection_indicator),
+            );
+            let _ = js_sys::Reflect::set(
+                &options,
                 &JsValue::from_str("shouldAnimate"),
                 &JsValue::from_bool(should_animate),
             );
@@ -159,8 +173,38 @@ pub fn ViewerContainer(
                 scene_mode_picker,
                 navigation_help_button,
                 fullscreen_button,
+                info_box,
+                selection_indicator,
                 should_animate,
             );
+        }
+    });
+
+    // Set up selection event listener
+    Effect::new(move |_| {
+        #[cfg(target_arch = "wasm32")]
+        {
+            use wasm_bindgen::closure::Closure;
+
+            viewer_context.with_viewer(|viewer: Viewer| {
+                let event = viewer.selected_entity_changed();
+                let ctx = viewer_context;
+
+                // Create closure that updates the context when selection changes
+                let closure = Closure::wrap(Box::new(move |entity: JsValue| {
+                    ctx.set_selected_entity_from_js(entity);
+                }) as Box<dyn FnMut(JsValue)>);
+
+                // Add event listener
+                event.add_event_listener(closure.as_ref().unchecked_ref());
+
+                // Store closure so it's not dropped (it will be cleaned up when the component unmounts)
+                closure.forget();
+
+                console::debug_1(&JsValue::from_str(
+                    "ViewerContainer: selectedEntityChanged event listener attached.",
+                ));
+            });
         }
     });
 

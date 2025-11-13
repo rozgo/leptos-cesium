@@ -158,7 +158,7 @@ fn App() -> impl IntoView {
 
                 // Fly to a nice initial view
                 <CameraSetView
-                    destination=cartesian3_from_degrees(0.0, 30.0, 20000000.0)
+                    destination=Cartesian3::from_degrees(0.0, 30.0, 20000000.0)
                     orientation=Some(HeadingPitchRoll::new(0.0, -1.57, 0.0))
                 />
             </ViewerContainer>

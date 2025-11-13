@@ -3,8 +3,8 @@
 async fn main() {
     use axum::Router;
     use leptos::prelude::*;
-    use leptos_axum::{generate_route_list, LeptosRoutes};
-    use with_server::app::{shell, App};
+    use leptos_axum::{LeptosRoutes, generate_route_list};
+    use with_server::app::{App, shell};
     use with_server::fileserv::file_and_error_handler;
 
     let conf = get_configuration(None).unwrap();

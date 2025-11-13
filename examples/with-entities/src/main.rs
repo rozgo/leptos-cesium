@@ -32,7 +32,7 @@ fn App() -> impl IntoView {
             >
                 <PolygonGraphics
                     hierarchy={
-                        let positions = cartesian3_from_degrees_array(&[
+                        let positions = Cartesian3::from_degrees_array(&[
                             -115.0, 37.0,
                             -115.0, 32.0,
                             -107.0, 33.0,
@@ -51,7 +51,7 @@ fn App() -> impl IntoView {
             <Entity
                 name=Some("Green Ellipse".to_string())
                 description=Some("A green ellipse".to_string())
-                position=Some(cartesian3_from_degrees(-95.0, 40.0, 0.0))
+                position=Some(Cartesian3::from_degrees(-95.0, 40.0, 0.0))
             >
                 <EllipseGraphics
                     semi_minor_axis=300000.0
@@ -86,7 +86,7 @@ fn App() -> impl IntoView {
             <Entity
                 name=Some("Orange Box".to_string())
                 description=Some("A 3D box shape".to_string())
-                position=Some(cartesian3_from_degrees(-106.0, 45.0, 200000.0))
+                position=Some(Cartesian3::from_degrees(-106.0, 45.0, 200000.0))
             >
                 <BoxGraphics
                     dimensions=Cartesian3::new(90000.0, 90000.0, 90000.0)
@@ -101,7 +101,7 @@ fn App() -> impl IntoView {
             <Entity
                 name=Some("Purple Sphere".to_string())
                 description=Some("A spherical shape".to_string())
-                position=Some(cartesian3_from_degrees(-102.0, 45.0, 200000.0))
+                position=Some(Cartesian3::from_degrees(-102.0, 45.0, 200000.0))
             >
                 <EllipsoidGraphics
                     radii=Cartesian3::new(67500.0, 67500.0, 67500.0)
@@ -116,7 +116,7 @@ fn App() -> impl IntoView {
             <Entity
                 name=Some("Cyan Cylinder".to_string())
                 description=Some("A cylindrical shape".to_string())
-                position=Some(cartesian3_from_degrees(-70.0, 40.0, 200000.0))
+                position=Some(Cartesian3::from_degrees(-70.0, 40.0, 200000.0))
             >
                 <CylinderGraphics
                     length=400000.0
@@ -135,7 +135,7 @@ fn App() -> impl IntoView {
                 description=Some("A vertical wall structure".to_string())
             >
                 <WallGraphics
-                    positions=cartesian3_from_degrees_array_heights(&[
+                    positions=Cartesian3::from_degrees_array_heights(&[
                         -90.0, 43.0, 100000.0,
                         -87.5, 45.0, 100000.0,
                         -85.0, 43.0, 100000.0,
@@ -158,7 +158,7 @@ fn App() -> impl IntoView {
                 description=Some("A corridor path".to_string())
             >
                 <CorridorGraphics
-                    positions=cartesian3_from_degrees_array(&[
+                    positions=Cartesian3::from_degrees_array(&[
                         -120.0, 45.0,
                         -125.0, 50.0,
                         -125.0, 55.0,
@@ -180,7 +180,7 @@ fn App() -> impl IntoView {
                     positions={
                         let mut positions = js_sys::Array::new();
                         for i in 0..40 {
-                            positions.push(&cartesian3_from_degrees(-100.0 + i as f64, 15.0, 0.0).into());
+                            positions.push(&Cartesian3::from_degrees(-100.0 + i as f64, 15.0, 0.0).into());
                         }
                         positions
                     }
