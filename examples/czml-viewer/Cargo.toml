@@ -1,12 +1,12 @@
 [package]
 name = "czml-viewer"
-version = "0.0.1"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 publish = false
 
 [dependencies]
-console_error_panic_hook = "0.1"
-leptos = { version = "0.8", default-features = false, features = ["csr"] }
+console_error_panic_hook.workspace = true
+leptos = { workspace = true, default-features = false, features = ["csr"] }
 leptos-cesium = { path = "../../leptos-cesium", default-features = false, features = ["csr"] }
 
 [features]
