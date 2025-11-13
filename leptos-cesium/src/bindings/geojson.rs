@@ -1,11 +1,8 @@
 //! GeoJSON data source bindings and load options builder
 
 use crate::bindings::Color;
-
-#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
-#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 extern "C" {
     /// GeoJSON data source for loading GeoJSON and TopoJSON data
@@ -71,22 +68,6 @@ pub fn geojson_data_source_load_with_options(url: &str, options: &JsValue) -> js
         .call2(&geojson_data_source, &JsValue::from_str(url), options)
         .expect("Cesium.GeoJsonDataSource.load to succeed")
         .unchecked_into::<js_sys::Promise>()
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-#[derive(Debug, Clone, Default)]
-pub struct GeoJsonDataSource;
-
-#[cfg(not(target_arch = "wasm32"))]
-impl GeoJsonDataSource {
-    pub fn name(&self) -> String {
-        String::new()
-    }
-    pub fn set_name(&self, _name: &str) {}
-    pub fn show(&self) -> bool {
-        true
-    }
-    pub fn set_show(&self, _show: bool) {}
 }
 
 /// Builder for creating GeoJsonDataSource.LoadOptions with a fluent API
@@ -234,8 +215,4 @@ impl GeoJsonLoadOptions {
 
         options.into()
     }
-
-    /// Build the options object (SSR stub)
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn build(self) {}
 }

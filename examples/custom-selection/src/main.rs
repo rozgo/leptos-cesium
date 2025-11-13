@@ -183,10 +183,16 @@ fn CustomSelectionPanel() -> impl IntoView {
                         // Track selection changes and get entity
                         selection_version.get();
                         viewer_context.selected_entity().map(|entity| {
-                            // Extract entity properties using the bindings
-                            let name = extract_string_value(&entity.name());
-                            let description = extract_string_value(&entity.description());
+                            // Extract entity properties using the properly-typed API
+                            let name = entity.name().unwrap_or_else(|| "N/A".to_string());
+                            let description = entity.description()
+                                .and_then(|prop| prop.as_string())
+                                .unwrap_or_else(|| "N/A".to_string());
                             let id = entity.id();
+                            let position_str = entity.position()
+                                .and_then(|pos| pos.value())
+                                .map(|cart| format_cartesian3(&cart))
+                                .unwrap_or_else(|| "N/A".to_string());
 
                             view! {
                                 <div>
@@ -210,7 +216,7 @@ fn CustomSelectionPanel() -> impl IntoView {
                                     <div class="property-row">
                                         <div class="property-label">"Position"</div>
                                         <div class="property-value">
-                                            {format_position(&entity.position())}
+                                            {position_str}
                                         </div>
                                     </div>
                                 </div>
@@ -223,65 +229,26 @@ fn CustomSelectionPanel() -> impl IntoView {
     }
 }
 
-// Helper functions to extract values from Cesium properties
-
-#[cfg(target_arch = "wasm32")]
-fn extract_string_value(value: &wasm_bindgen::JsValue) -> String {
-    use wasm_bindgen::JsCast;
-
-    if value.is_undefined() || value.is_null() {
-        return "N/A".to_string();
-    }
-
-    // Check if it's a Property (Cesium Property type)
-    if let Ok(obj) = js_sys::Reflect::get(value, &wasm_bindgen::JsValue::from_str("getValue")) {
-        if let Ok(get_value_fn) = obj.dyn_into::<js_sys::Function>() {
-            // It's a Cesium Property, call getValue()
-            if let Ok(result) = get_value_fn.call0(value) {
-                if let Some(s) = result.as_string() {
-                    return s;
-                }
-            }
-        }
-    }
-
-    // Otherwise try to convert directly to string
-    value.as_string().unwrap_or_else(|| "N/A".to_string())
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn extract_string_value(_value: &wasm_bindgen::JsValue) -> String {
-    "N/A".to_string()
-}
-
-#[cfg(target_arch = "wasm32")]
-fn format_position(position: &wasm_bindgen::JsValue) -> String {
+// Helper function to format Cartesian3 position
+fn format_cartesian3(cart: &leptos_cesium::bindings::Cartesian3) -> String {
     use js_sys::Reflect;
     use wasm_bindgen::JsValue;
 
-    if position.is_undefined() || position.is_null() {
-        return "N/A".to_string();
+    // Extract x, y, z from Cartesian3
+    let x = Reflect::get(cart.as_ref(), &JsValue::from_str("x"))
+        .ok()
+        .and_then(|v| v.as_f64());
+    let y = Reflect::get(cart.as_ref(), &JsValue::from_str("y"))
+        .ok()
+        .and_then(|v| v.as_f64());
+    let z = Reflect::get(cart.as_ref(), &JsValue::from_str("z"))
+        .ok()
+        .and_then(|v| v.as_f64());
+
+    match (x, y, z) {
+        (Some(x), Some(y), Some(z)) => format!("({:.2}, {:.2}, {:.2})", x, y, z),
+        _ => "N/A".to_string(),
     }
-
-    // Try to extract Cartesian3 x, y, z values
-    if let Ok(x) = Reflect::get(position, &JsValue::from_str("x")) {
-        if let Ok(y) = Reflect::get(position, &JsValue::from_str("y")) {
-            if let Ok(z) = Reflect::get(position, &JsValue::from_str("z")) {
-                if let (Some(x_num), Some(y_num), Some(z_num)) =
-                    (x.as_f64(), y.as_f64(), z.as_f64())
-                {
-                    return format!("({:.2}, {:.2}, {:.2})", x_num, y_num, z_num);
-                }
-            }
-        }
-    }
-
-    "Complex position".to_string()
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn format_position(_position: &wasm_bindgen::JsValue) -> String {
-    "N/A".to_string()
 }
 
 #[component]

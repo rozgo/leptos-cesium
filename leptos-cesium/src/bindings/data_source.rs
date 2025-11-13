@@ -1,9 +1,7 @@
 //! Cesium DataSource bindings for CZML and other data formats
 
-#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
-#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 extern "C" {
     /// Collection of DataSource instances
@@ -71,11 +69,3 @@ pub fn czml_data_source_load_with_options(url: &str, options: &JsValue) -> js_sy
         .expect("Cesium.CzmlDataSource.load to succeed")
         .unchecked_into::<js_sys::Promise>()
 }
-
-#[cfg(not(target_arch = "wasm32"))]
-#[derive(Debug, Clone, Default)]
-pub struct DataSourceCollection;
-
-#[cfg(not(target_arch = "wasm32"))]
-#[derive(Debug, Clone, Default)]
-pub struct CzmlDataSource;

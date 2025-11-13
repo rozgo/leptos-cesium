@@ -1,18 +1,14 @@
 //! Minimal Cesium viewer bindings needed to bootstrap rendering.
 
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::JsValue;
-#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
-#[cfg(target_arch = "wasm32")]
 use web_sys::HtmlElement;
 
-#[cfg(target_arch = "wasm32")]
 use crate::bindings::data_source::DataSourceCollection;
-#[cfg(target_arch = "wasm32")]
 use crate::bindings::entity::EntityCollection;
 
 #[cfg(target_arch = "wasm32")]
+use crate::bindings::JulianDate;
+
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = Cesium, js_name = Viewer)]
@@ -99,10 +95,6 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = currentTime)]
     pub fn set_current_time(this: &Clock, value: &JsValue);
 
-    /// JulianDate for time representation
-    #[wasm_bindgen(js_namespace = Cesium, js_name = JulianDate)]
-    pub type JulianDate;
-
     /// Scene contains the primitives and other visual elements
     #[wasm_bindgen(js_namespace = Cesium, js_name = Scene)]
     pub type Scene;
@@ -144,16 +136,4 @@ pub fn julian_date_now() -> JulianDate {
         .call0(&julian_date_class)
         .expect("Cesium.JulianDate.now call to succeed")
         .unchecked_into::<JulianDate>()
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-#[derive(Debug, Clone, Default)]
-pub struct Viewer;
-
-#[cfg(not(target_arch = "wasm32"))]
-impl Viewer {
-    #[allow(dead_code)]
-    pub fn entities(&self) -> crate::bindings::entity::EntityCollection {
-        crate::bindings::entity::EntityCollection
-    }
 }

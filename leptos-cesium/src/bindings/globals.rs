@@ -1,13 +1,9 @@
 //! Bindings for Cesium global helpers.
 
 #[cfg(target_arch = "wasm32")]
-use wasm_bindgen::JsCast;
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::JsValue;
-
-#[cfg(target_arch = "wasm32")]
 pub fn set_base_url(base_url: &str) {
     use js_sys::{Function, Reflect, global};
+    use wasm_bindgen::{JsCast, JsValue};
     use web_sys::console;
 
     let global = global();
@@ -48,23 +44,16 @@ pub fn set_base_url(base_url: &str) {
 #[cfg(target_arch = "wasm32")]
 pub fn set_ion_default_access_token(token: &str) {
     use js_sys::{Reflect, global};
+    use wasm_bindgen::JsValue;
 
     let global = global();
-    if let Ok(cesium) = Reflect::get(&global, &JsValue::from_str("Cesium")) {
-        if let Ok(ion) = Reflect::get(&cesium, &JsValue::from_str("Ion")) {
-            let _ = Reflect::set(
-                &ion,
-                &JsValue::from_str("defaultAccessToken"),
-                &JsValue::from_str(token),
-            );
-        }
+    if let Ok(cesium) = Reflect::get(&global, &JsValue::from_str("Cesium"))
+        && let Ok(ion) = Reflect::get(&cesium, &JsValue::from_str("Ion"))
+    {
+        let _ = Reflect::set(
+            &ion,
+            &JsValue::from_str("defaultAccessToken"),
+            &JsValue::from_str(token),
+        );
     }
 }
-
-#[cfg(not(target_arch = "wasm32"))]
-#[allow(dead_code)]
-pub fn set_base_url(_base_url: &str) {}
-
-#[cfg(not(target_arch = "wasm32"))]
-#[allow(dead_code)]
-pub fn set_ion_default_access_token(_token: &str) {}

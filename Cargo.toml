@@ -1,5 +1,6 @@
 [workspace]
 members = ["leptos-cesium", "examples/simple-viewer", "examples/with-server", "examples/with-entities", "examples/czml-viewer", "examples/geojson", "examples/custom-selection"]
+default-members = ["leptos-cesium"]
 resolver = "2"
 
 [workspace.package]

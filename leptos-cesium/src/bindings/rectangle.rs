@@ -1,9 +1,7 @@
 //! Cesium Rectangle utilities
 
-#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
-#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 extern "C" {
     #[derive(Clone)]
@@ -38,23 +36,12 @@ fn from_degrees_impl(west: f64, south: f64, east: f64, north: f64) -> Rectangle 
         .unchecked_into::<Rectangle>()
 }
 
-#[cfg(target_arch = "wasm32")]
 impl Rectangle {
     /// Create a Rectangle from west, south, east, north coordinates in degrees.
     ///
     /// Calls Cesium.Rectangle.fromDegrees internally.
+    #[cfg(target_arch = "wasm32")]
     pub fn from_degrees(west: f64, south: f64, east: f64, north: f64) -> Self {
         from_degrees_impl(west, south, east, north)
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-#[derive(Debug, Clone, Default)]
-pub struct Rectangle;
-
-#[cfg(not(target_arch = "wasm32"))]
-impl Rectangle {
-    pub fn from_degrees(_west: f64, _south: f64, _east: f64, _north: f64) -> Self {
-        Rectangle
     }
 }

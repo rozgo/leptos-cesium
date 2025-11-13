@@ -1,9 +1,7 @@
 //! Bindings for Cesium coordinate helpers.
 
-#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
-#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 extern "C" {
     #[derive(Clone)]
@@ -41,11 +39,11 @@ fn cartesian3_from_degrees_impl(longitude: f64, latitude: f64, height: f64) -> C
         .expect("Result of Cesium.Cartesian3.fromDegrees to be a Cartesian3")
 }
 
-#[cfg(target_arch = "wasm32")]
 impl Cartesian3 {
     /// Create a Cartesian3 from longitude, latitude, and height in degrees.
     ///
     /// Calls Cesium.Cartesian3.fromDegrees internally.
+    #[cfg(target_arch = "wasm32")]
     pub fn from_degrees(longitude: f64, latitude: f64, height: f64) -> Self {
         cartesian3_from_degrees_impl(longitude, latitude, height)
     }
@@ -53,6 +51,7 @@ impl Cartesian3 {
     /// Create an array of Cartesian3 positions from a flat array of longitude, latitude pairs.
     ///
     /// Calls Cesium.Cartesian3.fromDegreesArray internally.
+    #[cfg(target_arch = "wasm32")]
     pub fn from_degrees_array(degrees: &[f64]) -> js_sys::Array {
         cartesian3_from_degrees_array_impl(degrees)
     }
@@ -60,31 +59,9 @@ impl Cartesian3 {
     /// Create an array of Cartesian3 positions from a flat array of longitude, latitude, height triples.
     ///
     /// Calls Cesium.Cartesian3.fromDegreesArrayHeights internally.
+    #[cfg(target_arch = "wasm32")]
     pub fn from_degrees_array_heights(degrees: &[f64]) -> js_sys::Array {
         cartesian3_from_degrees_array_heights_impl(degrees)
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-#[derive(Debug, Clone, Default)]
-pub struct Cartesian3;
-
-#[cfg(not(target_arch = "wasm32"))]
-impl Cartesian3 {
-    pub fn new(_x: f64, _y: f64, _z: f64) -> Self {
-        Cartesian3
-    }
-
-    pub fn from_degrees(_longitude: f64, _latitude: f64, _height: f64) -> Self {
-        Cartesian3
-    }
-
-    pub fn from_degrees_array(_degrees: &[f64]) -> js_sys::Array {
-        js_sys::Array::new()
-    }
-
-    pub fn from_degrees_array_heights(_degrees: &[f64]) -> js_sys::Array {
-        js_sys::Array::new()
     }
 }
 

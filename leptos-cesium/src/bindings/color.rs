@@ -1,9 +1,7 @@
 //! Cesium Color utilities
 
-#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
-#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 extern "C" {
     #[derive(Clone)]
@@ -35,109 +33,64 @@ fn get_color_property(name: &str) -> Color {
         .unchecked_into::<Color>()
 }
 
-#[cfg(target_arch = "wasm32")]
 impl Color {
+    #[cfg(target_arch = "wasm32")]
     pub fn white() -> Color {
         get_color_property("WHITE")
     }
 
+    #[cfg(target_arch = "wasm32")]
     pub fn black() -> Color {
         get_color_property("BLACK")
     }
 
+    #[cfg(target_arch = "wasm32")]
     pub fn red() -> Color {
         get_color_property("RED")
     }
 
+    #[cfg(target_arch = "wasm32")]
     pub fn green() -> Color {
         get_color_property("GREEN")
     }
 
+    #[cfg(target_arch = "wasm32")]
     pub fn blue() -> Color {
         get_color_property("BLUE")
     }
 
+    #[cfg(target_arch = "wasm32")]
     pub fn yellow() -> Color {
         get_color_property("YELLOW")
     }
 
+    #[cfg(target_arch = "wasm32")]
     pub fn cyan() -> Color {
         get_color_property("CYAN")
     }
 
+    #[cfg(target_arch = "wasm32")]
     pub fn magenta() -> Color {
         get_color_property("MAGENTA")
     }
 
+    #[cfg(target_arch = "wasm32")]
     pub fn gray() -> Color {
         get_color_property("GRAY")
     }
 
+    #[cfg(target_arch = "wasm32")]
     pub fn lightgray() -> Color {
         get_color_property("LIGHTGRAY")
     }
 
+    #[cfg(target_arch = "wasm32")]
     pub fn deepskyblue() -> Color {
         get_color_property("DEEPSKYBLUE")
     }
 
+    #[cfg(target_arch = "wasm32")]
     pub fn purple() -> Color {
         get_color_property("PURPLE")
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-#[derive(Debug, Clone, Default)]
-pub struct Color;
-
-#[cfg(not(target_arch = "wasm32"))]
-impl Color {
-    pub fn new(_red: f64, _green: f64, _blue: f64, _alpha: f64) -> Self {
-        Color
-    }
-
-    pub fn from_random(_options: &()) -> Self {
-        Color
-    }
-
-    pub fn with_alpha(&self, _alpha: f64) -> Self {
-        Color
-    }
-
-    pub fn white() -> Self {
-        Color
-    }
-    pub fn black() -> Self {
-        Color
-    }
-    pub fn red() -> Self {
-        Color
-    }
-    pub fn green() -> Self {
-        Color
-    }
-    pub fn blue() -> Self {
-        Color
-    }
-    pub fn yellow() -> Self {
-        Color
-    }
-    pub fn cyan() -> Self {
-        Color
-    }
-    pub fn magenta() -> Self {
-        Color
-    }
-    pub fn gray() -> Self {
-        Color
-    }
-    pub fn lightgray() -> Self {
-        Color
-    }
-    pub fn deepskyblue() -> Self {
-        Color
-    }
-    pub fn purple() -> Self {
-        Color
     }
 }

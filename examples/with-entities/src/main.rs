@@ -39,7 +39,7 @@ fn App() -> impl IntoView {
                             -102.0, 31.0,
                             -102.0, 35.0,
                         ]);
-                        PolygonHierarchy::new_simple(&positions.into())
+                        PolygonHierarchy::new_simple(&positions)
                     }
                     material=Some(Material::color(Color::blue().with_alpha(0.5)))
                     outline=Some(true)

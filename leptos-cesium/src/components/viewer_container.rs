@@ -148,17 +148,16 @@ pub fn ViewerContainer(
             viewer_context.set_viewer(viewer);
 
             // Remove cesium-viewer-bottom
-            if let Some(document) = web_sys::window().and_then(|w| w.document()) {
-                if let Some(bottom_bar) = document
+            if let Some(document) = web_sys::window().and_then(|w| w.document())
+                && let Some(bottom_bar) = document
                     .query_selector(".cesium-viewer-bottom")
                     .ok()
                     .flatten()
-                {
-                    bottom_bar.remove();
-                    console::debug_1(&JsValue::from_str(
-                        "ViewerContainer: removed .cesium-viewer-bottom",
-                    ));
-                }
+            {
+                bottom_bar.remove();
+                console::debug_1(&JsValue::from_str(
+                    "ViewerContainer: removed .cesium-viewer-bottom",
+                ));
             }
         }
 
@@ -216,18 +215,19 @@ pub fn ViewerContainer(
             viewer_context.with_viewer(|viewer: Viewer| {
                 let scene = viewer.scene();
                 // Access scene.globe and set its show property
-                if let Ok(globe_obj) = js_sys::Reflect::get(&scene, &JsValue::from_str("globe")) {
-                    if !globe_obj.is_undefined() && !globe_obj.is_null() {
-                        let _ = js_sys::Reflect::set(
-                            &globe_obj,
-                            &JsValue::from_str("show"),
-                            &JsValue::from_bool(show_globe),
-                        );
-                        console::log_1(&JsValue::from_str(&format!(
-                            "ViewerContainer: globe visibility set to {}",
-                            show_globe
-                        )));
-                    }
+                if let Ok(globe_obj) = js_sys::Reflect::get(&scene, &JsValue::from_str("globe"))
+                    && !globe_obj.is_undefined()
+                    && !globe_obj.is_null()
+                {
+                    let _ = js_sys::Reflect::set(
+                        &globe_obj,
+                        &JsValue::from_str("show"),
+                        &JsValue::from_bool(show_globe),
+                    );
+                    console::log_1(&JsValue::from_str(&format!(
+                        "ViewerContainer: globe visibility set to {}",
+                        show_globe
+                    )));
                 }
             });
         }

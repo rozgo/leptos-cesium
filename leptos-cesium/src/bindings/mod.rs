@@ -13,6 +13,7 @@ pub mod ion;
 pub mod materials;
 pub mod math;
 pub mod polygon_hierarchy;
+pub mod property;
 pub mod rectangle;
 pub mod tileset;
 pub mod viewer;
@@ -26,11 +27,14 @@ pub use entity::*;
 #[allow(unused_imports)]
 pub use generated::*;
 pub use geojson::*;
+#[cfg(target_arch = "wasm32")]
 pub use globals::*;
+#[cfg(target_arch = "wasm32")]
 pub use ion::*;
 pub use materials::*;
 pub use math::*;
 pub use polygon_hierarchy::*;
+pub use property::*;
 pub use rectangle::*;
 pub use tileset::*;
 pub use viewer::*;

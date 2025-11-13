@@ -1,11 +1,7 @@
 //! Cesium3DTileset bindings for loading 3D tiles.
 
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::JsValue;
-#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
-#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 extern "C" {
     /// Cesium3DTileset for loading 3D tile data
@@ -135,15 +131,3 @@ impl Cesium3DTilesetOptions {
         obj.into()
     }
 }
-
-#[cfg(not(target_arch = "wasm32"))]
-#[derive(Debug, Clone, Default)]
-pub struct Cesium3DTileset;
-
-#[cfg(not(target_arch = "wasm32"))]
-#[derive(Debug, Clone, Default)]
-pub struct GooglePhotorealistic3DTilesApiOptions;
-
-#[cfg(not(target_arch = "wasm32"))]
-#[derive(Debug, Clone, Default)]
-pub struct Cesium3DTilesetOptions;

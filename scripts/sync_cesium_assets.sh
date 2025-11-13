@@ -7,6 +7,7 @@ VERSION="${1:-$DEFAULT_VERSION}"
 
 VENDOR_BASE="$ROOT_DIR/vendor/Cesium/$VERSION"
 VENDOR_BUILD="$VENDOR_BASE/Build/Cesium"
+CESIUM_DTS="$VENDOR_BASE/Source/Cesium.d.ts"
 
 link_or_copy_build() {
   local source_dir="$1"
@@ -71,8 +72,19 @@ ensure_vendor_copy() {
   echo "Using Cesium build at $VENDOR_BUILD"
 }
 
+copy_typescript_definitions() {
+  if [[ -f "$CESIUM_DTS" ]]; then
+    local target="$ROOT_DIR/Cesium.d.ts"
+    echo "Copying TypeScript definitions to $target"
+    cp "$CESIUM_DTS" "$target"
+  else
+    echo "Warning: Cesium.d.ts not found at $CESIUM_DTS" >&2
+  fi
+}
+
 main() {
   ensure_vendor_copy
+  copy_typescript_definitions
 
   local source_dir="$VENDOR_BUILD"
   local examples_dir="$ROOT_DIR/examples"

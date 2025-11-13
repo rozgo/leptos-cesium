@@ -110,13 +110,13 @@ pub fn Entity(
         #[cfg(target_arch = "wasm32")]
         {
             console::debug_1(&JsValue::from_str("Entity: cleanup"));
-            if let Some(entity) = entity_context.entity_untracked::<CesiumEntity>() {
-                if let Some(viewer_context) = use_cesium_context() {
-                    viewer_context.with_viewer(|viewer: Viewer| {
-                        viewer.entities().remove(&entity);
-                        console::debug_1(&JsValue::from_str("Entity: removed from viewer"));
-                    });
-                }
+            if let Some(entity) = entity_context.entity_untracked::<CesiumEntity>()
+                && let Some(viewer_context) = use_cesium_context()
+            {
+                viewer_context.with_viewer(|viewer: Viewer| {
+                    viewer.entities().remove(&entity);
+                    console::debug_1(&JsValue::from_str("Entity: removed from viewer"));
+                });
             }
         }
         entity_context.clear_entity();

@@ -159,6 +159,7 @@ impl CesiumViewerContext {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
+    #[allow(dead_code)]
     pub(crate) fn set_selected_entity_from_js(&self, entity: JsValue) {
         let _ = entity;
     }

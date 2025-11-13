@@ -1,21 +1,12 @@
 //! Bindings for Cesium camera-related types and options.
 
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::JsValue;
-#[cfg(target_arch = "wasm32")]
+use crate::bindings::coordinates::Cartesian3;
 use wasm_bindgen::prelude::*;
-
-#[cfg(target_arch = "wasm32")]
-use crate::bindings::coordinates::Cartesian3;
-
-#[cfg(not(target_arch = "wasm32"))]
-use crate::bindings::coordinates::Cartesian3;
 
 // ============================================================================
 // HeadingPitchRoll
 // ============================================================================
 
-#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 extern "C" {
     #[derive(Clone)]
@@ -53,54 +44,10 @@ impl HeadingPitchRoll {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-#[derive(Debug, Clone, Default)]
-pub struct HeadingPitchRoll {
-    pub heading: f64,
-    pub pitch: f64,
-    pub roll: f64,
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-impl HeadingPitchRoll {
-    pub fn new(heading: f64, pitch: f64, roll: f64) -> Self {
-        Self {
-            heading,
-            pitch,
-            roll,
-        }
-    }
-
-    pub fn heading(&self) -> f64 {
-        self.heading
-    }
-
-    pub fn pitch(&self) -> f64 {
-        self.pitch
-    }
-
-    pub fn roll(&self) -> f64 {
-        self.roll
-    }
-
-    pub fn top_down() -> Self {
-        Self::new(0.0, -std::f64::consts::FRAC_PI_2, 0.0)
-    }
-
-    pub fn north_facing() -> Self {
-        Self::new(0.0, -std::f64::consts::FRAC_PI_4, 0.0)
-    }
-
-    pub fn default_view() -> Self {
-        Self::new(0.0, -std::f64::consts::FRAC_PI_6, 0.0)
-    }
-}
-
 // ============================================================================
 // HeadingPitchRange
 // ============================================================================
 
-#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 extern "C" {
     #[derive(Clone)]
@@ -120,42 +67,10 @@ extern "C" {
     pub fn range(this: &HeadingPitchRange) -> f64;
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-#[derive(Debug, Clone, Default)]
-pub struct HeadingPitchRange {
-    pub heading: f64,
-    pub pitch: f64,
-    pub range: f64,
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-impl HeadingPitchRange {
-    pub fn new(heading: f64, pitch: f64, range: f64) -> Self {
-        Self {
-            heading,
-            pitch,
-            range,
-        }
-    }
-
-    pub fn heading(&self) -> f64 {
-        self.heading
-    }
-
-    pub fn pitch(&self) -> f64 {
-        self.pitch
-    }
-
-    pub fn range(&self) -> f64 {
-        self.range
-    }
-}
-
 // ============================================================================
 // BoundingSphere
 // ============================================================================
 
-#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 extern "C" {
     #[derive(Clone)]
@@ -170,17 +85,6 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     pub fn radius(this: &BoundingSphere) -> f64;
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-#[derive(Debug, Clone, Default)]
-pub struct BoundingSphere;
-
-#[cfg(not(target_arch = "wasm32"))]
-impl BoundingSphere {
-    pub fn new(_center: &Cartesian3, _radius: f64) -> Self {
-        Self
-    }
 }
 
 // ============================================================================
