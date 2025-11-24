@@ -19,7 +19,7 @@ use web_sys::{HtmlElement, console};
 /// # Props
 ///
 /// * `ion_token` - Optional Cesium Ion access token. If provided, sets the default access token
-///   before creating the viewer. Use `env!("CESIUM_ION_TOKEN")` to load from environment.
+///   before creating the viewer.
 /// * `class` - Optional CSS class for the container div
 /// * `style` - Optional inline styles for the container div
 /// * `node_ref` - Optional node reference to access the underlying DOM element
@@ -55,6 +55,30 @@ pub fn ViewerContainer(
 ) -> impl IntoView {
     let viewer_context = provide_cesium_context();
 
+    // Log ion_token changes
+    Effect::new(move |_| {
+        #[cfg(target_arch = "wasm32")]
+        {
+            let token = ion_token.get();
+            match &token {
+                Some(t) => {
+                    console::log_1(&JsValue::from_str(&format!(
+                        "ViewerContainer: ion_token = Some({:?})",
+                        t
+                    )));
+                }
+                None => {
+                    console::log_1(&JsValue::from_str("ViewerContainer: ion_token = None"));
+                }
+            }
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let _ = ion_token;
+        }
+    });
+
     // Create viewer once (doesn't re-run when signals change due to untracked access)
     Effect::new(move |_| {
         #[cfg(target_arch = "wasm32")]
@@ -82,6 +106,10 @@ pub fn ViewerContainer(
                     "ViewerContainer: setting Cesium Ion access token.",
                 ));
                 set_default_access_token(&token);
+            } else {
+                console::warn_1(&JsValue::from_str(
+                    "ViewerContainer: No Cesium Ion access token provided. Some assets may not load.",
+                ));
             }
 
             console::debug_1(&JsValue::from_str(
