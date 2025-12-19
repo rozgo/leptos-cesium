@@ -3,24 +3,26 @@
 use leptos::prelude::*;
 use wasm_bindgen::{JsCast, JsValue};
 
+#[cfg(not(feature = "ssr"))]
+use crate::core::JsRwSignal;
 use crate::{
     bindings::Entity,
     cesium::Viewer,
-    core::{JsReadSignal, JsRwSignal, ThreadSafeJsValue},
+    core::{JsReadSignal, ThreadSafeJsValue},
 };
 
 /// Context exposing the active Cesium viewer to descendants.
 #[derive(Debug, Clone, Copy)]
 pub struct CesiumViewerContext {
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     viewer: JsRwSignal<Option<ThreadSafeJsValue<JsValue>>>,
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     selected_entity: JsRwSignal<Option<ThreadSafeJsValue<JsValue>>>,
     /// Reactive trigger that increments when selection changes
     /// Use this to trigger reactivity in components
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     selection_version: RwSignal<usize>,
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     thread_id: std::thread::ThreadId,
     #[cfg(feature = "ssr")]
     _phantom: std::marker::PhantomData<()>,
@@ -29,25 +31,21 @@ pub struct CesiumViewerContext {
 impl CesiumViewerContext {
     /// Create a fresh viewer context.
     pub fn new() -> Self {
-        #[cfg(feature = "hydrate")]
-        {
-            Self {
-                viewer: JsRwSignal::new_local(None),
-                selected_entity: JsRwSignal::new_local(None),
-                selection_version: RwSignal::new(0),
-                thread_id: std::thread::current().id(),
-            }
-        }
+        #[cfg(not(feature = "ssr"))]
+        return Self {
+            viewer: JsRwSignal::new_local(None),
+            selected_entity: JsRwSignal::new_local(None),
+            selection_version: RwSignal::new(0),
+            thread_id: std::thread::current().id(),
+        };
         #[cfg(feature = "ssr")]
-        {
-            Self {
-                _phantom: std::marker::PhantomData,
-            }
+        Self {
+            _phantom: std::marker::PhantomData,
         }
     }
 
     /// Record the viewer instance in the context.
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     pub fn set_viewer(&self, viewer: Viewer) {
         if !self.is_valid() {
             leptos::logging::error!(
@@ -65,7 +63,7 @@ impl CesiumViewerContext {
     }
 
     /// Returns the viewer, cloning the underlying JS handle if this is the correct thread.
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     pub fn viewer(&self) -> Option<Viewer> {
         self.viewer
             .get()
@@ -78,7 +76,7 @@ impl CesiumViewerContext {
     }
 
     /// Returns the viewer without tracking reactive dependencies.
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     pub fn viewer_untracked(&self) -> Option<Viewer> {
         self.viewer
             .get_untracked()
@@ -91,7 +89,7 @@ impl CesiumViewerContext {
     }
 
     /// Returns a read-only signal for the viewer.
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     pub fn viewer_signal(&self) -> JsReadSignal<Option<ThreadSafeJsValue<JsValue>>> {
         if self.is_valid() {
             self.viewer.read_only()
@@ -108,7 +106,7 @@ impl CesiumViewerContext {
     }
 
     /// Clears the viewer from the context.
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     pub fn clear_viewer(&self) {
         if self.is_valid() {
             self.viewer.set(None);
@@ -121,7 +119,7 @@ impl CesiumViewerContext {
     }
 
     /// Executes a closure with the viewer reference if it is available on this thread.
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     pub fn with_viewer<F, R>(&self, f: F) -> Option<R>
     where
         F: FnOnce(Viewer) -> R,
@@ -142,7 +140,7 @@ impl CesiumViewerContext {
     }
 
     /// Set the selected entity (strongly-typed).
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     pub fn set_selected_entity(&self, entity: Option<Entity>) {
         if !self.is_valid() {
             leptos::logging::error!(
@@ -167,7 +165,8 @@ impl CesiumViewerContext {
     }
 
     /// Set the selected entity from a JsValue (used internally by event listener).
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
+    #[allow(dead_code)] // Called from wasm32-only code in viewer_container.rs
     pub(crate) fn set_selected_entity_from_js(&self, entity: JsValue) {
         if !self.is_valid() {
             leptos::logging::error!(
@@ -192,7 +191,7 @@ impl CesiumViewerContext {
     }
 
     /// Returns the selected entity (strongly-typed as Entity).
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     pub fn selected_entity(&self) -> Option<Entity> {
         self.selected_entity
             .get()
@@ -205,7 +204,7 @@ impl CesiumViewerContext {
     }
 
     /// Returns the selected entity without tracking reactive dependencies.
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     pub fn selected_entity_untracked(&self) -> Option<Entity> {
         self.selected_entity
             .get_untracked()
@@ -218,7 +217,7 @@ impl CesiumViewerContext {
     }
 
     /// Returns the selected entity as a specific type (for advanced use cases).
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     pub fn selected_entity_as<T: JsCast>(&self) -> Option<T> {
         self.selected_entity
             .get()
@@ -232,7 +231,7 @@ impl CesiumViewerContext {
     }
 
     /// Returns a read-only signal for the selected entity.
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     pub fn selected_entity_signal(&self) -> JsReadSignal<Option<ThreadSafeJsValue<JsValue>>> {
         if self.is_valid() {
             self.selected_entity.read_only()
@@ -249,7 +248,7 @@ impl CesiumViewerContext {
     }
 
     /// Clear the selected entity.
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     pub fn clear_selected_entity(&self) {
         if self.is_valid() {
             self.selected_entity.set(None);
@@ -264,7 +263,7 @@ impl CesiumViewerContext {
 
     /// Returns a reactive signal that updates when selection changes.
     /// Use this to trigger reactivity, then call selected_entity() to get the entity.
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     pub fn selection_version(&self) -> ReadSignal<usize> {
         self.selection_version.read_only()
     }
@@ -274,12 +273,13 @@ impl CesiumViewerContext {
         panic!("selection_version() is not available during SSR");
     }
 
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     fn is_valid(&self) -> bool {
         std::thread::current().id() == self.thread_id && !self.viewer.is_disposed()
     }
 
     #[cfg(feature = "ssr")]
+    #[allow(dead_code)] // Used by hydrate-gated methods
     fn is_valid(&self) -> bool {
         false
     }
@@ -306,9 +306,9 @@ pub fn use_cesium_context() -> Option<CesiumViewerContext> {
 /// Context exposing entity handles within a viewer.
 #[derive(Debug, Clone, Copy)]
 pub struct CesiumEntityContext {
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     entity: JsRwSignal<Option<ThreadSafeJsValue<JsValue>>>,
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     thread_id: std::thread::ThreadId,
     #[cfg(feature = "ssr")]
     _phantom: std::marker::PhantomData<()>,
@@ -316,22 +316,18 @@ pub struct CesiumEntityContext {
 
 impl CesiumEntityContext {
     pub fn new() -> Self {
-        #[cfg(feature = "hydrate")]
-        {
-            Self {
-                entity: JsRwSignal::new_local(None),
-                thread_id: std::thread::current().id(),
-            }
-        }
+        #[cfg(not(feature = "ssr"))]
+        return Self {
+            entity: JsRwSignal::new_local(None),
+            thread_id: std::thread::current().id(),
+        };
         #[cfg(feature = "ssr")]
-        {
-            Self {
-                _phantom: std::marker::PhantomData,
-            }
+        Self {
+            _phantom: std::marker::PhantomData,
         }
     }
 
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     pub fn set_entity(&self, entity: Entity) {
         if !self.is_valid() {
             leptos::logging::error!(
@@ -348,7 +344,7 @@ impl CesiumEntityContext {
         let _ = entity;
     }
 
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     pub fn entity<T: JsCast>(&self) -> Option<T> {
         if self.is_valid() {
             self.entity
@@ -368,7 +364,7 @@ impl CesiumEntityContext {
         None
     }
 
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     pub fn entity_untracked<T: JsCast>(&self) -> Option<T> {
         if self.is_valid() {
             self.entity
@@ -389,7 +385,7 @@ impl CesiumEntityContext {
     }
 
     /// Clears the entity reference from the context.
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     pub fn clear_entity(&self) {
         if self.is_valid() {
             self.entity.set(None);
@@ -410,12 +406,13 @@ impl CesiumEntityContext {
         self.entity::<T>().map(f)
     }
 
-    #[cfg(feature = "hydrate")]
+    #[cfg(not(feature = "ssr"))]
     fn is_valid(&self) -> bool {
         std::thread::current().id() == self.thread_id && !self.entity.is_disposed()
     }
 
     #[cfg(feature = "ssr")]
+    #[allow(dead_code)] // Used by hydrate-gated methods
     fn is_valid(&self) -> bool {
         false
     }

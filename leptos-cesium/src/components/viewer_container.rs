@@ -55,7 +55,8 @@ pub fn ViewerContainer(
 ) -> impl IntoView {
     let viewer_context = provide_cesium_context();
 
-    // Log ion_token changes
+    // Log ion_token changes (hydrate only - Effect::new uses spawn_local which requires LocalSet)
+    #[cfg(not(feature = "ssr"))]
     Effect::new(move |_| {
         #[cfg(target_arch = "wasm32")]
         {
@@ -80,6 +81,7 @@ pub fn ViewerContainer(
     });
 
     // Create viewer once (doesn't re-run when signals change due to untracked access)
+    #[cfg(not(feature = "ssr"))]
     Effect::new(move |_| {
         #[cfg(target_arch = "wasm32")]
         {
@@ -208,6 +210,7 @@ pub fn ViewerContainer(
     });
 
     // Set up selection event listener
+    #[cfg(not(feature = "ssr"))]
     Effect::new(move |_| {
         #[cfg(target_arch = "wasm32")]
         {
@@ -236,6 +239,7 @@ pub fn ViewerContainer(
     });
 
     // Separate effect to control globe visibility dynamically
+    #[cfg(not(feature = "ssr"))]
     Effect::new(move |_| {
         #[cfg(target_arch = "wasm32")]
         {
@@ -278,6 +282,25 @@ pub fn ViewerContainer(
         }
         viewer_context.clear_viewer();
     });
+
+    // Silence unused variable warnings in SSR mode (props only used in hydrate Effects)
+    #[cfg(feature = "ssr")]
+    {
+        let _ = (
+            ion_token,
+            animation,
+            timeline,
+            base_layer_picker,
+            home_button,
+            scene_mode_picker,
+            navigation_help_button,
+            fullscreen_button,
+            info_box,
+            selection_indicator,
+            should_animate,
+            globe,
+        );
+    }
 
     view! {
         <div node_ref=node_ref class=class style=style>
