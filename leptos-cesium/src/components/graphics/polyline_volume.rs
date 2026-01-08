@@ -1,37 +1,41 @@
 //! PolylineVolumeGraphics component
 
-use crate::bindings::{Color, Material};
+use crate::bindings::Material;
 use crate::core::JsSignal;
+use geo_types::LineString;
+use glam::DVec2;
 use leptos::prelude::*;
+use palette::Srgba;
 
 #[cfg(target_arch = "wasm32")]
+use crate::bindings::{Cartesian2, Color};
+#[cfg(target_arch = "wasm32")]
 use crate::components::use_entity_context;
+#[cfg(target_arch = "wasm32")]
+use crate::core::linestring_to_cartesian_array;
 #[cfg(target_arch = "wasm32")]
 use js_sys::{Array, Object, Reflect};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsValue;
 
-#[cfg(not(target_arch = "wasm32"))]
-type Array = ();
-
 /// PolylineVolumeGraphics component for displaying a polyline with a 2D shape extruded along it
 #[component(transparent)]
 pub fn PolylineVolumeGraphics(
-    /// Array of Cartesian3 positions that define the center line
+    /// Positions as geo_types::LineString (lon, lat pairs in degrees)
     #[prop(into)]
-    positions: JsSignal<Array>,
-    /// Array of Cartesian2 positions defining the 2D shape to be extruded
+    positions: Signal<LineString<f64>>,
+    /// 2D shape as Vec<DVec2> (x, y pairs in meters defining the cross-section)
     #[prop(into)]
-    shape: JsSignal<Array>,
-    /// Material (Color or Stripe pattern)
+    shape: Signal<Vec<DVec2>>,
+    /// Material (Color or Stripe pattern) - still uses JS Material type
     #[prop(optional, into)]
     material: JsSignal<Option<Material>>,
     /// Whether to show outline
     #[prop(optional, into)]
     outline: Signal<Option<bool>>,
-    /// Outline color
+    /// Outline color as RGBA
     #[prop(optional, into)]
-    outline_color: JsSignal<Option<Color>>,
+    outline_color: Signal<Option<Srgba<f32>>>,
     /// Outline width
     #[prop(optional, into)]
     outline_width: Signal<Option<f64>>,
@@ -57,18 +61,25 @@ pub fn PolylineVolumeGraphics(
             entity_context.with_entity(|entity| {
                 let polyline_volume_options = Object::new();
 
-                // Set positions
+                // Set positions - convert LineString to Cartesian3 array
+                let line = positions.get();
+                let cesium_positions = linestring_to_cartesian_array(&line);
                 let _ = Reflect::set(
                     &polyline_volume_options,
                     &JsValue::from_str("positions"),
-                    &JsValue::from(positions.get_untracked()),
+                    &JsValue::from(cesium_positions),
                 );
 
-                // Set shape
+                // Set shape - convert Vec<DVec2> to Cartesian2 array
+                let shape_vec = shape.get();
+                let shape_array = Array::new();
+                for v in shape_vec {
+                    shape_array.push(&JsValue::from(Cartesian2::new(v.x, v.y)));
+                }
                 let _ = Reflect::set(
                     &polyline_volume_options,
                     &JsValue::from_str("shape"),
-                    &JsValue::from(shape.get_untracked()),
+                    &JsValue::from(shape_array),
                 );
 
                 // Set material if provided
@@ -89,12 +100,13 @@ pub fn PolylineVolumeGraphics(
                     );
                 }
 
-                // Set outline color if provided
-                if let Some(color) = outline_color.get_untracked() {
+                // Set outline color if provided - convert Srgba to Cesium Color
+                if let Some(c) = outline_color.get() {
+                    let cesium_color: Color = c.into();
                     let _ = Reflect::set(
                         &polyline_volume_options,
                         &JsValue::from_str("outlineColor"),
-                        &JsValue::from(color),
+                        &JsValue::from(cesium_color),
                     );
                 }
 

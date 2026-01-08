@@ -60,6 +60,20 @@ impl Cartesian3 {
         cartesian3_from_degrees_impl(longitude, latitude, height)
     }
 
+    /// Stub implementation for non-WASM builds (SSR compatibility).
+    /// Returns a placeholder Cartesian3 - actual conversion happens at runtime in WASM.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn from_degrees(longitude: f64, latitude: f64, height: f64) -> Self {
+        // Simple approximation for SSR - actual Cesium conversion happens in browser
+        let lon_rad = longitude.to_radians();
+        let lat_rad = latitude.to_radians();
+        let radius = 6378137.0 + height; // WGS84 equatorial radius + height
+        let x = radius * lat_rad.cos() * lon_rad.cos();
+        let y = radius * lat_rad.cos() * lon_rad.sin();
+        let z = radius * lat_rad.sin();
+        Cartesian3::new(x, y, z)
+    }
+
     /// Create an array of Cartesian3 positions from a flat array of longitude, latitude pairs.
     ///
     /// Calls Cesium.Cartesian3.fromDegreesArray internally.
@@ -68,12 +82,24 @@ impl Cartesian3 {
         cartesian3_from_degrees_array_impl(degrees)
     }
 
+    /// Stub implementation for non-WASM builds.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn from_degrees_array(_degrees: &[f64]) -> js_sys::Array {
+        js_sys::Array::new()
+    }
+
     /// Create an array of Cartesian3 positions from a flat array of longitude, latitude, height triples.
     ///
     /// Calls Cesium.Cartesian3.fromDegreesArrayHeights internally.
     #[cfg(target_arch = "wasm32")]
     pub fn from_degrees_array_heights(degrees: &[f64]) -> js_sys::Array {
         cartesian3_from_degrees_array_heights_impl(degrees)
+    }
+
+    /// Stub implementation for non-WASM builds.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn from_degrees_array_heights(_degrees: &[f64]) -> js_sys::Array {
+        js_sys::Array::new()
     }
 }
 

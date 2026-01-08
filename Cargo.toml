@@ -10,8 +10,8 @@ authors = ["Alex rozgo <alex.rozgo@gmail.com>"]
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
-leptos = { version = "0.8", default-features = false }
-leptos_meta = { version = "0.8", default-features = false }
+leptos = { version = "0.8.15", default-features = false }
+leptos_meta = { version = "0.8.5", default-features = false }
 wasm-bindgen = "0.2"
 wasm-bindgen-test = { version = "0.3", default-features = false }
 web-sys = "0.3"

@@ -38,59 +38,107 @@ impl Color {
     pub fn white() -> Color {
         get_color_property("WHITE")
     }
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn white() -> Color {
+        Color::new(1.0, 1.0, 1.0, 1.0)
+    }
 
     #[cfg(target_arch = "wasm32")]
     pub fn black() -> Color {
         get_color_property("BLACK")
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn black() -> Color {
+        Color::new(0.0, 0.0, 0.0, 1.0)
     }
 
     #[cfg(target_arch = "wasm32")]
     pub fn red() -> Color {
         get_color_property("RED")
     }
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn red() -> Color {
+        Color::new(1.0, 0.0, 0.0, 1.0)
+    }
 
     #[cfg(target_arch = "wasm32")]
     pub fn green() -> Color {
         get_color_property("GREEN")
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn green() -> Color {
+        Color::new(0.0, 0.5, 0.0, 1.0)
     }
 
     #[cfg(target_arch = "wasm32")]
     pub fn blue() -> Color {
         get_color_property("BLUE")
     }
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn blue() -> Color {
+        Color::new(0.0, 0.0, 1.0, 1.0)
+    }
 
     #[cfg(target_arch = "wasm32")]
     pub fn yellow() -> Color {
         get_color_property("YELLOW")
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn yellow() -> Color {
+        Color::new(1.0, 1.0, 0.0, 1.0)
     }
 
     #[cfg(target_arch = "wasm32")]
     pub fn cyan() -> Color {
         get_color_property("CYAN")
     }
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn cyan() -> Color {
+        Color::new(0.0, 1.0, 1.0, 1.0)
+    }
 
     #[cfg(target_arch = "wasm32")]
     pub fn magenta() -> Color {
         get_color_property("MAGENTA")
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn magenta() -> Color {
+        Color::new(1.0, 0.0, 1.0, 1.0)
     }
 
     #[cfg(target_arch = "wasm32")]
     pub fn gray() -> Color {
         get_color_property("GRAY")
     }
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn gray() -> Color {
+        Color::new(0.5, 0.5, 0.5, 1.0)
+    }
 
     #[cfg(target_arch = "wasm32")]
     pub fn lightgray() -> Color {
         get_color_property("LIGHTGRAY")
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn lightgray() -> Color {
+        Color::new(0.83, 0.83, 0.83, 1.0)
     }
 
     #[cfg(target_arch = "wasm32")]
     pub fn deepskyblue() -> Color {
         get_color_property("DEEPSKYBLUE")
     }
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn deepskyblue() -> Color {
+        Color::new(0.0, 0.75, 1.0, 1.0)
+    }
 
     #[cfg(target_arch = "wasm32")]
     pub fn purple() -> Color {
         get_color_property("PURPLE")
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn purple() -> Color {
+        Color::new(0.5, 0.0, 0.5, 1.0)
     }
 }

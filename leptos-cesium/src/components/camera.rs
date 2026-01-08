@@ -1,5 +1,6 @@
 //! Camera control components for declarative camera manipulation
 
+use glam::DVec3;
 use leptos::prelude::*;
 
 use crate::core::JsSignal;
@@ -15,7 +16,7 @@ use crate::components::use_cesium_context;
 use wasm_bindgen::{JsCast, JsValue};
 
 #[cfg(not(target_arch = "wasm32"))]
-use crate::bindings::{BoundingSphere, Cartesian3, HeadingPitchRange, HeadingPitchRoll};
+use crate::bindings::{BoundingSphere, HeadingPitchRange};
 
 /// Camera fly home component that triggers camera to return to home view
 ///
@@ -68,23 +69,25 @@ pub fn CameraFlyHome(
 /// # Example
 ///
 /// ```rust,ignore
+/// use glam::DVec3;
+///
 /// view! {
 ///     <ViewerContainer>
 ///         <CameraSetView
-///             destination=Cartesian3::from_degrees(-116.52, 35.02, 95000.0)
-///             orientation=Some(HeadingPitchRoll::new(6.0, -0.5, 0.0))
+///             destination=DVec3::new(-116.52, 35.02, 95000.0)
+///             orientation=Some((6.0, -0.5, 0.0))  // (heading, pitch, roll)
 ///         />
 ///     </ViewerContainer>
 /// }
 /// ```
 #[component(transparent)]
 pub fn CameraSetView(
-    /// Camera destination (Cartesian3)
+    /// Camera destination as DVec3 (x=longitude, y=latitude, z=height in degrees/meters)
     #[prop(into)]
-    destination: JsSignal<Cartesian3>,
-    /// Camera orientation (heading, pitch, roll)
+    destination: Signal<DVec3>,
+    /// Camera orientation as (heading, pitch, roll) in radians
     #[prop(optional, into)]
-    orientation: JsSignal<Option<HeadingPitchRoll>>,
+    orientation: Signal<Option<(f64, f64, f64)>>,
 ) -> impl IntoView {
     #[cfg(target_arch = "wasm32")]
     {
@@ -96,10 +99,11 @@ pub fn CameraSetView(
             let orient = orientation.get_untracked();
 
             viewer_context.with_viewer(|viewer: Viewer| {
-                let mut options = SetViewOptions::new(dest);
+                let cart_dest = Cartesian3::from_degrees(dest.x, dest.y, dest.z);
+                let mut options = SetViewOptions::new(cart_dest);
 
-                if let Some(o) = orient {
-                    options = options.orientation(o);
+                if let Some((h, p, r)) = orient {
+                    options = options.orientation(HeadingPitchRoll::new(h, p, r));
                 }
 
                 viewer.camera().set_view(&options.build());
@@ -118,11 +122,13 @@ pub fn CameraSetView(
 /// # Example
 ///
 /// ```rust,ignore
+/// use glam::DVec3;
+///
 /// view! {
 ///     <ViewerContainer>
 ///         <CameraFlyTo
-///             destination=Cartesian3::from_degrees(-116.52, 35.02, 95000.0)
-///             orientation=Some(HeadingPitchRoll::new(6.0, -0.5, 0.0))
+///             destination=DVec3::new(-116.52, 35.02, 95000.0)
+///             orientation=Some((6.0, -0.5, 0.0))  // (heading, pitch, roll)
 ///             duration=2.0
 ///         />
 ///     </ViewerContainer>
@@ -130,18 +136,18 @@ pub fn CameraSetView(
 /// ```
 #[component(transparent)]
 pub fn CameraFlyTo(
-    /// Camera destination (Cartesian3)
+    /// Camera destination as DVec3 (x=longitude, y=latitude, z=height in degrees/meters)
     #[prop(into)]
-    destination: JsSignal<Cartesian3>,
-    /// Camera orientation (heading, pitch, roll)
+    destination: Signal<DVec3>,
+    /// Camera orientation as (heading, pitch, roll) in radians
     #[prop(optional, into)]
-    orientation: JsSignal<Option<HeadingPitchRoll>>,
+    orientation: Signal<Option<(f64, f64, f64)>>,
     /// Duration of flight in seconds (default: 3.0)
     #[prop(optional, into, default = 3.0.into())]
     duration: Signal<f64>,
-    /// Offset from destination (heading, pitch, range)
+    /// Offset from destination as (heading, pitch, range)
     #[prop(optional, into)]
-    offset: JsSignal<Option<HeadingPitchRange>>,
+    offset: Signal<Option<(f64, f64, f64)>>,
 ) -> impl IntoView {
     #[cfg(target_arch = "wasm32")]
     {
@@ -151,18 +157,19 @@ pub fn CameraFlyTo(
         Effect::new(move |_| {
             let dest = destination.get_untracked();
             let orient = orientation.get_untracked();
-            let dur = duration.get();
+            let dur = duration.get_untracked();
             let off = offset.get_untracked();
 
             viewer_context.with_viewer(|viewer: Viewer| {
-                let mut options = FlyToOptions::new(dest).duration(dur);
+                let cart_dest = Cartesian3::from_degrees(dest.x, dest.y, dest.z);
+                let mut options = FlyToOptions::new(cart_dest).duration(dur);
 
-                if let Some(o) = orient {
-                    options = options.orientation(o);
+                if let Some((h, p, r)) = orient {
+                    options = options.orientation(HeadingPitchRoll::new(h, p, r));
                 }
 
-                if let Some(offset_val) = off {
-                    options = options.offset(offset_val);
+                if let Some((h, p, range)) = off {
+                    options = options.offset(HeadingPitchRange::new(h, p, range));
                 }
 
                 viewer.camera().fly_to(&options.build());

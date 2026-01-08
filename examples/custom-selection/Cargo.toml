@@ -1,7 +1,7 @@
 [package]
 name = "custom-selection"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 
 [dependencies]
 leptos = { workspace = true, features = ["csr"] }
@@ -9,3 +9,4 @@ leptos-cesium = { path = "../../leptos-cesium" }
 console_error_panic_hook = { workspace = true }
 wasm-bindgen = { workspace = true }
 js-sys = { workspace = true }
+geo-types = "0.7"

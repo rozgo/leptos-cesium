@@ -1,11 +1,17 @@
 //! PolygonGraphics component
 
-use crate::bindings::{Color, Material, PolygonHierarchy};
+use crate::bindings::Material;
 use crate::core::JsSignal;
+use geo_types::Polygon;
 use leptos::prelude::*;
+use palette::Srgba;
 
 #[cfg(target_arch = "wasm32")]
+use crate::bindings::Color;
+#[cfg(target_arch = "wasm32")]
 use crate::components::use_entity_context;
+#[cfg(target_arch = "wasm32")]
+use crate::core::polygon_to_hierarchy;
 #[cfg(target_arch = "wasm32")]
 use js_sys::{Object, Reflect};
 #[cfg(target_arch = "wasm32")]
@@ -14,18 +20,18 @@ use wasm_bindgen::JsValue;
 /// PolygonGraphics component for displaying a polygon on an entity
 #[component(transparent)]
 pub fn PolygonGraphics(
-    /// Polygon hierarchy (positions with optional holes)
+    /// Polygon as geo_types::Polygon (exterior ring + optional holes)
     #[prop(into)]
-    hierarchy: JsSignal<PolygonHierarchy>,
-    /// Material (Color or Stripe pattern)
+    hierarchy: Signal<Polygon<f64>>,
+    /// Material (Color or Stripe pattern) - still uses JS Material type
     #[prop(optional, into)]
     material: JsSignal<Option<Material>>,
     /// Whether to show outline
     #[prop(optional, into)]
     outline: Signal<Option<bool>>,
-    /// Outline color
+    /// Outline color as RGBA
     #[prop(optional, into)]
-    outline_color: JsSignal<Option<Color>>,
+    outline_color: Signal<Option<Srgba<f32>>>,
     /// Outline width
     #[prop(optional, into)]
     outline_width: Signal<Option<f64>>,
@@ -45,11 +51,13 @@ pub fn PolygonGraphics(
             entity_context.with_entity(|entity| {
                 let polygon_options = Object::new();
 
-                // Set hierarchy
+                // Set hierarchy - convert geo_types::Polygon to PolygonHierarchy
+                let poly = hierarchy.get();
+                let cesium_hierarchy = polygon_to_hierarchy(&poly);
                 let _ = Reflect::set(
                     &polygon_options,
                     &JsValue::from_str("hierarchy"),
-                    &JsValue::from(hierarchy.get_untracked()),
+                    &JsValue::from(cesium_hierarchy),
                 );
 
                 // Set material if provided
@@ -70,12 +78,13 @@ pub fn PolygonGraphics(
                     );
                 }
 
-                // Set outline color if provided
-                if let Some(color) = outline_color.get_untracked() {
+                // Set outline color if provided - convert Srgba to Cesium Color
+                if let Some(c) = outline_color.get() {
+                    let cesium_color: Color = c.into();
                     let _ = Reflect::set(
                         &polygon_options,
                         &JsValue::from_str("outlineColor"),
-                        &JsValue::from(color),
+                        &JsValue::from(cesium_color),
                     );
                 }
 

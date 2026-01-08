@@ -1,9 +1,13 @@
 //! RectangleGraphics component
 
-use crate::bindings::{Color, Material, Rectangle};
+use crate::bindings::Material;
 use crate::core::JsSignal;
+use geo_types::Rect;
 use leptos::prelude::*;
+use palette::Srgba;
 
+#[cfg(target_arch = "wasm32")]
+use crate::bindings::{Color, Rectangle};
 #[cfg(target_arch = "wasm32")]
 use crate::components::use_entity_context;
 #[cfg(target_arch = "wasm32")]
@@ -14,18 +18,18 @@ use wasm_bindgen::JsValue;
 /// RectangleGraphics component for displaying a rectangle on an entity
 #[component(transparent)]
 pub fn RectangleGraphics(
-    /// Rectangle coordinates
+    /// Rectangle coordinates as geo_types::Rect (west, south, east, north in degrees)
     #[prop(into)]
-    coordinates: JsSignal<Rectangle>,
-    /// Material (Color or Stripe pattern)
+    coordinates: Signal<Rect<f64>>,
+    /// Material (Color or Stripe pattern) - still uses JS Material type
     #[prop(optional, into)]
     material: JsSignal<Option<Material>>,
     /// Whether to show outline
     #[prop(optional, into)]
     outline: Signal<Option<bool>>,
-    /// Outline color
+    /// Outline color as RGBA
     #[prop(optional, into)]
-    outline_color: JsSignal<Option<Color>>,
+    outline_color: Signal<Option<Srgba<f32>>>,
     /// Outline width
     #[prop(optional, into)]
     outline_width: Signal<Option<f64>>,
@@ -51,11 +55,13 @@ pub fn RectangleGraphics(
             entity_context.with_entity(|entity| {
                 let rectangle_options = Object::new();
 
-                // Set coordinates
+                // Set coordinates - convert Rect to Cesium Rectangle
+                let rect = coordinates.get();
+                let cesium_rect: Rectangle = rect.into();
                 let _ = Reflect::set(
                     &rectangle_options,
                     &JsValue::from_str("coordinates"),
-                    &JsValue::from(coordinates.get_untracked()),
+                    &JsValue::from(cesium_rect),
                 );
 
                 // Set material if provided
@@ -76,12 +82,13 @@ pub fn RectangleGraphics(
                     );
                 }
 
-                // Set outline color if provided
-                if let Some(color) = outline_color.get_untracked() {
+                // Set outline color if provided - convert Srgba to Cesium Color
+                if let Some(c) = outline_color.get() {
+                    let cesium_color: Color = c.into();
                     let _ = Reflect::set(
                         &rectangle_options,
                         &JsValue::from_str("outlineColor"),
-                        &JsValue::from(color),
+                        &JsValue::from(cesium_color),
                     );
                 }
 

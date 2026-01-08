@@ -1,14 +1,12 @@
 //! Entity component for creating Cesium entities
 
+use glam::DVec3;
 use leptos::prelude::*;
 
 use crate::components::extend_context_with_entity;
-use crate::core::JsSignal;
 
 #[cfg(target_arch = "wasm32")]
-use crate::bindings::Viewer;
-#[cfg(target_arch = "wasm32")]
-use crate::bindings::{Cartesian3, Entity as CesiumEntity};
+use crate::bindings::{Cartesian3, Entity as CesiumEntity, Viewer};
 #[cfg(target_arch = "wasm32")]
 use crate::components::use_cesium_context;
 #[cfg(target_arch = "wasm32")]
@@ -18,18 +16,15 @@ use wasm_bindgen::JsValue;
 #[cfg(target_arch = "wasm32")]
 use web_sys::console;
 
-#[cfg(not(target_arch = "wasm32"))]
-use crate::bindings::Cartesian3;
-
 /// Entity component for creating Cesium entities with graphics
 #[component]
 pub fn Entity(
     /// Optional entity name
     #[prop(optional, into)]
     name: Signal<Option<String>>,
-    /// Optional position (Cartesian3)
+    /// Optional position as DVec3 (x=longitude, y=latitude, z=height in degrees/meters)
     #[prop(optional, into)]
-    position: JsSignal<Option<Cartesian3>>,
+    position: Signal<Option<DVec3>>,
     /// Optional description
     #[prop(optional, into)]
     description: Signal<Option<String>>,
@@ -67,12 +62,13 @@ pub fn Entity(
                     );
                 }
 
-                // Set position if provided
-                if let Some(pos) = position.get_untracked() {
+                // Set position if provided - convert DVec3 to Cartesian3
+                if let Some(pos) = position.get() {
+                    let cartesian: Cartesian3 = pos.into();
                     let _ = Reflect::set(
                         &entity_options,
                         &JsValue::from_str("position"),
-                        &JsValue::from(pos),
+                        &JsValue::from(cartesian),
                     );
                 }
 

@@ -1,9 +1,12 @@
 //! CylinderGraphics component
 
-use crate::bindings::{Color, Material};
+use crate::bindings::Material;
 use crate::core::JsSignal;
 use leptos::prelude::*;
+use palette::Srgba;
 
+#[cfg(target_arch = "wasm32")]
+use crate::bindings::Color;
 #[cfg(target_arch = "wasm32")]
 use crate::components::use_entity_context;
 #[cfg(target_arch = "wasm32")]
@@ -23,15 +26,15 @@ pub fn CylinderGraphics(
     /// Radius of the bottom of the cylinder
     #[prop(into)]
     bottom_radius: Signal<f64>,
-    /// Material (Color or Stripe pattern)
+    /// Material (Color or Stripe pattern) - still uses JS Material type
     #[prop(optional, into)]
     material: JsSignal<Option<Material>>,
     /// Whether to show outline
     #[prop(optional, into)]
     outline: Signal<Option<bool>>,
-    /// Outline color
+    /// Outline color as RGBA
     #[prop(optional, into)]
-    outline_color: JsSignal<Option<Color>>,
+    outline_color: Signal<Option<Srgba<f32>>>,
     /// Outline width
     #[prop(optional, into)]
     outline_width: Signal<Option<f64>>,
@@ -96,12 +99,13 @@ pub fn CylinderGraphics(
                     );
                 }
 
-                // Set outline color if provided
-                if let Some(color) = outline_color.get_untracked() {
+                // Set outline color if provided - convert Srgba to Cesium Color
+                if let Some(c) = outline_color.get() {
+                    let cesium_color: Color = c.into();
                     let _ = Reflect::set(
                         &cylinder_options,
                         &JsValue::from_str("outlineColor"),
-                        &JsValue::from(color),
+                        &JsValue::from(cesium_color),
                     );
                 }
 

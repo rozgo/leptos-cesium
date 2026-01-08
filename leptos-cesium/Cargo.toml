@@ -31,6 +31,11 @@ tracing = { workspace = true, optional = true }
 thiserror = { workspace = true }
 serde_json = { workspace = true, optional = true }
 
+# Standard Rust types for component props
+geo-types = "0.7"
+glam = "0.29"
+palette = "0.7"
+
 [dev-dependencies]
 wasm-bindgen-test = { workspace = true }
 console_error_panic_hook = { workspace = true }

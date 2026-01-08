@@ -1,29 +1,32 @@
 //! PolylineGraphics component
 
-use crate::bindings::{Color, Material};
+use crate::bindings::Material;
 use crate::core::JsSignal;
+use geo_types::LineString;
 use leptos::prelude::*;
+use palette::Srgba;
 
+#[cfg(target_arch = "wasm32")]
+use crate::bindings::Color;
 #[cfg(target_arch = "wasm32")]
 use crate::components::use_entity_context;
 #[cfg(target_arch = "wasm32")]
-use js_sys::{Array, Object, Reflect};
+use crate::core::linestring_to_cartesian_array;
+#[cfg(target_arch = "wasm32")]
+use js_sys::{Object, Reflect};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsValue;
-
-#[cfg(not(target_arch = "wasm32"))]
-type Array = ();
 
 /// PolylineGraphics component for displaying a polyline on an entity
 #[component(transparent)]
 pub fn PolylineGraphics(
-    /// Array of Cartesian3 positions that define the line
+    /// Positions as geo_types::LineString (lon, lat pairs in degrees)
     #[prop(into)]
-    positions: JsSignal<Array>,
+    positions: Signal<LineString<f64>>,
     /// Width of the polyline in pixels
     #[prop(into)]
     width: Signal<f64>,
-    /// Material (Color or polyline-specific materials)
+    /// Material (Color or polyline-specific materials) - still uses JS Material type
     #[prop(optional, into)]
     material: JsSignal<Option<Material>>,
     /// Whether to clamp the line to the ground
@@ -38,9 +41,9 @@ pub fn PolylineGraphics(
     /// Follow the surface of the ellipsoid
     #[prop(optional, into)]
     follow_surface: Signal<Option<bool>>,
-    /// Depth fail material
+    /// Depth fail material color as RGBA
     #[prop(optional, into)]
-    depth_fail_material: JsSignal<Option<Color>>,
+    depth_fail_material: Signal<Option<Srgba<f32>>>,
 ) -> impl IntoView {
     #[cfg(target_arch = "wasm32")]
     {
@@ -51,11 +54,13 @@ pub fn PolylineGraphics(
             entity_context.with_entity(|entity| {
                 let polyline_options = Object::new();
 
-                // Set positions
+                // Set positions - convert LineString to Cartesian3 array
+                let line = positions.get();
+                let cesium_positions = linestring_to_cartesian_array(&line);
                 let _ = Reflect::set(
                     &polyline_options,
                     &JsValue::from_str("positions"),
-                    &JsValue::from(positions.get_untracked()),
+                    &JsValue::from(cesium_positions),
                 );
 
                 // Set width
@@ -110,12 +115,13 @@ pub fn PolylineGraphics(
                     );
                 }
 
-                // Set depth fail material if provided
-                if let Some(color) = depth_fail_material.get_untracked() {
+                // Set depth fail material if provided - convert Srgba to Cesium Color
+                if let Some(c) = depth_fail_material.get() {
+                    let cesium_color: Color = c.into();
                     let _ = Reflect::set(
                         &polyline_options,
                         &JsValue::from_str("depthFailMaterial"),
-                        &JsValue::from(color),
+                        &JsValue::from(cesium_color),
                     );
                 }
 

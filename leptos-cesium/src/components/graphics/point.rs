@@ -1,9 +1,10 @@
 //! PointGraphics component
 
-use crate::bindings::Color;
-use crate::core::JsSignal;
 use leptos::prelude::*;
+use palette::Srgba;
 
+#[cfg(target_arch = "wasm32")]
+use crate::bindings::Color;
 #[cfg(target_arch = "wasm32")]
 use crate::components::use_entity_context;
 #[cfg(target_arch = "wasm32")]
@@ -17,15 +18,15 @@ pub fn PointGraphics(
     /// Size of the point in pixels
     #[prop(into)]
     pixel_size: Signal<f64>,
-    /// Point color
+    /// Point color as RGBA (0.0-1.0 range)
     #[prop(optional, into)]
-    color: JsSignal<Option<Color>>,
+    color: Signal<Option<Srgba<f32>>>,
     /// Whether to show outline
     #[prop(optional, into)]
     outline: Signal<Option<bool>>,
-    /// Outline color
+    /// Outline color as RGBA (0.0-1.0 range)
     #[prop(optional, into)]
-    outline_color: JsSignal<Option<Color>>,
+    outline_color: Signal<Option<Srgba<f32>>>,
     /// Outline width in pixels
     #[prop(optional, into)]
     outline_width: Signal<Option<f64>>,
@@ -54,12 +55,13 @@ pub fn PointGraphics(
                     &JsValue::from_f64(pixel_size.get()),
                 );
 
-                // Set color if provided
-                if let Some(c) = color.get_untracked() {
+                // Set color if provided - convert Srgba to Cesium Color
+                if let Some(c) = color.get() {
+                    let cesium_color: Color = c.into();
                     let _ = Reflect::set(
                         &point_options,
                         &JsValue::from_str("color"),
-                        &JsValue::from(c),
+                        &JsValue::from(cesium_color),
                     );
                 }
 
@@ -67,17 +69,18 @@ pub fn PointGraphics(
                 if let Some(val) = outline.get() {
                     let _ = Reflect::set(
                         &point_options,
-                        &JsValue::from_str("outlineColor"),
+                        &JsValue::from_str("outline"),
                         &JsValue::from_bool(val),
                     );
                 }
 
-                // Set outline color if provided
-                if let Some(c) = outline_color.get_untracked() {
+                // Set outline color if provided - convert Srgba to Cesium Color
+                if let Some(c) = outline_color.get() {
+                    let cesium_color: Color = c.into();
                     let _ = Reflect::set(
                         &point_options,
                         &JsValue::from_str("outlineColor"),
-                        &JsValue::from(c),
+                        &JsValue::from(cesium_color),
                     );
                 }
 

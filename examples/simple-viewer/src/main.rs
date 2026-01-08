@@ -20,11 +20,13 @@ fn App() -> impl IntoView {
         >
             <Entity
                 name=Some("Statue of Liberty".to_string())
-                position=Some(Cartesian3::from_degrees(-74.0445, 40.6892, 150.0))
+                // DVec3: x=longitude, y=latitude, z=height (degrees/meters)
+                position=Some(DVec3::new(-74.0445, 40.6892, 150.0))
             >
                 <PointGraphics
                     pixel_size=12.0
-                    color=Some(Color::red())
+                    // Srgba: red, green, blue, alpha (0.0-1.0)
+                    color=Some(Srgba::new(1.0, 0.0, 0.0, 1.0))
                 />
             </Entity>
         </ViewerContainer>

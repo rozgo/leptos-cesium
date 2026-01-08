@@ -1,40 +1,43 @@
 //! WallGraphics component
 
-use crate::bindings::{Color, Material};
+use crate::bindings::Material;
 use crate::core::JsSignal;
+use geo_types::LineString;
 use leptos::prelude::*;
+use palette::Srgba;
 
 #[cfg(target_arch = "wasm32")]
+use crate::bindings::Color;
+#[cfg(target_arch = "wasm32")]
 use crate::components::use_entity_context;
+#[cfg(target_arch = "wasm32")]
+use crate::core::linestring_to_cartesian_array;
 #[cfg(target_arch = "wasm32")]
 use js_sys::{Array, Object, Reflect};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsValue;
 
-#[cfg(not(target_arch = "wasm32"))]
-type Array = ();
-
 /// WallGraphics component for displaying a wall between positions on the ground and a height
 #[component(transparent)]
 pub fn WallGraphics(
-    /// Array of Cartesian3 positions that define the wall path
+    /// Positions as geo_types::LineString (lon, lat pairs in degrees)
     #[prop(into)]
-    positions: JsSignal<Array>,
-    /// Material (Color or Stripe pattern)
+    positions: Signal<LineString<f64>>,
+    /// Material (Color or Stripe pattern) - still uses JS Material type
     #[prop(optional, into)]
     material: JsSignal<Option<Material>>,
-    /// Array of maximum heights for each position
+    /// Array of maximum heights for each position (in meters)
     #[prop(optional, into)]
-    maximum_heights: JsSignal<Option<Array>>,
-    /// Array of minimum heights for each position
+    maximum_heights: Signal<Option<Vec<f64>>>,
+    /// Array of minimum heights for each position (in meters)
     #[prop(optional, into)]
-    minimum_heights: JsSignal<Option<Array>>,
+    minimum_heights: Signal<Option<Vec<f64>>>,
     /// Whether to show outline
     #[prop(optional, into)]
     outline: Signal<Option<bool>>,
-    /// Outline color
+    /// Outline color as RGBA
     #[prop(optional, into)]
-    outline_color: JsSignal<Option<Color>>,
+    outline_color: Signal<Option<Srgba<f32>>>,
     /// Outline width
     #[prop(optional, into)]
     outline_width: Signal<Option<f64>>,
@@ -56,11 +59,13 @@ pub fn WallGraphics(
             entity_context.with_entity(|entity| {
                 let wall_options = Object::new();
 
-                // Set positions
+                // Set positions - convert LineString to Cartesian3 array
+                let line = positions.get();
+                let cesium_positions = linestring_to_cartesian_array(&line);
                 let _ = Reflect::set(
                     &wall_options,
                     &JsValue::from_str("positions"),
-                    &JsValue::from(positions.get_untracked()),
+                    &JsValue::from(cesium_positions),
                 );
 
                 // Set material if provided
@@ -73,20 +78,28 @@ pub fn WallGraphics(
                 }
 
                 // Set maximum heights if provided
-                if let Some(heights) = maximum_heights.get_untracked() {
+                if let Some(heights) = maximum_heights.get() {
+                    let js_array = Array::new();
+                    for h in heights {
+                        js_array.push(&JsValue::from_f64(h));
+                    }
                     let _ = Reflect::set(
                         &wall_options,
                         &JsValue::from_str("maximumHeights"),
-                        &JsValue::from(heights),
+                        &JsValue::from(js_array),
                     );
                 }
 
                 // Set minimum heights if provided
-                if let Some(heights) = minimum_heights.get_untracked() {
+                if let Some(heights) = minimum_heights.get() {
+                    let js_array = Array::new();
+                    for h in heights {
+                        js_array.push(&JsValue::from_f64(h));
+                    }
                     let _ = Reflect::set(
                         &wall_options,
                         &JsValue::from_str("minimumHeights"),
-                        &JsValue::from(heights),
+                        &JsValue::from(js_array),
                     );
                 }
 
@@ -99,12 +112,13 @@ pub fn WallGraphics(
                     );
                 }
 
-                // Set outline color if provided
-                if let Some(color) = outline_color.get_untracked() {
+                // Set outline color if provided - convert Srgba to Cesium Color
+                if let Some(c) = outline_color.get() {
+                    let cesium_color: Color = c.into();
                     let _ = Reflect::set(
                         &wall_options,
                         &JsValue::from_str("outlineColor"),
-                        &JsValue::from(color),
+                        &JsValue::from(cesium_color),
                     );
                 }
 

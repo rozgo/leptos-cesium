@@ -1,9 +1,15 @@
+use geo_types::{coord, LineString};
 use leptos::prelude::*;
 use leptos_cesium::prelude::*;
 
 #[component]
 fn App() -> impl IntoView {
     let ion_token = option_env!("CESIUM_ION_TOKEN").map(|s| s.to_string());
+
+    // Define some reusable colors
+    let black = Srgba::new(0.0, 0.0, 0.0, 1.0);
+    let white = Srgba::new(1.0, 1.0, 1.0, 1.0);
+    let gray = Srgba::new(0.5, 0.5, 0.5, 1.0);
 
     view! {
         <ViewerContainer
@@ -22,33 +28,33 @@ fn App() -> impl IntoView {
             <Entity
                 name="Red Box".to_string()
                 description="A small red cube".to_string()
-                position=Cartesian3::from_degrees(-75.59777, 40.03883, 1.0)
+                position=DVec3::new(-75.59777, 40.03883, 1.0)
             >
                 <BoxGraphics
-                    dimensions=Cartesian3::new(2.0, 2.0, 2.0)
+                    dimensions=DVec3::new(2.0, 2.0, 2.0)
                     material=Some(Material::color(Color::red().with_alpha(0.8)))
                     outline=Some(true)
-                    outline_color=Some(Color::black())
+                    outline_color=Some(black)
                 />
             </Entity>
 
             <Entity
                 name="Blue Sphere".to_string()
                 description="A small blue sphere".to_string()
-                position=Cartesian3::from_degrees(-75.59775, 40.03883, 1.0)
+                position=DVec3::new(-75.59775, 40.03883, 1.0)
             >
                 <EllipsoidGraphics
-                    radii=Cartesian3::new(1.0, 1.0, 1.0)
+                    radii=DVec3::new(1.0, 1.0, 1.0)
                     material=Some(Material::color(Color::blue().with_alpha(0.9)))
                     outline=Some(true)
-                    outline_color=Some(Color::white())
+                    outline_color=Some(white)
                 />
             </Entity>
 
             <Entity
                 name="Green Cylinder".to_string()
                 description="A small green cylinder".to_string()
-                position=Cartesian3::from_degrees(-75.59779, 40.03885, 1.5)
+                position=DVec3::new(-75.59779, 40.03885, 1.5)
             >
                 <CylinderGraphics
                     length=3.0
@@ -56,7 +62,7 @@ fn App() -> impl IntoView {
                     bottom_radius=0.8
                     material=Some(Material::color(Color::green().with_alpha(0.85)))
                     outline=Some(true)
-                    outline_color=Some(Color::gray())
+                    outline_color=Some(gray)
                 />
             </Entity>
 
@@ -65,9 +71,9 @@ fn App() -> impl IntoView {
                 description="A small flat rectangle".to_string()
             >
                 <RectangleGraphics
-                    coordinates=Rectangle::from_degrees(
-                        -75.59780, 40.03881,
-                        -75.59774, 40.03885
+                    coordinates=Rect::new(
+                        coord! { x: -75.59780, y: 40.03881 },
+                        coord! { x: -75.59774, y: 40.03885 }
                     )
                     material=Some(Material::checkerboard(
                         CheckerboardOptions::new()
@@ -78,7 +84,7 @@ fn App() -> impl IntoView {
                     ))
                     height=Some(0.0)
                     outline=Some(true)
-                    outline_color=Some(Color::black())
+                    outline_color=Some(black)
                 />
             </Entity>
 
@@ -87,17 +93,17 @@ fn App() -> impl IntoView {
                 description="A square path around the entities".to_string()
             >
                 <PolylineGraphics
-                    positions=Cartesian3::from_degrees_array_heights(&[
+                    positions=LineString::new(vec![
                         // Southwest corner
-                        -75.59782, 40.03879, 0.5,
+                        coord! { x: -75.59782, y: 40.03879 },
                         // Southeast corner
-                        -75.59772, 40.03879, 0.5,
+                        coord! { x: -75.59772, y: 40.03879 },
                         // Northeast corner
-                        -75.59772, 40.03887, 0.5,
+                        coord! { x: -75.59772, y: 40.03887 },
                         // Northwest corner
-                        -75.59782, 40.03887, 0.5,
+                        coord! { x: -75.59782, y: 40.03887 },
                         // Back to Southwest to close the square
-                        -75.59782, 40.03879, 0.5,
+                        coord! { x: -75.59782, y: 40.03879 },
                     ])
                     width=3.0
                     material=Some(Material::polyline_glow(
@@ -111,8 +117,8 @@ fn App() -> impl IntoView {
 
             // Position camera close to the entities
             <CameraSetView
-                destination=Cartesian3::from_degrees(-75.59770, 40.03880, 15.0)
-                orientation=HeadingPitchRoll::new(0.3, -0.5, 0.0)
+                destination=DVec3::new(-75.59770, 40.03880, 15.0)
+                orientation=Some((0.3, -0.5, 0.0))
             />
         </ViewerContainer>
     }

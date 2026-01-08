@@ -11,6 +11,7 @@ leptos-cesium = { path = "../../leptos-cesium", default-features = false, featur
 wasm-bindgen.workspace = true
 js-sys.workspace = true
 web-sys = { workspace = true, features = ["console"] }
+geo-types = "0.7"
 
 [features]
 csr = []

@@ -1,11 +1,17 @@
 //! EllipsoidGraphics component
 
-use crate::bindings::{Cartesian3, Color, Material};
+use crate::bindings::Material;
 use crate::core::JsSignal;
+use glam::DVec3;
 use leptos::prelude::*;
+use palette::Srgba;
 
 #[cfg(target_arch = "wasm32")]
+use crate::bindings::Color;
+#[cfg(target_arch = "wasm32")]
 use crate::components::use_entity_context;
+#[cfg(target_arch = "wasm32")]
+use crate::core::dvec3_to_cartesian_dimensions;
 #[cfg(target_arch = "wasm32")]
 use js_sys::{Object, Reflect};
 #[cfg(target_arch = "wasm32")]
@@ -14,18 +20,18 @@ use wasm_bindgen::JsValue;
 /// EllipsoidGraphics component for displaying an ellipsoid/sphere on an entity
 #[component(transparent)]
 pub fn EllipsoidGraphics(
-    /// Ellipsoid radii (x, y, z)
+    /// Ellipsoid radii as DVec3 (x, y, z radii in meters)
     #[prop(into)]
-    radii: JsSignal<Cartesian3>,
-    /// Material (Color or Stripe pattern)
+    radii: Signal<DVec3>,
+    /// Material (Color or Stripe pattern) - still uses JS Material type
     #[prop(optional, into)]
     material: JsSignal<Option<Material>>,
     /// Whether to show outline
     #[prop(optional, into)]
     outline: Signal<Option<bool>>,
-    /// Outline color
+    /// Outline color as RGBA
     #[prop(optional, into)]
-    outline_color: JsSignal<Option<Color>>,
+    outline_color: Signal<Option<Srgba<f32>>>,
     /// Outline width
     #[prop(optional, into)]
     outline_width: Signal<Option<f64>>,
@@ -54,11 +60,13 @@ pub fn EllipsoidGraphics(
             entity_context.with_entity(|entity| {
                 let ellipsoid_options = Object::new();
 
-                // Set radii
+                // Set radii - convert DVec3 to Cesium Cartesian3 (dimensional, not geographic)
+                let r = radii.get();
+                let cesium_radii = dvec3_to_cartesian_dimensions(r);
                 let _ = Reflect::set(
                     &ellipsoid_options,
                     &JsValue::from_str("radii"),
-                    &JsValue::from(radii.get_untracked()),
+                    &JsValue::from(cesium_radii),
                 );
 
                 // Set material if provided
@@ -79,12 +87,13 @@ pub fn EllipsoidGraphics(
                     );
                 }
 
-                // Set outline color if provided
-                if let Some(color) = outline_color.get_untracked() {
+                // Set outline color if provided - convert Srgba to Cesium Color
+                if let Some(c) = outline_color.get() {
+                    let cesium_color: Color = c.into();
                     let _ = Reflect::set(
                         &ellipsoid_options,
                         &JsValue::from_str("outlineColor"),
-                        &JsValue::from(color),
+                        &JsValue::from(cesium_color),
                     );
                 }
 
