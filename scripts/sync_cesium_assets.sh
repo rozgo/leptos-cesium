@@ -2,12 +2,35 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DEFAULT_VERSION="1.135"
+DEFAULT_VERSION="1.137"
 VERSION="${1:-$DEFAULT_VERSION}"
 
 VENDOR_BASE="$ROOT_DIR/vendor/Cesium/$VERSION"
 VENDOR_BUILD="$VENDOR_BASE/Build/Cesium"
 CESIUM_DTS="$VENDOR_BASE/Source/Cesium.d.ts"
+
+download_cesium() {
+  local version="$1"
+  local url="https://github.com/CesiumGS/cesium/releases/download/$version/Cesium-$version.zip"
+  local zip_file="/tmp/Cesium-$version.zip"
+
+  echo "Downloading Cesium $version from GitHub..."
+  curl -L -o "$zip_file" "$url"
+
+  echo "Extracting to $VENDOR_BASE..."
+  mkdir -p "$VENDOR_BASE"
+  unzip -q "$zip_file" -d "$VENDOR_BASE"
+
+  # Handle both zip structures: direct extraction or nested Cesium-$version folder
+  if [[ -d "$VENDOR_BASE/Cesium-$version" ]]; then
+    mv "$VENDOR_BASE/Cesium-$version"/* "$VENDOR_BASE/"
+    rmdir "$VENDOR_BASE/Cesium-$version"
+  fi
+
+  rm "$zip_file"
+
+  echo "Cesium $version installed successfully"
+}
 
 link_or_copy_build() {
   local source_dir="$1"
@@ -53,15 +76,8 @@ validate_cesium_build() {
 
 ensure_vendor_copy() {
   if [[ ! -d "$VENDOR_BUILD" ]]; then
-    echo "ERROR: Cesium build not found at $VENDOR_BUILD" >&2
-    echo "" >&2
-    echo "To install Cesium:" >&2
-    echo "  1. Download Cesium-$VERSION.zip from https://cesium.com/downloads/" >&2
-    echo "  2. Extract to $ROOT_DIR/" >&2
-    echo "  3. Move Cesium-$VERSION/Build to $VENDOR_BASE/" >&2
-    echo "" >&2
-    echo "Expected structure: $VENDOR_BUILD/Cesium.js" >&2
-    exit 1
+    echo "Cesium $VERSION not found locally, downloading..."
+    download_cesium "$VERSION"
   fi
 
   if ! validate_cesium_build "$VENDOR_BUILD"; then

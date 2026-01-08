@@ -59,15 +59,13 @@ Get your free token from: https://ion.cesium.com/tokens
 
 ### 3. Install Cesium vendor assets
 
-Download and sync Cesium assets to examples:
+Sync Cesium assets to examples (auto-downloads if not present):
 
 ```bash
-# Download Cesium-1.135.zip from https://cesium.com/downloads/
-# Extract to project root, then:
 ./scripts/sync_cesium_assets.sh
 ```
 
-The script expects Cesium at `vendor/Cesium/1.135/Build/Cesium` and creates symlinks in each example's `public/Cesium` directory.
+The script downloads Cesium 1.137 from GitHub releases if not found locally, then creates symlinks in each example's `public/Cesium` directory.
 
 ### 4. Run examples
 

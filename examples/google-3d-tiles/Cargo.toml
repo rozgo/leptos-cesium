@@ -1,0 +1,16 @@
+[package]
+name = "google-3d-tiles"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+console_error_panic_hook.workspace = true
+leptos = { workspace = true, default-features = false, features = ["csr"] }
+leptos-cesium = { path = "../../leptos-cesium", default-features = false, features = ["csr"] }
+wasm-bindgen.workspace = true
+js-sys.workspace = true
+web-sys = { workspace = true, features = ["console"] }
+
+[features]
+csr = []

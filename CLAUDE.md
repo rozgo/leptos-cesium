@@ -69,7 +69,7 @@ pub fn App() -> impl IntoView {
 
 - Run `./scripts/sync_cesium_assets.sh` to set up the Cesium assets
 - Verify symlink at `examples/simple-viewer/public/Cesium` points to valid vendor directory
-- Check that `vendor/Cesium/1.135/Build/Cesium` contains the Cesium.js file
+- Check that `vendor/Cesium/1.137/Build/Cesium` contains the Cesium.js file
 
 ### App container empty in DOM
 
@@ -91,11 +91,12 @@ pub fn App() -> impl IntoView {
 
 **Single vendor path:** `vendor/Cesium/<version>/Build/Cesium`
 
-To install Cesium assets:
-1. Download the official Cesium release from https://cesium.com/downloads/ (e.g., `Cesium-1.135.zip`)
-2. Extract the zip file
-3. Move `Cesium-<version>/Build` to `vendor/Cesium/<version>/`
-4. Run `./scripts/sync_cesium_assets.sh` to symlink assets into all example directories
+To install Cesium assets, simply run the sync script (auto-downloads if not present):
+```bash
+./scripts/sync_cesium_assets.sh
+```
+
+The script downloads Cesium 1.137 from GitHub releases if not found locally, then symlinks assets into all example directories.
 
 The sync script validates the Cesium build and creates symlinks (or copies if symlinks fail) from `vendor/Cesium/<version>/Build/Cesium` to each example's `public/Cesium` directory.
 
