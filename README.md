@@ -1,6 +1,6 @@
 # leptos-cesium
 
-`leptos-cesium` provides a CesiumJS component library for the [Leptos](https://github.com/leptos-rs/leptos) framework. It mirrors the ergonomics of `leptos-leaflet` while exposing Cesium concepts (viewer, entities, data sources, 3D tiles) through idiomatic Leptos components.
+`leptos-cesium` provides a CesiumJS component library for the [Leptos](https://github.com/leptos-rs/leptos) framework (0.8.15). It uses standard Rust types (glam, geo-types, palette) for SSR compatibility, exposing Cesium concepts (viewer, entities, data sources, 3D tiles) through idiomatic Leptos components.
 
 ![cesium-with-entities](docs/cesium-with-entities.jpg)
 
@@ -132,20 +132,24 @@ Visit http://localhost:3000
 
 ### Declarative Components
 
-Create Cesium entities with clean, type-safe Rust:
+Create Cesium entities with clean, type-safe Rust using standard ecosystem types:
 
 ```rust
 use leptos::prelude::*;
 use leptos_cesium::prelude::*;
+use geo_types::coord;
 
 view! {
     <ViewerContainer ion_token=token>
         <Entity name="My Rectangle">
             <RectangleGraphics
-                coordinates=Rectangle::from_degrees(-110.0, 20.0, -80.0, 25.0)
+                coordinates=Rect::new(
+                    coord! { x: -110.0, y: 20.0 },
+                    coord! { x: -80.0, y: 25.0 }
+                )
                 material=Some(Material::color(Color::red().with_alpha(0.5)))
                 outline=Some(true)
-                outline_color=Some(Color::black())
+                outline_color=Some(Srgba::new(0.0, 0.0, 0.0, 1.0))
             />
         </Entity>
     </ViewerContainer>
@@ -216,33 +220,26 @@ Material::polyline_glow(
 
 ### Camera Controls
 
-Declarative camera positioning and animation:
+Declarative camera positioning and animation using `DVec3` for destinations:
 
 ```rust
 use leptos_cesium::prelude::*;
 
 view! {
     <ViewerContainer ion_token=token>
-        // Instant camera positioning
+        // Instant camera positioning (DVec3: longitude, latitude, height)
         <CameraSetView
-            destination=Cartesian3::from_degrees(-75.0, 40.0, 1000.0)
-            orientation=HeadingPitchRoll::new(0.0, -90.0, 0.0)
+            destination=DVec3::new(-75.0, 40.0, 1000.0)
         />
 
         // Animated flight to location
         <CameraFlyTo
-            destination=Cartesian3::from_degrees(-122.4, 37.8, 5000.0)
-            duration=Some(3.0)
+            destination=DVec3::new(-122.4, 37.8, 5000.0)
+            duration=3.0
         />
 
         // Fly to home view
-        <CameraFlyHome duration=Some(2.0) />
-
-        // Zoom to entity bounds
-        <CameraFlyToBoundingSphere
-            bounding_sphere=entity_bounds
-            offset=Some(HeadingPitchRange::new(0.0, -45.0, 1000.0))
-        />
+        <CameraFlyHome duration=2.0 />
 
         // Reset clock to current time
         <ClockReset />
@@ -320,6 +317,7 @@ Loads Google's photorealistic 3D tiles via Cesium Ion or directly with a Google 
 ## Project Status
 
 **Implemented:**
+- ✅ **Leptos 0.8.15** compatibility with standard Rust types (glam, geo-types, palette)
 - ✅ ViewerContainer with Ion token support and configurable UI widgets
 - ✅ Entity component with declarative graphics
 - ✅ 2D Graphics: Rectangle, Polygon, Ellipse

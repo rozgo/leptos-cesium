@@ -2,7 +2,9 @@
 
 ## Context
 
-This repository houses `leptos-cesium`, an experimental Leptos component library targeting CesiumJS. The goal is to match the ergonomics of `leptos-leaflet` while leveraging auto-generated bindings where possible.
+This repository houses `leptos-cesium`, a Leptos component library targeting CesiumJS. Built for **Leptos 0.8.15**, it uses standard Rust ecosystem types (glam, geo-types, palette) for SSR compatibility.
+
+**Leptos Claude Skill**: See `.claude/skills/leptos/` for comprehensive Leptos 0.8.x guidance including signals, routing, SSR setup, and common pitfalls.
 
 ## Local Tooling
 
@@ -489,3 +491,70 @@ use wasm_bindgen::JsValue;  // Only used in WASM
 - Props captured by Effect closures but not used in SSR trigger warnings
 - Zero-cost: `let _ = (...)` is optimized away at compile time
 - Ensures clean builds: `cargo leptos build` should produce zero warnings
+
+### Standard Rust Types for Component Props
+
+**Component props use standard Rust ecosystem types, not Cesium JS types:**
+
+This design enables SSR compatibility and better ecosystem interop. Conversion to Cesium JS types happens automatically inside Effects (client-only).
+
+| Rust Type | Use Case | Example |
+|-----------|----------|---------|
+| `glam::DVec3` | 3D position (lon, lat, height) | `DVec3::new(-74.0, 40.6, 150.0)` |
+| `geo_types::Rect<f64>` | Rectangle bounds | `Rect::new(coord!{x: -110.0, y: 20.0}, coord!{x: -80.0, y: 25.0})` |
+| `geo_types::LineString<f64>` | Polyline positions | `LineString::new(vec![coord!{x: -90.0, y: 43.0}, ...])` |
+| `geo_types::Polygon<f64>` | Polygon with holes | `Polygon::new(exterior_ring, vec![])` |
+| `palette::Srgba<f32>` | RGBA color (0.0-1.0) | `Srgba::new(1.0, 0.0, 0.0, 1.0)` |
+| `(f64, f64, f64)` | Camera orientation | `(heading, pitch, roll)` in radians |
+
+**All types are re-exported from prelude:**
+```rust
+use leptos_cesium::prelude::*;
+// DVec3, Rect, LineString, Polygon, Srgba, Coord, coord! macro
+```
+
+**Example - Entity with position:**
+```rust
+<Entity position=Some(DVec3::new(-74.0445, 40.6892, 150.0))>
+    <PointGraphics
+        pixel_size=12.0
+        color=Some(Srgba::new(1.0, 0.0, 0.0, 1.0))  // Red
+    />
+</Entity>
+```
+
+**Example - Rectangle with geo_types:**
+```rust
+use geo_types::coord;
+
+<RectangleGraphics
+    coordinates=Rect::new(
+        coord! { x: -110.0, y: 20.0 },
+        coord! { x: -80.0, y: 25.0 }
+    )
+    material=Some(Material::color(Color::red().with_alpha(0.5)))
+/>
+```
+
+**Example - Polygon:**
+```rust
+<PolygonGraphics
+    hierarchy=Polygon::new(
+        LineString::new(vec![
+            coord! { x: -115.0, y: 37.0 },
+            coord! { x: -115.0, y: 32.0 },
+            coord! { x: -107.0, y: 33.0 },
+            coord! { x: -115.0, y: 37.0 },  // Close the ring
+        ]),
+        vec![]  // No holes
+    )
+    material=Some(Material::color(Color::blue().with_alpha(0.5)))
+/>
+```
+
+**Camera positioning:**
+```rust
+<CameraSetView
+    destination=DVec3::new(-116.52, 35.02, 95000.0)
+/>
+```
