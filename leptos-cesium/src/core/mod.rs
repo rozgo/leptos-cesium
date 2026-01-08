@@ -4,6 +4,7 @@ pub mod conversions;
 pub mod js_signals;
 pub mod thread_safe_jsvalue;
 
+#[cfg(target_arch = "wasm32")]
 pub use conversions::*;
 pub use js_signals::*;
 pub use thread_safe_jsvalue::*;
