@@ -6,4 +6,4 @@ Example applications will live in the subdirectories of this folder. Before runn
 ./scripts/sync_cesium_assets.sh
 ```
 
-The script auto-downloads Cesium 1.137 from GitHub releases if not found locally, placing it under `vendor/Cesium/1.137/Build/Cesium`.
+The script reads the version from `.cesium-version` and auto-downloads from GitHub releases if not found locally.

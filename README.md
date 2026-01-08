@@ -65,7 +65,7 @@ Sync Cesium assets to examples (auto-downloads if not present):
 ./scripts/sync_cesium_assets.sh
 ```
 
-The script downloads Cesium 1.137 from GitHub releases if not found locally, then creates symlinks in each example's `public/Cesium` directory.
+The script reads the version from `.cesium-version`, downloads from GitHub releases if not found locally, then creates symlinks in each example's `public/Cesium` directory. To upgrade Cesium, edit `.cesium-version` and re-run the script.
 
 ### 4. Run examples
 

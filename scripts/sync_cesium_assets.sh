@@ -2,8 +2,15 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DEFAULT_VERSION="1.137"
-VERSION="${1:-$DEFAULT_VERSION}"
+
+# Read version from .cesium-version file, allow CLI override
+VERSION_FILE="$ROOT_DIR/.cesium-version"
+if [[ -f "$VERSION_FILE" ]]; then
+  FILE_VERSION="$(tr -d '[:space:]' < "$VERSION_FILE")"
+else
+  FILE_VERSION="1.137"  # Fallback if file doesn't exist
+fi
+VERSION="${1:-$FILE_VERSION}"
 
 VENDOR_BASE="$ROOT_DIR/vendor/Cesium/$VERSION"
 VENDOR_BUILD="$VENDOR_BASE/Build/Cesium"

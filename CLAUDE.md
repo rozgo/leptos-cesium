@@ -89,14 +89,15 @@ pub fn App() -> impl IntoView {
 
 ## Cesium Vendor Installation
 
-**Single vendor path:** `vendor/Cesium/<version>/Build/Cesium`
+**Version file:** `.cesium-version` (single source of truth for Cesium version)
+**Vendor path:** `vendor/Cesium/<version>/Build/Cesium`
 
 To install Cesium assets, simply run the sync script (auto-downloads if not present):
 ```bash
 ./scripts/sync_cesium_assets.sh
 ```
 
-The script downloads Cesium 1.137 from GitHub releases if not found locally, then symlinks assets into all example directories.
+The script reads the version from `.cesium-version`, downloads from GitHub releases if not found locally, then symlinks assets into all example directories. To upgrade Cesium, edit `.cesium-version` and re-run the script.
 
 The sync script validates the Cesium build and creates symlinks (or copies if symlinks fail) from `vendor/Cesium/<version>/Build/Cesium` to each example's `public/Cesium` directory.
 
