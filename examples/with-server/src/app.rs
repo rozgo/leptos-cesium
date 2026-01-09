@@ -11,8 +11,8 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
             <head>
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-                <link rel="stylesheet" href="Cesium/Widgets/widgets.css" />
-                <script src="Cesium/Cesium.js"></script>
+                <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.137/Build/Cesium/Widgets/widgets.css" />
+                <script src="https://cesium.com/downloads/cesiumjs/releases/1.137/Build/Cesium/Cesium.js"></script>
                 <AutoReload options=options.clone()/>
                 <HydrationScripts options/>
                 <MetaTags/>

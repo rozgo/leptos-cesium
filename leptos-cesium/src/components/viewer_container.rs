@@ -4,8 +4,12 @@ use leptos::{html::Div, prelude::*};
 
 use crate::components::provide_cesium_context;
 
+/// CDN base URL for Cesium assets (Workers, Assets, etc.)
 #[cfg(target_arch = "wasm32")]
-use crate::bindings::{Viewer, set_default_access_token};
+const CESIUM_CDN_BASE: &str = "https://cesium.com/downloads/cesiumjs/releases/1.137/Build/Cesium/";
+
+#[cfg(target_arch = "wasm32")]
+use crate::bindings::{Viewer, set_base_url, set_default_access_token};
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::{JsCast, JsValue};
@@ -101,6 +105,9 @@ pub fn ViewerContainer(
             };
 
             let element: HtmlElement = div.into();
+
+            // Set base URL for Cesium assets (Workers, Assets) from CDN
+            set_base_url(CESIUM_CDN_BASE);
 
             // Set Ion token if provided (untracked so changes don't recreate viewer)
             if let Some(token) = ion_token.get_untracked() {

@@ -6,11 +6,10 @@
 /**/pkg/
 /**/dist/
 
-# Cesium bundles (downloaded/vendorized locally)
+# Legacy Cesium vendor files (no longer used - now using CDN)
 /vendor/
 /Cesium-*/
 /Cesium-*.zip
-/**/public/Cesium
 
 # OS / editor junk
 .DS_Store

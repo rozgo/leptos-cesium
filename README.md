@@ -36,8 +36,6 @@
 
 - `leptos-cesium/` – main library crate (bindings, components, core utilities)
 - `examples/` – example Leptos apps showcasing Cesium usage
-- `vendor/Cesium/<version>/` – canonical location for downloaded Cesium bundles (populated via the helper script)
-- `scripts/` – utility scripts (`sync_cesium_assets.sh`)
 
 ## Getting Started
 
@@ -57,17 +55,7 @@ cp .env.example .env.local
 
 Get your free token from: https://ion.cesium.com/tokens
 
-### 3. Install Cesium vendor assets
-
-Sync Cesium assets to examples (auto-downloads if not present):
-
-```bash
-./scripts/sync_cesium_assets.sh
-```
-
-The script reads the version from `.cesium-version`, downloads from GitHub releases if not found locally, then creates symlinks in each example's `public/Cesium` directory. To upgrade Cesium, edit `.cesium-version` and re-run the script.
-
-### 4. Run examples
+### 3. Run examples
 
 **Simple viewer (basic globe):**
 ```bash
@@ -114,15 +102,14 @@ Visit http://localhost:3000
 
 1. **Environment loading**: Cargo reads `CESIUM_ION_TOKEN` from `.env.local` at build time
 2. **Token passing**: Token is passed to `<ViewerContainer ion_token=... />` component prop
-3. **Asset copying**: Trunk mirrors `public/Cesium/` into dist directory via `copy-dir` directive
-4. **Cesium loading**: HTML loads `Cesium.js` synchronously in `<head>`
-5. **WASM loading**: Trunk injects the WASM module at the `<link data-trunk rel="rust">` location
-6. **Viewer creation**: Component sets `Cesium.Ion.defaultAccessToken` and creates viewer instance
+3. **Cesium loading**: HTML loads `Cesium.js` from CDN synchronously in `<head>`
+4. **WASM loading**: Trunk injects the WASM module at the `<link data-trunk rel="rust">` location
+5. **Viewer creation**: Component sets CDN base URL, `Cesium.Ion.defaultAccessToken`, and creates viewer instance
 
 ### Development Tips
 
 - Run `cargo check --target wasm32-unknown-unknown` from the repository root to check library code
-- When updating the Cesium bundle, rerun `./scripts/sync_cesium_assets.sh` and restart Trunk
+- Cesium is loaded from CDN (cesium.com) - no local assets required
 - If you rotate Ion tokens, edit `.env.local` and rebuild
 - For troubleshooting, see `CLAUDE.md`
 

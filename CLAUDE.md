@@ -58,18 +58,13 @@ pub fn App() -> impl IntoView {
 2. **Verify HTML structure**:
    - `index.html` must have `<link data-trunk rel="rust" data-bindgen-target="web">` in `<body>`
    - `<body>` should be empty (no `<div id="root">`) - Leptos `mount_to_body()` creates its own mount point
-   - Cesium.js must load in `<head>` before WASM: `<script src="Cesium/Cesium.js"></script>`
+   - Cesium.js must load from CDN in `<head>` before WASM
 3. **Check token setup**:
    - Verify `.env.local` exists at project root with valid `CESIUM_ION_TOKEN`
    - Confirm token is passed to `<ViewerContainer ion_token=... />`
 4. **Verify load order** (check Network tab):
-   - `Cesium.js` → WASM module → app initialization
-
-### "No such file or directory" errors
-
-- Run `./scripts/sync_cesium_assets.sh` to set up the Cesium assets
-- Verify symlink at `examples/simple-viewer/public/Cesium` points to valid vendor directory
-- Check that `vendor/Cesium/1.137/Build/Cesium` contains the Cesium.js file
+   - `Cesium.js` (from CDN) → WASM module → app initialization
+5. **Check internet connectivity**: Cesium assets are loaded from cesium.com CDN
 
 ### App container empty in DOM
 
@@ -87,19 +82,12 @@ pub fn App() -> impl IntoView {
 - Ensure Cargo.toml doesn't have conflicting `crate-type` settings when using binary crate
 - Check that the working directory is the example directory, not the workspace root
 
-## Cesium Vendor Installation
+## Cesium CDN
 
-**Version file:** `.cesium-version` (single source of truth for Cesium version)
-**Vendor path:** `vendor/Cesium/<version>/Build/Cesium`
-
-To install Cesium assets, simply run the sync script (auto-downloads if not present):
-```bash
-./scripts/sync_cesium_assets.sh
-```
-
-The script reads the version from `.cesium-version`, downloads from GitHub releases if not found locally, then symlinks assets into all example directories. To upgrade Cesium, edit `.cesium-version` and re-run the script.
-
-The sync script validates the Cesium build and creates symlinks (or copies if symlinks fail) from `vendor/Cesium/<version>/Build/Cesium` to each example's `public/Cesium` directory.
+Cesium assets (JS, CSS, Workers, Assets) are loaded from the official Cesium CDN:
+- Base URL: `https://cesium.com/downloads/cesiumjs/releases/1.137/Build/Cesium/`
+- The `ViewerContainer` component automatically configures the base URL for Workers and Assets
+- Internet connectivity is required at runtime
 
 ## Example Structure
 
@@ -108,20 +96,18 @@ Each example follows this structure:
 ```
 examples/my-example/
 ├── Cargo.toml          # Binary crate with leptos-cesium dependency
-├── Trunk.toml          # Build config (watch paths, static_dir)
-├── index.html          # Load Cesium.js, widgets.css, trunk directives
+├── Trunk.toml          # Build config (watch paths)
+├── index.html          # Load Cesium from CDN, trunk directives
 ├── src/
 │   └── main.rs         # App component with ViewerContainer
-└── public/
-    └── Cesium/         # Symlink to vendor/Cesium/<version>/Build/Cesium
+└── public/             # Static assets (if any)
 ```
 
 **Required HTML structure:**
 ```html
 <head>
-  <link rel="stylesheet" href="Cesium/Widgets/widgets.css" />
-  <link data-trunk rel="copy-dir" href="public/Cesium" data-target-path="Cesium" />
-  <script src="Cesium/Cesium.js"></script>
+  <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.137/Build/Cesium/Widgets/widgets.css" />
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.137/Build/Cesium/Cesium.js"></script>
 </head>
 <body>
   <link data-trunk rel="rust" data-bindgen-target="web" />
@@ -171,15 +157,11 @@ fn main() {
 leptos-cesium = "0.1"  # or git = "https://github.com/..."
 ```
 
-2. **Install Cesium assets:**
-   - Download Cesium release and extract to your project's `public/Cesium/`
-   - Or symlink to a shared Cesium installation
-
-3. **Configure environment:**
+2. **Configure environment:**
    - Create `.env.local` with `CESIUM_ION_TOKEN=your_token`
    - Or set environment variable before building
 
-4. **Use ViewerContainer in your app:**
+3. **Use ViewerContainer in your app:**
 ```rust
 let ion_token = option_env!("CESIUM_ION_TOKEN").map(|s| s.to_string());
 view! {
@@ -189,11 +171,11 @@ view! {
 }
 ```
 
-5. **Update HTML to load Cesium.js:**
+4. **Update HTML to load Cesium from CDN:**
 ```html
 <head>
-  <link rel="stylesheet" href="Cesium/Widgets/widgets.css" />
-  <script src="Cesium/Cesium.js"></script>
+  <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.137/Build/Cesium/Widgets/widgets.css" />
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.137/Build/Cesium/Cesium.js"></script>
 </head>
 ```
 
