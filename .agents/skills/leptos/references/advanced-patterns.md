@@ -100,44 +100,58 @@ Directives add behavior to elements via `use:directive` syntax.
 ### Defining Directives
 
 ```rust
-use leptos::prelude::*;
-use leptos::tachys::html::element::Element;
+use leptos::{ev::click, prelude::*};
+use web_sys::Element;
 
-// Simple directive (no params)
-pub fn focus_on_mount(el: Element) {
-    // el is the DOM element
-    request_animation_frame(move || {
-        let _ = el.focus();
-    });
-}
+// Matches examples/directives style in this repo.
+pub fn highlight(el: Element) {
+    let mut highlighted = false;
 
-// Directive with value
-pub fn highlight(el: Element, color: &str) {
-    let color = color.to_owned();
-    el.set_attribute("style", &format!("background-color: {color}"));
-}
-
-// Directive with cleanup
-pub fn click_outside(el: Element, handler: impl Fn() + 'static) {
-    let handler = std::rc::Rc::new(handler);
-    let el_clone = el.clone();
-
-    let listener = Closure::wrap(Box::new(move |ev: web_sys::MouseEvent| {
-        if let Some(target) = ev.target() {
-            if !el_clone.contains(Some(&target.unchecked_into())) {
-                (handler)();
-            }
+    let handle = el.clone().on(click, move |_| {
+        highlighted = !highlighted;
+        if highlighted {
+            el.style(("background-color", "yellow"));
+        } else {
+            el.style(("background-color", "transparent"));
         }
-    }) as Box<dyn Fn(_)>);
-
-    document()
-        .add_event_listener_with_callback("click", listener.as_ref().unchecked_ref())
-        .unwrap();
-
-    on_cleanup(move || {
-        let _ = document()
-            .remove_event_listener_with_callback("click", listener.as_ref().unchecked_ref());
     });
+
+    on_cleanup(move || drop(handle));
+}
+
+pub fn copy_to_clipboard(el: Element, content: &str) {
+    let content = content.to_owned();
+    let handle = el.clone().on(click, move |ev| {
+        ev.prevent_default();
+        ev.stop_propagation();
+        let _ = window().navigator().clipboard().write_text(&content);
+        el.set_inner_html(&format!("Copied \"{content}\""));
+    });
+    on_cleanup(move || drop(handle));
+}
+
+#[derive(Clone)]
+pub struct Amount(usize);
+
+impl From<usize> for Amount {
+    fn from(value: usize) -> Self {
+        Self(value)
+    }
+}
+
+impl From<()> for Amount {
+    fn from(_: ()) -> Self {
+        Self(1)
+    }
+}
+
+pub fn add_dot(el: Element, amount: Amount) {
+    use leptos::wasm_bindgen::JsCast;
+    let el = el.unchecked_into::<web_sys::HtmlElement>();
+    let handle = el.clone().on(click, move |_| {
+        el.set_inner_text(&format!("{}{}", el.inner_text(), ".".repeat(amount.0)))
+    });
+    on_cleanup(move || drop(handle));
 }
 ```
 
@@ -145,16 +159,16 @@ pub fn click_outside(el: Element, handler: impl Fn() + 'static) {
 
 ```rust
 view! {
-    // No value
-    <input type="text" use:focus_on_mount />
+    // No value (uses From<()> if needed)
+    <p use:highlight>"Click to highlight"</p>
 
-    // With value
-    <div use:highlight="yellow">"Highlighted"</div>
+    // With &str value
+    <a href="#" use:copy_to_clipboard="hello from leptos">
+        "Copy"
+    </a>
 
-    // With closure
-    <div use:click_outside=move || modal_open.set(false)>
-        "Modal content"
-    </div>
+    // With custom value type via Into
+    <button use:add_dot=5.into()>"Add 5 dots"</button>
 }
 ```
 

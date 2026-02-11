@@ -1,11 +1,21 @@
 ---
 name: leptos
-description: Guidance for building Rust web UIs with the Leptos crate (0.8.x; examples use 0.8.15): components, signals, router, SSR/hydrate/CSR feature flags, server functions, and common pitfalls. Use when editing a Leptos app or library that depends on `leptos`. (project)
+description: "Guidance for editing code in this Leptos repository (0.8.15): idiomatic components/signals/router/server functions, SSR/hydrate/CSR feature hygiene, and common pitfalls. Use when changing Leptos crates or examples in this repo."
 ---
 
 # Leptos Skill
 
 Use when working in a Rust project that depends on Leptos (`leptos` in `Cargo.toml`). Produce idiomatic, reactive Leptos code.
+
+## Repo-First Sources
+
+When guidance conflicts, follow this order:
+
+1. `CLAUDE.md` for build/test/format workflow in this repo
+2. `docs/COMMON_BUGS.md` for known reactivity/template pitfalls
+3. Matching patterns in `examples/` for real, current API usage
+
+Prefer adapting an existing example over inventing a new pattern.
 
 ## Triage
 
@@ -20,8 +30,9 @@ Before writing code, identify:
    - Single page vs router-based (`leptos_router`)
    - Server functions / RPC (`#[server]`)
    - State management: signals, context, or stores
+   - Deployment target: native server (Axum/Actix) vs edge worker (Cloudflare Workers)
 
-If the rendering mode isn't specified, ask.
+If rendering mode isn't explicit, infer from `Cargo.toml` features and `package.metadata.leptos` first; ask only if still ambiguous.
 
 ## Quick Reference (0.8.x API)
 
@@ -228,6 +239,7 @@ let todos = RwSignal::new(Vec::<Todo>::new());  // Full redraw on any change!
 1. **Features are mutually exclusive** - never enable `ssr` and `hydrate` together
 2. **Server deps must be `optional = true`**
 3. **Server imports inside `#[cfg(feature = "ssr")]` module or inside server fn**
+4. **Workspaces that target WASM should set `resolver = "2"`**
 
 ```toml
 [dependencies]
@@ -259,10 +271,31 @@ pub async fn get_data() -> Result<Data, ServerFnError> {
 ### Build Commands
 
 ```bash
-cargo leptos watch                    # Dev
-cargo check --features ssr            # Check server
-cargo check --features hydrate --lib --target wasm32-unknown-unknown  # Check client
+# App-level iteration (cargo-leptos templates/examples)
+cargo leptos watch
+cargo check --features ssr
+cargo check --features hydrate --lib --target wasm32-unknown-unknown
+
+# This repository's contributor workflow
+cargo +nightly fmt
+cargo +nightly make check
+cargo +nightly make test
+
+# If editing an example directory:
+# cargo +nightly fmt -- --config-path ../..
+# cargo +nightly make --profile=github-actions verify-flow
 ```
+
+## Cloudflare Workers (Edge SSR)
+
+Use this setup when deploying Leptos SSR/server functions on Cloudflare Workers.
+
+- Keep split features: `hydrate` for browser bundle, `ssr` for worker runtime.
+- Worker entrypoint is a `#[worker::event(fetch)]` handler in `src/lib.rs` (not a server `main`).
+- `wrangler.toml` build should run both `cargo leptos build` and `worker-build --features ssr`.
+- Worker assets come from `target/site` and unmatched routes should flow through Leptos SSR routes.
+
+Full guide: [references/cloudflare-workers.md](references/cloudflare-workers.md)
 
 ## Common Pitfalls
 
@@ -282,6 +315,7 @@ See [references/common-bugs.md](references/common-bugs.md) for detailed solution
 | SSR/CSR Setup | [references/ssr-csr-setup.md](references/ssr-csr-setup.md) |
 | Routing | [references/routing.md](references/routing.md) |
 | Server Functions | [references/server-functions.md](references/server-functions.md) |
+| Cloudflare Workers | [references/cloudflare-workers.md](references/cloudflare-workers.md) |
 | Stores | [references/stores.md](references/stores.md) |
 | Islands, Directives, Slots | [references/advanced-patterns.md](references/advanced-patterns.md) |
 
@@ -349,7 +383,7 @@ fn UserLoader() -> impl IntoView {
 
 ## When to Ask
 
-- Rendering mode (CSR/SSR/hydrate) not specified
+- Rendering mode (CSR/SSR/hydrate) can't be inferred from features/metadata
 - Server functions needed but none exist
-- Router/integration stack unknown (axum/actix)
+- Router/integration stack can't be inferred from dependencies (axum/actix)
 - Idiomatic Leptos vs matching existing patterns

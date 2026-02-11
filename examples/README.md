@@ -19,13 +19,14 @@ for d in \
   examples/with-entities \
   examples/czml-viewer \
   examples/geojson \
-  examples/camera-control \
   examples/custom-selection \
   examples/google-3d-tiles
 do
   (cd "$d" && trunk build)
 done
 ```
+
+`examples/camera-control` is currently a scaffold directory (docs/public only), so it is not included in the build loop above.
 
 Validate the SSR example:
 

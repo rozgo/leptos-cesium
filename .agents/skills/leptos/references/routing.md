@@ -16,8 +16,11 @@ Add `leptos_router` to dependencies (same version as `leptos`):
 
 ```toml
 [dependencies]
-leptos_router = { version = "0.8", features = ["csr"] }  # or ssr/hydrate
+leptos = { version = "0.8", features = ["csr"] }   # or "ssr"/"hydrate"
+leptos_router = { version = "0.8" }
 ```
+
+`csr`/`hydrate` are features on `leptos`, not `leptos_router`.
 
 Basic router structure:
 
@@ -77,8 +80,8 @@ pub fn App() -> impl IntoView {
             <Routes fallback=|| "Not found">
                 <ParentRoute path=path!("/dashboard") view=DashboardLayout>
                     <Route path=path!("/") view=DashboardHome />
-                    <Route path=path!("/settings") view=DashboardSettings />
-                    <Route path=path!("/users/:id") view=UserDetail />
+                    <Route path=path!("settings") view=DashboardSettings />
+                    <Route path=path!("users/:id") view=UserDetail />
                 </ParentRoute>
             </Routes>
         </Router>

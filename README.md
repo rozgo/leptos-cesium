@@ -84,12 +84,11 @@ trunk serve --open
 ```
 Demonstrates GeoJSON data source loading with custom styling for polygons, polylines, and point markers. Features reactive layer switching and styling options.
 
-**Camera controls (animated positioning):**
-```bash
-cd examples/camera-control
-trunk serve --open
-```
-Demonstrates declarative camera controls including fly-to animations, view positioning, and camera movements.
+**Camera controls:**
+`examples/camera-control` is currently a scaffold directory for a dedicated camera-controls example.
+For runnable camera control usage, see:
+- `examples/czml-viewer`
+- `examples/google-3d-tiles`
 
 **Custom selection UI (reactive selected entity panel):**
 ```bash

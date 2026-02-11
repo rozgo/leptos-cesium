@@ -35,8 +35,8 @@ console_error_panic_hook = "0.1"
 leptos_axum = { version = "0.8", optional = true }
 axum = { version = "0.8", optional = true }
 tokio = { version = "1", features = ["full"], optional = true }
-tower = { version = "0.4", optional = true }
-tower-http = { version = "0.5", features = ["fs"], optional = true }
+tower = { version = "0.5", optional = true }
+tower-http = { version = "0.6", features = ["fs"], optional = true }
 sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "sqlite"], optional = true }
 
 [features]
@@ -233,6 +233,11 @@ cargo check --features hydrate --lib --target wasm32-unknown-unknown
 
 # Production build
 cargo leptos build --release
+
+# If contributing in this Leptos monorepo
+cargo +nightly fmt
+cargo +nightly make check
+cargo +nightly make test
 ```
 
 ## Rules to Avoid Warnings
@@ -261,7 +266,16 @@ sqlx = { version = "0.8", optional = true }
 ssr = ["dep:sqlx"]
 ```
 
-### 3. Server imports inside guarded module or server fn
+### 3. Workspace feature resolver for WASM
+
+```toml
+[workspace]
+resolver = "2"
+```
+
+This avoids accidental inclusion of non-WASM-compatible dependencies in workspace builds.
+
+### 4. Server imports inside guarded module or server fn
 
 ```rust
 // WRONG - warning: unused import on client
@@ -288,7 +302,7 @@ async fn my_fn() -> Result<(), ServerFnError> {
 }
 ```
 
-### 4. Conditional derives for server-only traits
+### 5. Conditional derives for server-only traits
 
 ```rust
 #[derive(Clone, Serialize, Deserialize)]
@@ -299,7 +313,7 @@ pub struct User {
 }
 ```
 
-### 5. Browser APIs in Effect or guarded
+### 6. Browser APIs in Effect or guarded
 
 ```rust
 // WRONG - panics on server
@@ -347,3 +361,4 @@ trunk build --release  # Production
 | Check client | `cargo check --features hydrate --lib --target wasm32-unknown-unknown` |
 | Build release | `cargo leptos build --release` |
 | CSR dev | `trunk serve` |
+| Monorepo verify | `cargo +nightly make check` |

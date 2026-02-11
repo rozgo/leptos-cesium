@@ -1,5 +1,9 @@
 # leptos-cesium Component Reference
 
+This reference prioritizes current, high-use props and integration patterns.
+
+Ergonomics note: for many `#[prop(optional, into)]` props, pass direct values (for example `name="Red Box".to_string()`, `position=DVec3::new(...)`) instead of explicit `Some(...)` to match this repository's preferred example style.
+
 ## ViewerContainer
 
 Root component that creates the Cesium Viewer.
@@ -9,6 +13,7 @@ Root component that creates the Cesium Viewer.
 | `ion_token` | `Signal<Option<String>>` | `None` | Cesium Ion access token |
 | `class` | `String` | `""` | CSS class |
 | `style` | `String` | `""` | Inline styles |
+| `node_ref` | `NodeRef<leptos::html::Div>` | fresh node ref | Optional handle to the container div |
 | `animation` | `bool` | `true` | Show animation widget |
 | `timeline` | `bool` | `true` | Show timeline widget |
 | `base_layer_picker` | `bool` | `true` | Show base layer picker |
@@ -40,8 +45,12 @@ Container for graphics components.
 |------|------|---------|-------------|
 | `pixel_size` | `Signal<f64>` | required | Point size in pixels |
 | `color` | `Signal<Option<Srgba<f32>>>` | `None` | Point color |
+| `outline` | `Signal<Option<bool>>` | `None` | Show outline |
 | `outline_color` | `Signal<Option<Srgba<f32>>>` | `None` | Outline color |
 | `outline_width` | `Signal<Option<f64>>` | `None` | Outline width |
+| `show` | `Signal<Option<bool>>` | `None` | Point visibility |
+| `height_reference` | `Signal<Option<f64>>` | `None` | Height reference enum value |
+| `disable_depth_test_distance` | `Signal<Option<f64>>` | `None` | Disable depth test within distance |
 
 ### RectangleGraphics
 
@@ -68,7 +77,6 @@ Container for graphics components.
 | `outline_width` | `Signal<Option<f64>>` | `None` | Outline width |
 | `height` | `Signal<Option<f64>>` | `None` | Height above ground |
 | `extruded_height` | `Signal<Option<f64>>` | `None` | Extrusion height |
-| `per_position_height` | `Signal<Option<bool>>` | `None` | Use position heights |
 
 ### PolylineGraphics
 
@@ -78,6 +86,10 @@ Container for graphics components.
 | `width` | `Signal<f64>` | required | Line width in pixels |
 | `material` | `JsSignal<Option<Material>>` | `None` | Line material |
 | `clamp_to_ground` | `Signal<Option<bool>>` | `None` | Clamp to terrain |
+| `show` | `Signal<Option<bool>>` | `None` | Polyline visibility |
+| `granularity` | `Signal<Option<f64>>` | `None` | Sampling granularity |
+| `follow_surface` | `Signal<Option<bool>>` | `None` | Follow ellipsoid surface |
+| `depth_fail_material` | `Signal<Option<Srgba<f32>>>` | `None` | Color used when depth testing fails |
 
 ### EllipseGraphics
 
@@ -88,9 +100,11 @@ Container for graphics components.
 | `material` | `JsSignal<Option<Material>>` | `None` | Fill material |
 | `outline` | `Signal<Option<bool>>` | `None` | Show outline |
 | `outline_color` | `Signal<Option<Srgba<f32>>>` | `None` | Outline color |
-| `height` | `Signal<Option<f64>>` | `None` | Height above ground |
-| `extruded_height` | `Signal<Option<f64>>` | `None` | Extrusion height |
+| `outline_width` | `Signal<Option<f64>>` | `None` | Outline width |
 | `rotation` | `Signal<Option<f64>>` | `None` | Rotation in radians |
+| `st_rotation` | `Signal<Option<f64>>` | `None` | Texture rotation in radians |
+| `extruded_height` | `Signal<Option<f64>>` | `None` | Extrusion height |
+| `height` | `Signal<Option<f64>>` | `None` | Height above ground |
 
 ### BoxGraphics
 
@@ -100,6 +114,9 @@ Container for graphics components.
 | `material` | `JsSignal<Option<Material>>` | `None` | Fill material |
 | `outline` | `Signal<Option<bool>>` | `None` | Show outline |
 | `outline_color` | `Signal<Option<Srgba<f32>>>` | `None` | Outline color |
+| `outline_width` | `Signal<Option<f64>>` | `None` | Outline width |
+| `fill` | `Signal<Option<bool>>` | `None` | Whether box is filled |
+| `show` | `Signal<Option<bool>>` | `None` | Box visibility |
 
 ### EllipsoidGraphics
 
@@ -109,6 +126,12 @@ Container for graphics components.
 | `material` | `JsSignal<Option<Material>>` | `None` | Fill material |
 | `outline` | `Signal<Option<bool>>` | `None` | Show outline |
 | `outline_color` | `Signal<Option<Srgba<f32>>>` | `None` | Outline color |
+| `outline_width` | `Signal<Option<f64>>` | `None` | Outline width |
+| `fill` | `Signal<Option<bool>>` | `None` | Whether ellipsoid is filled |
+| `show` | `Signal<Option<bool>>` | `None` | Ellipsoid visibility |
+| `stack_partitions` | `Signal<Option<f64>>` | `None` | Number of vertical outline lines |
+| `slice_partitions` | `Signal<Option<f64>>` | `None` | Number of horizontal outline lines |
+| `subdivision_divisions` | `Signal<Option<f64>>` | `None` | Subdivision density for outline rings |
 
 ### CylinderGraphics
 
@@ -120,6 +143,11 @@ Container for graphics components.
 | `material` | `JsSignal<Option<Material>>` | `None` | Fill material |
 | `outline` | `Signal<Option<bool>>` | `None` | Show outline |
 | `outline_color` | `Signal<Option<Srgba<f32>>>` | `None` | Outline color |
+| `outline_width` | `Signal<Option<f64>>` | `None` | Outline width |
+| `fill` | `Signal<Option<bool>>` | `None` | Whether cylinder is filled |
+| `show` | `Signal<Option<bool>>` | `None` | Cylinder visibility |
+| `number_of_vertical_lines` | `Signal<Option<f64>>` | `None` | Vertical outline lines |
+| `slices` | `Signal<Option<f64>>` | `None` | Perimeter edge count |
 
 ### WallGraphics
 
@@ -131,6 +159,10 @@ Container for graphics components.
 | `material` | `JsSignal<Option<Material>>` | `None` | Fill material |
 | `outline` | `Signal<Option<bool>>` | `None` | Show outline |
 | `outline_color` | `Signal<Option<Srgba<f32>>>` | `None` | Outline color |
+| `outline_width` | `Signal<Option<f64>>` | `None` | Outline width |
+| `fill` | `Signal<Option<bool>>` | `None` | Whether wall is filled |
+| `show` | `Signal<Option<bool>>` | `None` | Wall visibility |
+| `granularity` | `Signal<Option<f64>>` | `None` | Sampling granularity |
 
 ### CorridorGraphics
 
@@ -141,20 +173,28 @@ Container for graphics components.
 | `material` | `JsSignal<Option<Material>>` | `None` | Fill material |
 | `outline` | `Signal<Option<bool>>` | `None` | Show outline |
 | `outline_color` | `Signal<Option<Srgba<f32>>>` | `None` | Outline color |
+| `outline_width` | `Signal<Option<f64>>` | `None` | Outline width |
 | `height` | `Signal<Option<f64>>` | `None` | Height above ground |
 | `extruded_height` | `Signal<Option<f64>>` | `None` | Extrusion height |
-| `corner_type` | `Signal<Option<String>>` | `None` | Corner style |
+| `corner_type` | `Signal<Option<f64>>` | `None` | Corner style enum value (Cesium numeric constant) |
+| `granularity` | `Signal<Option<f64>>` | `None` | Sampling granularity |
+| `fill` | `Signal<Option<bool>>` | `None` | Whether corridor is filled |
+| `show` | `Signal<Option<bool>>` | `None` | Corridor visibility |
 
 ### PolylineVolumeGraphics
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `positions` | `Signal<LineString<f64>>` | required | Volume centerline |
-| `shape` | `Signal<Vec<(f64, f64)>>` | required | 2D cross-section shape |
+| `shape` | `Signal<Vec<DVec2>>` | required | 2D cross-section shape |
 | `material` | `JsSignal<Option<Material>>` | `None` | Fill material |
 | `outline` | `Signal<Option<bool>>` | `None` | Show outline |
 | `outline_color` | `Signal<Option<Srgba<f32>>>` | `None` | Outline color |
-| `corner_type` | `Signal<Option<String>>` | `None` | Corner style |
+| `outline_width` | `Signal<Option<f64>>` | `None` | Outline width |
+| `fill` | `Signal<Option<bool>>` | `None` | Whether volume is filled |
+| `show` | `Signal<Option<bool>>` | `None` | Volume visibility |
+| `granularity` | `Signal<Option<f64>>` | `None` | Sampling granularity |
+| `corner_type` | `Signal<Option<f64>>` | `None` | Corner style enum value (Cesium numeric constant) |
 
 ## Camera Components
 
@@ -214,7 +254,7 @@ Load CZML data.
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `url` | `Signal<String>` | required | CZML file URL |
-| `clear_existing` | `Signal<bool>` | `false` | Clear existing sources |
+| `clear_existing` | `Signal<bool>` | `true` | Eagerly remove this component's previously loaded source before re-load |
 
 ### GeoJsonDataSource
 
@@ -223,12 +263,15 @@ Load GeoJSON/TopoJSON data.
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `url` | `Signal<String>` | required | GeoJSON file URL |
+| `clear_existing` | `Signal<bool>` | `true` | Eagerly remove this component's previously loaded source before re-load |
 | `stroke` | `JsSignal<Option<Color>>` | `None` | Line stroke color |
 | `stroke_width` | `Signal<Option<f64>>` | `None` | Line stroke width |
 | `fill` | `JsSignal<Option<Color>>` | `None` | Polygon fill color |
 | `marker_color` | `JsSignal<Option<Color>>` | `None` | Point marker color |
 | `marker_size` | `Signal<Option<f64>>` | `None` | Point marker size |
+| `marker_symbol` | `Signal<Option<String>>` | `None` | Marker symbol (Maki id or single char) |
 | `clamp_to_ground` | `Signal<Option<bool>>` | `None` | Clamp to terrain |
+| `credit` | `Signal<Option<String>>` | `None` | Data attribution string |
 
 ## 3D Tiles
 
@@ -238,9 +281,26 @@ Load Google's 3D tiles.
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `google_api_key` | `Signal<Option<String>>` | `None` | Google Maps API key (uses Ion if None) |
-| `cache_bytes` | `Signal<Option<u64>>` | `None` | Tile cache size |
-| `enable_collision` | `Signal<Option<bool>>` | `None` | Enable camera collision |
+| `google_api_key` | `Option<Signal<Option<String>>>` | `None` | Optional Google Maps API key signal (uses Ion fallback if not provided) |
+| `cache_bytes` | `Option<u32>` | `None` | Tile cache size in bytes |
+| `maximum_cache_overflow_bytes` | `Option<u32>` | `None` | Overflow cache size in bytes |
+| `enable_collision` | `Option<bool>` | `None` | Enable camera collision |
+
+## Event Builders
+
+### ViewerEvents
+
+Generated by `cesium_events!` and re-exported from `leptos_cesium::prelude::*`.
+
+| Method | Payload Type | Description |
+|--------|--------------|-------------|
+| `set_selected_entity_changed` | `JsValue` | Handler for selected entity changes |
+| `set_tracked_entity_changed` | `JsValue` | Handler for tracked entity changes |
+
+Lifecycle methods:
+
+- `setup(&viewer)` attaches configured handlers
+- `teardown()` detaches listeners attached by this builder
 
 ## Material Types
 
@@ -258,7 +318,6 @@ Material::stripe(
         .even_color(Color::white())
         .odd_color(Color::blue())
         .repeat(5.0)
-        .orientation(StripeOrientation::Horizontal)
         .build()
 )
 ```

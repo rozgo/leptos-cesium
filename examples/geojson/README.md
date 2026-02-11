@@ -26,18 +26,14 @@ The example includes three GeoJSON datasets:
 
 ### Prerequisites
 
-1. Ensure Cesium assets are synced:
-   ```bash
-   # From repository root
-   ./scripts/sync_cesium_assets.sh
-   ```
-
-2. Set up your Cesium Ion token:
+1. Set up your Cesium Ion token:
    ```bash
    # Copy .env.example to .env.local and add your token
    cp .env.example .env.local
    # Edit .env.local and add: CESIUM_ION_TOKEN=your_token_here
    ```
+
+2. Cesium JS/CSS assets are loaded from CDN in `index.html` (no local `public/Cesium` sync step required).
 
 ### Run with Trunk
 
