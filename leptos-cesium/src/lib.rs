@@ -1,5 +1,7 @@
 #![cfg_attr(feature = "ssr", deny(rust_2018_idioms))]
 
+use paste::paste;
+
 pub mod bindings;
 pub mod components;
 pub mod core;

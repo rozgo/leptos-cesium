@@ -60,7 +60,7 @@ pub fn BoxGraphics(
                 );
 
                 // Set material if provided
-                if let Some(mat) = material.get_untracked() {
+                if let Some(mat) = material.get() {
                     let _ = Reflect::set(
                         &box_options,
                         &JsValue::from_str("material"),

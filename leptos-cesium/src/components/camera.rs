@@ -95,8 +95,8 @@ pub fn CameraSetView(
             use_cesium_context().expect("CameraSetView must be inside ViewerContainer");
 
         Effect::new(move |_| {
-            let dest = destination.get_untracked();
-            let orient = orientation.get_untracked();
+            let dest = destination.get();
+            let orient = orientation.get();
 
             viewer_context.with_viewer(|viewer: Viewer| {
                 let cart_dest = Cartesian3::from_degrees(dest.x, dest.y, dest.z);
@@ -155,10 +155,10 @@ pub fn CameraFlyTo(
             use_cesium_context().expect("CameraFlyTo must be inside ViewerContainer");
 
         Effect::new(move |_| {
-            let dest = destination.get_untracked();
-            let orient = orientation.get_untracked();
-            let dur = duration.get_untracked();
-            let off = offset.get_untracked();
+            let dest = destination.get();
+            let orient = orientation.get();
+            let dur = duration.get();
+            let off = offset.get();
 
             viewer_context.with_viewer(|viewer: Viewer| {
                 let cart_dest = Cartesian3::from_degrees(dest.x, dest.y, dest.z);
@@ -219,8 +219,8 @@ pub fn CameraFlyToBoundingSphere(
             use_cesium_context().expect("CameraFlyToBoundingSphere must be inside ViewerContainer");
 
         Effect::new(move |_| {
-            let sphere = target.get_untracked();
-            let off = offset.get_untracked();
+            let sphere = target.get();
+            let off = offset.get();
             let dur = duration.get();
 
             viewer_context.with_viewer(|viewer: Viewer| {

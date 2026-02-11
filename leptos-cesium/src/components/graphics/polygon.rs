@@ -61,7 +61,7 @@ pub fn PolygonGraphics(
                 );
 
                 // Set material if provided
-                if let Some(mat) = material.get_untracked() {
+                if let Some(mat) = material.get() {
                     let _ = Reflect::set(
                         &polygon_options,
                         &JsValue::from_str("material"),

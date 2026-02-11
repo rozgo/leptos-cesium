@@ -9,7 +9,8 @@ This repository houses `leptos-cesium`, a Leptos component library targeting Ces
 ## Local Tooling
 
 - Run `cargo fmt` and `cargo clippy --all-targets --all-features` before submitting patches.
-- Use `cargo test --target wasm32-unknown-unknown` to run the `wasm-bindgen-test` smoke suite (once populated).
+- Run `cargo test -p leptos-cesium --lib` for native unit tests.
+- Run `cargo test -p leptos-cesium --lib --target wasm32-unknown-unknown --no-run` to verify wasm test compilation.
 - **Examples use Trunk**: Run `trunk serve` from example directories (e.g., `examples/simple-viewer`).
 - Trunk configuration is in `Trunk.toml` - **NEVER set `inject_scripts = false`** as this prevents WASM loading.
 
@@ -85,7 +86,7 @@ pub fn App() -> impl IntoView {
 ## Cesium CDN
 
 Cesium assets (JS, CSS, Workers, Assets) are loaded from the official Cesium CDN:
-- Base URL: `https://cesium.com/downloads/cesiumjs/releases/1.137/Build/Cesium/`
+- Base URL: `https://cesium.com/downloads/cesiumjs/releases/1.138/Build/Cesium/`
 - The `ViewerContainer` component automatically configures the base URL for Workers and Assets
 - Internet connectivity is required at runtime
 
@@ -106,8 +107,8 @@ examples/my-example/
 **Required HTML structure:**
 ```html
 <head>
-  <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.137/Build/Cesium/Widgets/widgets.css" />
-  <script src="https://cesium.com/downloads/cesiumjs/releases/1.137/Build/Cesium/Cesium.js"></script>
+  <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.138/Build/Cesium/Widgets/widgets.css" />
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.138/Build/Cesium/Cesium.js"></script>
 </head>
 <body>
   <link data-trunk rel="rust" data-bindgen-target="web" />
@@ -174,8 +175,8 @@ view! {
 4. **Update HTML to load Cesium from CDN:**
 ```html
 <head>
-  <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.137/Build/Cesium/Widgets/widgets.css" />
-  <script src="https://cesium.com/downloads/cesiumjs/releases/1.137/Build/Cesium/Cesium.js"></script>
+  <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.138/Build/Cesium/Widgets/widgets.css" />
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.138/Build/Cesium/Cesium.js"></script>
 </head>
 ```
 

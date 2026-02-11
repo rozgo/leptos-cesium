@@ -31,10 +31,7 @@ impl From<geo_types::Rect<f64>> for Rectangle {
 /// Convert a LineString to an array of Cartesian3 positions.
 #[cfg(target_arch = "wasm32")]
 pub fn linestring_to_cartesian_array(linestring: &geo_types::LineString<f64>) -> js_sys::Array {
-    let coords: Vec<f64> = linestring
-        .coords()
-        .flat_map(|c| [c.x, c.y])
-        .collect();
+    let coords: Vec<f64> = linestring.coords().flat_map(|c| [c.x, c.y]).collect();
     Cartesian3::from_degrees_array(&coords)
 }
 
@@ -71,7 +68,10 @@ pub fn polygon_to_hierarchy(polygon: &geo_types::Polygon<f64>) -> PolygonHierarc
             let hole_hierarchy = PolygonHierarchy::new_simple(&JsValue::from(hole_positions));
             holes_array.push(&JsValue::from(hole_hierarchy));
         }
-        PolygonHierarchy::new(&JsValue::from(exterior_positions), &JsValue::from(holes_array))
+        PolygonHierarchy::new(
+            &JsValue::from(exterior_positions),
+            &JsValue::from(holes_array),
+        )
     }
 }
 
@@ -96,12 +96,7 @@ impl From<glam::DVec3> for Cartesian3 {
 #[cfg(target_arch = "wasm32")]
 impl From<palette::Srgba<f32>> for Color {
     fn from(c: palette::Srgba<f32>) -> Self {
-        Color::new(
-            c.red as f64,
-            c.green as f64,
-            c.blue as f64,
-            c.alpha as f64,
-        )
+        Color::new(c.red as f64, c.green as f64, c.blue as f64, c.alpha as f64)
     }
 }
 

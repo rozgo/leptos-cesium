@@ -83,7 +83,7 @@ pub fn CorridorGraphics(
                 );
 
                 // Set material if provided
-                if let Some(mat) = material.get_untracked() {
+                if let Some(mat) = material.get() {
                     let _ = Reflect::set(
                         &corridor_options,
                         &JsValue::from_str("material"),

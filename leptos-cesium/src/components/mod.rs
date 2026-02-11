@@ -14,6 +14,7 @@ pub use camera::*;
 pub use context::*;
 pub use czml_data_source::*;
 pub use entity::*;
+pub use events::*;
 pub use geojson_data_source::*;
 pub use graphics::*;
 pub use tileset::*;

@@ -82,7 +82,7 @@ pub fn CylinderGraphics(
                 );
 
                 // Set material if provided
-                if let Some(mat) = material.get_untracked() {
+                if let Some(mat) = material.get() {
                     let _ = Reflect::set(
                         &cylinder_options,
                         &JsValue::from_str("material"),

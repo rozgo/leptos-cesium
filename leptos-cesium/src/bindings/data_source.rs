@@ -11,6 +11,9 @@ extern "C" {
     #[wasm_bindgen(method, js_name = add)]
     pub fn add(this: &DataSourceCollection, data_source: js_sys::Promise) -> js_sys::Promise;
 
+    #[wasm_bindgen(method, js_name = remove)]
+    pub fn remove(this: &DataSourceCollection, data_source: &JsValue) -> bool;
+
     #[wasm_bindgen(method, js_name = removeAll)]
     pub fn remove_all(this: &DataSourceCollection);
 

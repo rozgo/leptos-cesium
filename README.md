@@ -91,6 +91,20 @@ trunk serve --open
 ```
 Demonstrates declarative camera controls including fly-to animations, view positioning, and camera movements.
 
+**Custom selection UI (reactive selected entity panel):**
+```bash
+cd examples/custom-selection
+trunk serve --open
+```
+Demonstrates replacing the default Cesium InfoBox with a Leptos-driven custom selection panel.
+
+**Google Photorealistic 3D Tiles:**
+```bash
+cd examples/google-3d-tiles
+trunk serve --open
+```
+Demonstrates loading Cesium Ion/Google 3D Tiles with cache and collision configuration.
+
 **Server-side rendering:**
 ```bash
 cd examples/with-server
@@ -108,7 +122,9 @@ Visit http://localhost:3000
 
 ### Development Tips
 
-- Run `cargo check --target wasm32-unknown-unknown` from the repository root to check library code
+- Run `cargo check --workspace` from the repository root for a full compile check
+- Run `cargo test -p leptos-cesium --lib` for native unit tests
+- Run `cargo test -p leptos-cesium --lib --target wasm32-unknown-unknown --no-run` to verify wasm test compilation
 - Cesium is loaded from CDN (cesium.com) - no local assets required
 - If you rotate Ion tokens, edit `.env.local` and rebuild
 - For troubleshooting, see `CLAUDE.md`
@@ -232,6 +248,43 @@ view! {
 }
 ```
 
+### Viewer Events
+
+Attach viewer-level event handlers (selection/tracking) using `ViewerEvents`:
+
+```rust
+use leptos::prelude::*;
+use leptos_cesium::prelude::*;
+
+#[component]
+fn ViewerEventHooks() -> impl IntoView {
+    let viewer_context = use_cesium_context().expect("must be inside ViewerContainer");
+
+    let events = ViewerEvents::new()
+        .set_selected_entity_changed(|value| {
+            leptos::logging::log!("selected_entity_changed: {:?}", value);
+        })
+        .set_tracked_entity_changed(|value| {
+            leptos::logging::log!("tracked_entity_changed: {:?}", value);
+        });
+
+    let setup_events = events.clone();
+    Effect::new(move |_| {
+        let _ = viewer_context.with_viewer(|viewer| setup_events.setup(&viewer));
+    });
+
+    on_cleanup(move || events.teardown());
+
+    ().into_view()
+}
+
+view! {
+    <ViewerContainer ion_token=token>
+        <ViewerEventHooks />
+    </ViewerContainer>
+}
+```
+
 ### Data Sources
 
 **CZML Data Source:**
@@ -318,12 +371,14 @@ Loads Google's photorealistic 3D tiles via Cesium Ion or directly with a Google 
 - ✅ Math Utilities: to_radians, to_degrees, HeadingPitchRoll, HeadingPitchRange
 - ✅ Server-side rendering support with thread-safe JsValue wrappers
 - ✅ Builder APIs for complex options (FlyToOptions, SetViewOptions, StripeOptions, GeoJsonLoadOptions, etc.)
+- ✅ Viewer event builders via `cesium_events!` (currently `ViewerEvents` for selected/tracked entity changes)
+- ✅ Strict lifecycle/resource ownership for data sources, primitives, and viewer event listeners
 
 **Planned:**
 - 🔲 Additional graphics types (Model, Billboard, Label, Path)
 - 🔲 Additional data sources (KML, GPX)
 - 🔲 Custom 3D Tileset loading (from URL or Ion asset ID)
-- 🔲 Event system (click, hover, entity selection)
+- 🔲 Expanded event coverage (click, hover, camera/mouse interactions)
 - 🔲 Additional camera controls (lookAt, viewer tracking)
 - 🔲 Imagery providers (custom base layers)
 - 🔲 Terrain providers (custom terrain data)

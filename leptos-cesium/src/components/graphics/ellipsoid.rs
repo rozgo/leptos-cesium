@@ -70,7 +70,7 @@ pub fn EllipsoidGraphics(
                 );
 
                 // Set material if provided
-                if let Some(mat) = material.get_untracked() {
+                if let Some(mat) = material.get() {
                     let _ = Reflect::set(
                         &ellipsoid_options,
                         &JsValue::from_str("material"),

@@ -1,8 +1,8 @@
 //! Convenience re-exports for crate users.
 
 // Re-export standard Rust types for component props
-pub use glam::DVec3;
 pub use geo_types::{Coord, LineString, Point, Polygon, Rect};
+pub use glam::DVec3;
 pub use palette::Srgba;
 
 // Re-export core utilities

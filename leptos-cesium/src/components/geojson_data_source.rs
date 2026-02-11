@@ -4,6 +4,8 @@ use leptos::prelude::*;
 
 use crate::bindings::Color;
 use crate::core::JsSignal;
+#[cfg(target_arch = "wasm32")]
+use crate::core::{JsStoredValue, OwnedSlot, RequestGate};
 
 #[cfg(target_arch = "wasm32")]
 use crate::bindings::GeoJsonLoadOptions;
@@ -19,8 +21,8 @@ use wasm_bindgen_futures::JsFuture;
 /// GeoJSON data source component for declaratively loading GeoJSON data
 ///
 /// This component loads GeoJSON or TopoJSON data from a URL and adds it to the viewer's
-/// data sources. When the URL changes, the previous data source is removed and the new
-/// one is loaded.
+/// data sources. When the URL changes, the previous data source owned by this component
+/// can be removed and the new one is loaded.
 ///
 /// GeoJSON features are automatically converted to Cesium entities. The component supports
 /// extensive styling options for polygons, polylines, and point markers.
@@ -75,7 +77,8 @@ pub fn GeoJsonDataSource(
     #[prop(into)]
     url: Signal<String>,
 
-    /// Whether to remove all existing data sources before loading (default: true)
+    /// Whether to eagerly remove this component's currently tracked data source before loading (default: true).
+    /// If false, the previous data source is kept until the new one loads successfully.
     #[prop(optional, into, default = true.into())]
     clear_existing: Signal<bool>,
 
@@ -115,53 +118,69 @@ pub fn GeoJsonDataSource(
     {
         let viewer_context =
             use_cesium_context().expect("GeoJsonDataSource must be inside ViewerContainer");
+        let loaded_data_source = JsStoredValue::new_local(OwnedSlot::<JsValue>::default());
+        let request_gate = RequestGate::new();
+        let request_gate_effect = request_gate.clone();
 
         Effect::new(move |_| {
             let url = url.get();
             let should_clear = clear_existing.get();
+            let stroke = stroke.get();
+            let stroke_width = stroke_width.get();
+            let fill = fill.get();
+            let marker_color = marker_color.get();
+            let marker_size = marker_size.get();
+            let marker_symbol = marker_symbol.get();
+            let clamp_to_ground = clamp_to_ground.get();
+            let credit = credit.get();
+            let next_request = request_gate_effect.begin_request();
 
             // Build options if any styling props are provided
-            let has_options = stroke.get_untracked().is_some()
-                || stroke_width.get().is_some()
-                || fill.get_untracked().is_some()
-                || marker_color.get_untracked().is_some()
-                || marker_size.get().is_some()
-                || marker_symbol.get().is_some()
-                || clamp_to_ground.get().is_some()
-                || credit.get().is_some();
+            let has_options = stroke.is_some()
+                || stroke_width.is_some()
+                || fill.is_some()
+                || marker_color.is_some()
+                || marker_size.is_some()
+                || marker_symbol.is_some()
+                || clamp_to_ground.is_some()
+                || credit.is_some();
 
             viewer_context.with_viewer(|viewer: Viewer| {
-                // Clear existing data sources if requested
+                // Remove only the data source previously owned by this component.
                 if should_clear {
-                    viewer.data_sources().remove_all();
+                    loaded_data_source.update_value(|owned| {
+                        owned.clear_with(|existing| {
+                            let _ = viewer.data_sources().remove(existing);
+                        });
+                    });
                 }
 
                 // Load GeoJSON data with or without options
                 let promise = if has_options {
                     let mut options = GeoJsonLoadOptions::new();
 
-                    if let Some(color) = stroke.get_untracked() {
+                    if let Some(color) = stroke {
                         options = options.stroke(color);
                     }
-                    if let Some(width) = stroke_width.get() {
+                    if let Some(width) = stroke_width {
                         options = options.stroke_width(width);
                     }
-                    if let Some(color) = fill.get_untracked() {
+                    if let Some(color) = fill {
                         options = options.fill(color);
                     }
-                    if let Some(color) = marker_color.get_untracked() {
+                    if let Some(color) = marker_color {
                         options = options.marker_color(color);
                     }
-                    if let Some(size) = marker_size.get() {
+                    if let Some(size) = marker_size {
                         options = options.marker_size(size);
                     }
-                    if let Some(symbol) = marker_symbol.get() {
+                    if let Some(symbol) = marker_symbol {
                         options = options.marker_symbol(symbol);
                     }
-                    if let Some(clamp) = clamp_to_ground.get() {
+                    if let Some(clamp) = clamp_to_ground {
                         options = options.clamp_to_ground(clamp);
                     }
-                    if let Some(credit_str) = credit.get() {
+                    if let Some(credit_str) = credit {
                         options = options.credit(credit_str);
                     }
 
@@ -173,9 +192,26 @@ pub fn GeoJsonDataSource(
                 let add_promise = viewer.data_sources().add(promise);
 
                 // Handle the promise
+                let viewer_ctx = viewer_context;
+                let request_gate = request_gate_effect.clone();
                 wasm_bindgen_futures::spawn_local(async move {
                     match JsFuture::from(add_promise).await {
-                        Ok(_data_source_js) => {
+                        Ok(data_source_js) => {
+                            let stale = request_gate.is_stale(next_request);
+
+                            viewer_ctx.with_viewer(|viewer: Viewer| {
+                                if stale {
+                                    let _ = viewer.data_sources().remove(&data_source_js);
+                                    return;
+                                }
+
+                                loaded_data_source.update_value(|owned| {
+                                    owned.replace_with(data_source_js.clone(), |existing| {
+                                        let _ = viewer.data_sources().remove(existing);
+                                    });
+                                });
+                            });
+
                             web_sys::console::log_1(&JsValue::from_str(&format!(
                                 "Successfully loaded GeoJSON from {}",
                                 url
@@ -193,13 +229,15 @@ pub fn GeoJsonDataSource(
         });
 
         on_cleanup(move || {
-            // Clear data sources when component unmounts
-            #[cfg(target_arch = "wasm32")]
-            if let Some(viewer_ctx) = use_cesium_context() {
-                viewer_ctx.with_viewer(|viewer: Viewer| {
-                    viewer.data_sources().remove_all();
+            request_gate.close();
+
+            viewer_context.with_viewer(|viewer: Viewer| {
+                loaded_data_source.update_value(|owned| {
+                    owned.clear_with(|existing| {
+                        let _ = viewer.data_sources().remove(existing);
+                    });
                 });
-            }
+            });
         });
     }
 

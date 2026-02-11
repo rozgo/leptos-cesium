@@ -10,6 +10,8 @@ use crate::bindings::{
 #[cfg(target_arch = "wasm32")]
 use crate::components::use_cesium_context;
 #[cfg(target_arch = "wasm32")]
+use crate::core::{JsStoredValue, OwnedSlot, RequestGate};
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsValue;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_futures::JsFuture;
@@ -48,17 +50,31 @@ pub fn GooglePhotorealistic3DTiles(
     {
         let viewer_context = use_cesium_context()
             .expect("GooglePhotorealistic3DTiles must be inside ViewerContainer");
+        let loaded_primitive = JsStoredValue::new_local(OwnedSlot::<JsValue>::default());
+        let request_gate = RequestGate::new();
+        let request_gate_effect = request_gate.clone();
 
         Effect::new(move |_| {
+            let google_api_key = google_api_key.and_then(|key_signal| key_signal.get());
+            let next_request = request_gate_effect.begin_request();
+
             viewer_context.with_viewer(|viewer: Viewer| {
+                loaded_primitive.update_value(|owned| {
+                    let scene = viewer.scene();
+                    let primitives = scene.primitives();
+                    owned.clear_with(|existing| {
+                        let _ = primitives.remove(existing);
+                    });
+                });
+
                 web_sys::console::log_1(&JsValue::from_str(
                     "GooglePhotorealistic3DTiles: loading tileset...",
                 ));
 
                 // Build API options
                 let mut api_options = GooglePhotorealistic3DTilesApiOptions::default();
-                if let Some(key_signal) = google_api_key {
-                    api_options.key = key_signal.get();
+                if google_api_key.is_some() {
+                    api_options.key = google_api_key.clone();
                 }
 
                 // Build tileset options
@@ -78,16 +94,33 @@ pub fn GooglePhotorealistic3DTiles(
 
                 let promise =
                     create_google_photorealistic_3d_tileset(&api_options_js, &tileset_options_js);
-                let scene = viewer.scene();
-                let primitives = scene.primitives();
+                let viewer_ctx = viewer_context;
+                let request_gate = request_gate_effect.clone();
 
                 wasm_bindgen_futures::spawn_local(async move {
                     match JsFuture::from(promise).await {
                         Ok(tileset) => {
-                            primitives.add(&tileset);
-                            web_sys::console::log_1(&JsValue::from_str(
-                                "GooglePhotorealistic3DTiles: tileset loaded and added to scene",
-                            ));
+                            let stale = request_gate.is_stale(next_request);
+                            viewer_ctx.with_viewer(|viewer: Viewer| {
+                                let scene = viewer.scene();
+                                let primitives = scene.primitives();
+
+                                if stale {
+                                    let _ = primitives.remove(&tileset);
+                                    return;
+                                }
+
+                                primitives.add(&tileset);
+                                loaded_primitive.update_value(|owned| {
+                                    owned.replace_with(tileset.clone(), |existing| {
+                                        let _ = primitives.remove(existing);
+                                    });
+                                });
+
+                                web_sys::console::log_1(&JsValue::from_str(
+                                    "GooglePhotorealistic3DTiles: tileset loaded and added to scene",
+                                ));
+                            });
                         }
                         Err(e) => {
                             web_sys::console::error_2(
@@ -101,17 +134,21 @@ pub fn GooglePhotorealistic3DTiles(
         });
 
         on_cleanup(move || {
-            // Remove all primitives when component unmounts (removes Google 3D Tiles)
-            if let Some(viewer_ctx) = use_cesium_context() {
-                viewer_ctx.with_viewer(|viewer: Viewer| {
-                    let scene = viewer.scene();
-                    let primitives = scene.primitives();
-                    primitives.remove_all();
-                    web_sys::console::log_1(&JsValue::from_str(
-                        "GooglePhotorealistic3DTiles: all primitives removed from scene",
-                    ));
+            request_gate.close();
+
+            // Remove only the primitive created by this component.
+            viewer_context.with_viewer(|viewer: Viewer| {
+                let scene = viewer.scene();
+                let primitives = scene.primitives();
+                loaded_primitive.update_value(|owned| {
+                    owned.clear_with(|existing| {
+                        let _ = primitives.remove(existing);
+                        web_sys::console::log_1(&JsValue::from_str(
+                            "GooglePhotorealistic3DTiles: primitive removed from scene",
+                        ));
+                    });
                 });
-            }
+            });
         });
     }
 

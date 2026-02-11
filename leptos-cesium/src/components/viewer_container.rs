@@ -3,13 +3,15 @@
 use leptos::{html::Div, prelude::*};
 
 use crate::components::provide_cesium_context;
+#[cfg(target_arch = "wasm32")]
+use crate::core::{JsStoredValue, OwnedSlot};
 
 /// CDN base URL for Cesium assets (Workers, Assets, etc.)
 #[cfg(target_arch = "wasm32")]
-const CESIUM_CDN_BASE: &str = "https://cesium.com/downloads/cesiumjs/releases/1.137/Build/Cesium/";
+const CESIUM_CDN_BASE: &str = "https://cesium.com/downloads/cesiumjs/releases/1.138/Build/Cesium/";
 
 #[cfg(target_arch = "wasm32")]
-use crate::bindings::{Viewer, set_base_url, set_default_access_token};
+use crate::bindings::{Event, Viewer, set_base_url, set_default_access_token};
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::{JsCast, JsValue};
@@ -58,6 +60,11 @@ pub fn ViewerContainer(
     #[prop(optional)] children: Option<Children>,
 ) -> impl IntoView {
     let viewer_context = provide_cesium_context();
+    #[cfg(target_arch = "wasm32")]
+    let selected_entity_listener = JsStoredValue::new_local(OwnedSlot::<(
+        Event,
+        wasm_bindgen::closure::Closure<dyn FnMut(JsValue)>,
+    )>::default());
 
     // Log ion_token changes (hydrate only - Effect::new uses spawn_local which requires LocalSet)
     #[cfg(not(feature = "ssr"))]
@@ -221,22 +228,37 @@ pub fn ViewerContainer(
     Effect::new(move |_| {
         #[cfg(target_arch = "wasm32")]
         {
-            use wasm_bindgen::closure::Closure;
+            // React to viewer availability.
+            let _ = viewer_context.viewer();
 
             viewer_context.with_viewer(|viewer: Viewer| {
+                if selected_entity_listener.with_value(|listener| listener.is_set()) {
+                    return;
+                }
+
                 let event = viewer.selected_entity_changed();
                 let ctx = viewer_context;
 
                 // Create closure that updates the context when selection changes
-                let closure = Closure::wrap(Box::new(move |entity: JsValue| {
-                    ctx.set_selected_entity_from_js(entity);
-                }) as Box<dyn FnMut(JsValue)>);
+                let closure =
+                    wasm_bindgen::closure::Closure::wrap(Box::new(move |entity: JsValue| {
+                        ctx.set_selected_entity_from_js(entity);
+                    })
+                        as Box<dyn FnMut(JsValue)>);
 
                 // Add event listener
                 event.add_event_listener(closure.as_ref().unchecked_ref());
 
-                // Store closure so it's not dropped (it will be cleaned up when the component unmounts)
-                closure.forget();
+                // Store event + closure for cleanup.
+                selected_entity_listener.update_value(|listener| {
+                    listener.replace_with(
+                        (event, closure),
+                        |(existing_event, existing_closure)| {
+                            existing_event
+                                .remove_event_listener(existing_closure.as_ref().unchecked_ref());
+                        },
+                    );
+                });
 
                 console::debug_1(&JsValue::from_str(
                     "ViewerContainer: selectedEntityChanged event listener attached.",
@@ -280,6 +302,12 @@ pub fn ViewerContainer(
     on_cleanup(move || {
         #[cfg(target_arch = "wasm32")]
         {
+            selected_entity_listener.update_value(|listener| {
+                listener.clear_with(|(event, closure)| {
+                    event.remove_event_listener(closure.as_ref().unchecked_ref());
+                });
+            });
+
             if let Some(viewer) = viewer_context.viewer_untracked() {
                 console::debug_1(&JsValue::from_str(
                     "ViewerContainer: destroying Cesium viewer on cleanup.",

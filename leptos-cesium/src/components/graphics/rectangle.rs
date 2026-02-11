@@ -65,7 +65,7 @@ pub fn RectangleGraphics(
                 );
 
                 // Set material if provided
-                if let Some(mat) = material.get_untracked() {
+                if let Some(mat) = material.get() {
                     let _ = Reflect::set(
                         &rectangle_options,
                         &JsValue::from_str("material"),

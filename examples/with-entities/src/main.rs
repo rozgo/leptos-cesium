@@ -1,4 +1,4 @@
-use geo_types::{coord, LineString, Polygon};
+use geo_types::{LineString, Polygon, coord};
 use leptos::prelude::*;
 use leptos_cesium::prelude::*;
 
