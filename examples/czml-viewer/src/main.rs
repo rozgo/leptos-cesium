@@ -65,7 +65,7 @@ fn App() -> impl IntoView {
                 {move || {
                     show_vehicle_camera.get().then(|| view! {
                         <CameraSetView
-                            destination=DVec3::new(-116.52, 35.02, 95000.0)
+                            destination=CameraDestination::Degrees(DVec3::new(-116.52, 35.02, 95000.0))
                         />
                     })
                 }}

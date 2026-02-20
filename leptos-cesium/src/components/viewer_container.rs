@@ -16,7 +16,7 @@ use crate::bindings::{Event, Viewer, set_base_url, set_default_access_token};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::{JsCast, JsValue};
 #[cfg(target_arch = "wasm32")]
-use web_sys::{HtmlElement, console};
+use web_sys::HtmlElement;
 
 /// Minimal Cesium viewer container component.
 ///
@@ -70,48 +70,16 @@ pub fn ViewerContainer(
         wasm_bindgen::closure::Closure<dyn FnMut(JsValue)>,
     )>::default());
 
-    // Log ion_token changes (hydrate only - Effect::new uses spawn_local which requires LocalSet)
-    #[cfg(not(feature = "ssr"))]
-    Effect::new(move |_| {
-        #[cfg(target_arch = "wasm32")]
-        {
-            let token = ion_token.get();
-            match &token {
-                Some(t) => {
-                    console::log_1(&JsValue::from_str(&format!(
-                        "ViewerContainer: ion_token = Some({:?})",
-                        t
-                    )));
-                }
-                None => {
-                    console::log_1(&JsValue::from_str("ViewerContainer: ion_token = None"));
-                }
-            }
-        }
-
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let _ = ion_token;
-        }
-    });
-
     // Create viewer once (doesn't re-run when signals change due to untracked access)
     #[cfg(not(feature = "ssr"))]
     Effect::new(move |_| {
         #[cfg(target_arch = "wasm32")]
         {
-            console::debug_1(&JsValue::from_str("ViewerContainer: effect tick"));
             if viewer_context.viewer_untracked().is_some() {
-                console::debug_1(&JsValue::from_str(
-                    "ViewerContainer: viewer already exists; skipping instantiation.",
-                ));
                 return;
             }
 
             let Some(div) = node_ref.get() else {
-                console::debug_1(&JsValue::from_str(
-                    "ViewerContainer: node_ref empty; waiting for next tick.",
-                ));
                 return;
             };
 
@@ -122,19 +90,8 @@ pub fn ViewerContainer(
 
             // Set Ion token if provided (untracked so changes don't recreate viewer)
             if let Some(token) = ion_token.get_untracked() {
-                console::debug_1(&JsValue::from_str(
-                    "ViewerContainer: setting Cesium Ion access token.",
-                ));
                 set_default_access_token(&token);
-            } else {
-                console::warn_1(&JsValue::from_str(
-                    "ViewerContainer: No Cesium Ion access token provided. Some assets may not load.",
-                ));
             }
-
-            console::debug_1(&JsValue::from_str(
-                "ViewerContainer: constructing Cesium.Viewer instance.",
-            ));
 
             // Build viewer options (always start with globe visible)
             let options = js_sys::Object::new();
@@ -198,9 +155,6 @@ pub fn ViewerContainer(
             viewer.set_allow_data_sources_to_suspend_animation(
                 allow_data_sources_to_suspend_animation,
             );
-            console::debug_1(&JsValue::from_str(
-                "ViewerContainer: viewer created; storing in context.",
-            ));
             viewer_context.set_viewer(viewer);
 
             // Remove cesium-viewer-bottom
@@ -211,9 +165,6 @@ pub fn ViewerContainer(
                     .flatten()
             {
                 bottom_bar.remove();
-                console::debug_1(&JsValue::from_str(
-                    "ViewerContainer: removed .cesium-viewer-bottom",
-                ));
             }
         }
 
@@ -273,10 +224,6 @@ pub fn ViewerContainer(
                         },
                     );
                 });
-
-                console::debug_1(&JsValue::from_str(
-                    "ViewerContainer: selectedEntityChanged event listener attached.",
-                ));
             });
         }
     });
@@ -299,10 +246,6 @@ pub fn ViewerContainer(
                         &JsValue::from_str("show"),
                         &JsValue::from_bool(show_globe),
                     );
-                    console::log_1(&JsValue::from_str(&format!(
-                        "ViewerContainer: globe visibility set to {}",
-                        show_globe
-                    )));
                 }
             });
         }
@@ -323,9 +266,6 @@ pub fn ViewerContainer(
             });
 
             if let Some(viewer) = viewer_context.viewer_untracked() {
-                console::debug_1(&JsValue::from_str(
-                    "ViewerContainer: destroying Cesium viewer on cleanup.",
-                ));
                 viewer.destroy();
             }
         }

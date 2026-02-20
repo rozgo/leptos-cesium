@@ -28,7 +28,7 @@ fn App() -> impl IntoView {
             // Fly to San Francisco for a nice view of the 3D buildings
             // DVec3: x=longitude, y=latitude, z=height (degrees/meters)
             <CameraFlyTo
-                destination=DVec3::new(-122.4194, 37.7749, 800.0)
+                destination=CameraDestination::Degrees(DVec3::new(-122.4194, 37.7749, 800.0))
                 duration=3.0
             />
         </ViewerContainer>

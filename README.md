@@ -85,10 +85,11 @@ trunk serve --open
 Demonstrates GeoJSON data source loading with custom styling for polygons, polylines, and point markers. Features reactive layer switching and styling options.
 
 **Camera controls:**
-`examples/camera-control` is currently a scaffold directory for a dedicated camera-controls example.
-For runnable camera control usage, see:
-- `examples/czml-viewer`
-- `examples/google-3d-tiles`
+```bash
+cd examples/camera-control
+trunk serve --open
+```
+Demonstrates parity-focused camera interactions: setView, flyTo, flyHome, move/zoom actions, and ScreenSpaceCameraController toggles.
 
 **Custom selection UI (reactive selected entity panel):**
 ```bash
@@ -220,29 +221,42 @@ Material::polyline_glow(
 
 ### Camera Controls
 
-Declarative camera positioning and animation using `DVec3` for destinations:
+Cesium-parity camera control with typed destination/orientation unions and trigger-based actions:
 
 ```rust
+use geo_types::coord;
+use leptos::prelude::*;
 use leptos_cesium::prelude::*;
+
+let (fly_home_trigger, set_fly_home_trigger) = signal(());
+// call set_fly_home_trigger.set(()) from an event handler to trigger the action
 
 view! {
     <ViewerContainer ion_token=token>
-        // Instant camera positioning (DVec3: longitude, latitude, height)
+        // Cesium Camera.setView (destination/orientation are optional in Cesium too)
         <CameraSetView
-            destination=DVec3::new(-75.0, 40.0, 1000.0)
+            destination=CameraDestination::Degrees(DVec3::new(-75.0, 40.0, 1000.0))
+            orientation=CameraOrientation::HeadingPitchRoll(0.0, -0.7, 0.0)
         />
 
-        // Animated flight to location
+        // Cesium Camera.flyTo (destination required)
         <CameraFlyTo
-            destination=DVec3::new(-122.4, 37.8, 5000.0)
+            destination=CameraDestination::Rectangle(Rect::new(
+                coord! { x: -130.0, y: 22.0 },
+                coord! { x: -65.0, y: 50.0 },
+            ))
             duration=3.0
         />
 
-        // Fly to home view
-        <CameraFlyHome duration=2.0 />
+        // Triggered actions
+        <CameraFlyHome trigger=fly_home_trigger duration=2.0 />
 
-        // Reset clock to current time
-        <ClockReset />
+        // ScreenSpaceCameraController parity
+        <CameraController
+            enable_inputs=true
+            enable_collision_detection=true
+            minimum_zoom_distance=50.0
+        />
     </ViewerContainer>
 }
 ```
@@ -382,7 +396,7 @@ Loads Google's photorealistic 3D tiles via Cesium Ion or directly with a Google 
 - ✅ Paths & Volumes: Polyline, Wall, Corridor, PolylineVolume
 - ✅ Points: PointGraphics with pixel size and color control
 - ✅ Materials: Color, Stripe, Checkerboard, PolylineGlow (all with builder APIs)
-- ✅ Camera Controls: CameraFlyTo, CameraSetView, CameraFlyHome, CameraFlyToBoundingSphere
+- ✅ Camera Controls: CameraSetView, CameraFlyTo, CameraFlyToBoundingSphere, CameraLookAt, CameraLookAtTransform, CameraMove, CameraZoom, CameraFlyHome, CameraCancelFlight, CameraCompleteFlight, CameraController
 - ✅ Clock Controls: ClockReset for animation timeline management
 - ✅ Data Sources: CZML (URL/inline + replace/append modes), GeoJSON with extensive styling options
 - ✅ 3D Tiles: Google Photorealistic 3D Tiles with cache and collision controls
@@ -398,7 +412,7 @@ Loads Google's photorealistic 3D tiles via Cesium Ion or directly with a Google 
 - 🔲 Additional data sources (KML, GPX)
 - 🔲 Custom 3D Tileset loading (from URL or Ion asset ID)
 - 🔲 Expanded event coverage (click, hover, camera/mouse interactions)
-- 🔲 Additional camera controls (lookAt, viewer tracking)
+- 🔲 Camera event components (camera `moveStart/moveEnd/changed`)
 - 🔲 Imagery providers (custom base layers)
 - 🔲 Terrain providers (custom terrain data)
 - 🔲 PostProcessing effects

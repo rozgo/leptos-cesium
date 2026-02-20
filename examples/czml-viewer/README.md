@@ -56,7 +56,7 @@ The example demonstrates **declarative CZML loading and camera control**:
 - **`<CameraFlyHome trigger=... />`** - Flies camera to home position when trigger signal updates
   - Uses reactive signals to trigger camera movements declaratively
 
-- **`<CameraSetView destination=... heading=... />`** - Sets camera view position and orientation
+- **`<CameraSetView destination=... orientation=... />`** - Sets camera view position and orientation
   - Declaratively controls camera position via props
   - Updates when any prop changes
 
@@ -75,7 +75,10 @@ view! {
         })}
 
         {move || show_vehicle_camera.get().then(|| view! {
-            <CameraSetView destination=... heading=... />
+            <CameraSetView
+                destination=CameraDestination::Degrees(...)
+                orientation=CameraOrientation::HeadingPitchRoll(...)
+            />
         })}
     </ViewerContainer>
 }

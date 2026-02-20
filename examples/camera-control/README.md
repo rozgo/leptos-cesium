@@ -1,40 +1,35 @@
-# Camera Control Example (Scaffold)
+# Camera Control Example
 
-This directory is reserved for a dedicated camera-controls example.  
-At the moment it is a scaffold (no `Cargo.toml` or `src/main.rs` yet), so it is not directly runnable.
+Interactive camera parity demo for `leptos-cesium`.
 
-## Intended Coverage
+## Features Demonstrated
 
-When implemented, this example should showcase:
+- `CameraSetView` with multiple destination types:
+  - `CameraDestination::Degrees`
+  - `CameraDestination::Rectangle`
+- `CameraFlyTo` with optional orientation/duration
+- `CameraFlyHome` trigger-based reset
+- `CameraMove` and `CameraZoom` trigger actions
+- `CameraController` toggles (`enable_inputs`, `enable_collision_detection`)
 
-- `CameraSetView`
-- `CameraFlyTo`
-- `CameraFlyHome`
-- `CameraFlyToBoundingSphere`
-- optional camera orientation and timing options
+## Run
 
-## Current Alternatives
+```bash
+cd examples/camera-control
+trunk clean
+NO_COLOR=false trunk serve --release --open
+```
 
-You can already see camera control components in active examples:
+## Build Check
 
-- `examples/czml-viewer` (camera moves tied to CZML workflow)
-- `examples/google-3d-tiles` (initial fly-to on load)
-
-## Target Pattern
-
-The dedicated example should look roughly like:
-
-```rust
-view! {
-    <ViewerContainer ion_token=ion_token>
-        <CameraSetView destination=DVec3::new(-75.0, 40.0, 1000.0) />
-        <CameraFlyTo destination=DVec3::new(-122.4, 37.8, 5000.0) duration=3.0 />
-        <CameraFlyHome duration=2.0 />
-    </ViewerContainer>
-}
+```bash
+cd examples/camera-control
+trunk build
 ```
 
 ## Notes
 
-- Cesium assets in this repository are served from CDN via each example's `index.html`.
-- No local `public/Cesium` sync workflow is used.
+- Startup is intentionally a baseline: Cesium default home view with no auto camera commands.
+- `CameraController` is mounted only when you enable it via the "Mount CameraController" toggle.
+- This example intentionally uses optional props only where Cesium options are optional.
+- Cesium assets are loaded from CDN via `index.html`.

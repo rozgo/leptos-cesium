@@ -117,8 +117,8 @@ fn App() -> impl IntoView {
 
             // Position camera close to the entities
             <CameraSetView
-                destination=DVec3::new(-75.59770, 40.03880, 15.0)
-                orientation=Some((0.3, -0.5, 0.0))
+                destination=CameraDestination::Degrees(DVec3::new(-75.59770, 40.03880, 15.0))
+                orientation=CameraOrientation::HeadingPitchRoll(0.3, -0.5, 0.0)
             />
         </ViewerContainer>
     }

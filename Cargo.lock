@@ -210,6 +210,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e748733b7cbc798e1434b6ac524f0c1ff2ab456fe201501e6497c8417a4fc33"
 
 [[package]]
+name = "camera-control"
+version = "0.0.1"
+dependencies = [
+ "console_error_panic_hook",
+ "geo-types",
+ "js-sys",
+ "leptos",
+ "leptos-cesium",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "camino"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

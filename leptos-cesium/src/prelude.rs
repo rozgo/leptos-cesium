@@ -13,11 +13,12 @@ pub use crate::components::*;
 
 // Re-export common bindings (selective to avoid conflicts)
 pub use crate::bindings::{
-    BoundingSphere, Cartesian2, Cartesian3, CheckerboardMaterialProperty, CheckerboardOptions,
-    ClockRangeMode, ClockStepMode, Color, CzmlDataSource, DataSource, DataSourceClock,
-    DataSourceCollection, EntityCluster, HeadingPitchRange, HeadingPitchRoll, Material,
-    PolygonHierarchy, PolylineGlowMaterialProperty, PolylineGlowOptions, Rectangle,
-    StripeMaterialProperty, StripeOptions, Viewer,
+    BoundingSphere, Camera, Cartesian2, Cartesian3, CheckerboardMaterialProperty,
+    CheckerboardOptions, ClockRangeMode, ClockStepMode, Color, CzmlDataSource, DataSource,
+    DataSourceClock, DataSourceCollection, Ellipsoid, EntityCluster, HeadingPitchRange,
+    HeadingPitchRoll, Material, Matrix4, PolygonHierarchy, PolylineGlowMaterialProperty,
+    PolylineGlowOptions, Ray, Rectangle, ScreenSpaceCameraController, StripeMaterialProperty,
+    StripeOptions, Viewer,
 };
 
 // Re-export math utilities

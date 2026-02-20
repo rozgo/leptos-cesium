@@ -158,8 +158,8 @@ fn App() -> impl IntoView {
 
                 // Fly to a nice initial view
                 <CameraSetView
-                    destination=DVec3::new(0.0, 30.0, 20000000.0)
-                    orientation=Some((0.0, -1.57, 0.0))
+                    destination=CameraDestination::Degrees(DVec3::new(0.0, 30.0, 20000000.0))
+                    orientation=CameraOrientation::HeadingPitchRoll(0.0, -1.57, 0.0)
                 />
             </ViewerContainer>
         </div>
