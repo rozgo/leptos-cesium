@@ -47,6 +47,16 @@ extern "C" {
         offset: &JsValue,
     ) -> js_sys::Promise;
 
+    #[wasm_bindgen(method, js_name = flyTo)]
+    pub fn fly_to_target(this: &Viewer, target: &JsValue) -> js_sys::Promise;
+
+    #[wasm_bindgen(method, js_name = flyTo)]
+    pub fn fly_to_target_with_options(
+        this: &Viewer,
+        target: &JsValue,
+        options: &JsValue,
+    ) -> js_sys::Promise;
+
     /// Selected entity property (get/set)
     #[wasm_bindgen(method, getter, js_name = selectedEntity)]
     pub fn selected_entity(this: &Viewer) -> Option<Entity>;
@@ -590,6 +600,114 @@ pub enum ClockStepMode {
     TickDependent = 0,
     SystemClockMultiplier = 1,
     SystemClock = 2,
+}
+
+/// Builder for Viewer.flyTo(target, options).
+#[derive(Default)]
+pub struct ViewerFlyToOptions {
+    duration: Option<f64>,
+    maximum_height: Option<f64>,
+    pitch_adjust_height: Option<f64>,
+    fly_over_longitude: Option<f64>,
+    fly_over_longitude_weight: Option<f64>,
+    offset: Option<HeadingPitchRange>,
+}
+
+impl ViewerFlyToOptions {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn duration(mut self, duration: f64) -> Self {
+        self.duration = Some(duration);
+        self
+    }
+
+    pub fn maximum_height(mut self, value: f64) -> Self {
+        self.maximum_height = Some(value);
+        self
+    }
+
+    pub fn pitch_adjust_height(mut self, value: f64) -> Self {
+        self.pitch_adjust_height = Some(value);
+        self
+    }
+
+    pub fn fly_over_longitude(mut self, value: f64) -> Self {
+        self.fly_over_longitude = Some(value);
+        self
+    }
+
+    pub fn fly_over_longitude_weight(mut self, value: f64) -> Self {
+        self.fly_over_longitude_weight = Some(value);
+        self
+    }
+
+    pub fn offset(mut self, offset: HeadingPitchRange) -> Self {
+        self.offset = Some(offset);
+        self
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.duration.is_none()
+            && self.maximum_height.is_none()
+            && self.pitch_adjust_height.is_none()
+            && self.fly_over_longitude.is_none()
+            && self.fly_over_longitude_weight.is_none()
+            && self.offset.is_none()
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn build(self) -> JsValue {
+        use js_sys::{Object, Reflect};
+
+        let options = Object::new();
+
+        if let Some(duration) = self.duration {
+            let _ = Reflect::set(
+                &options,
+                &JsValue::from_str("duration"),
+                &JsValue::from_f64(duration),
+            );
+        }
+        if let Some(value) = self.maximum_height {
+            let _ = Reflect::set(
+                &options,
+                &JsValue::from_str("maximumHeight"),
+                &JsValue::from_f64(value),
+            );
+        }
+        if let Some(value) = self.pitch_adjust_height {
+            let _ = Reflect::set(
+                &options,
+                &JsValue::from_str("pitchAdjustHeight"),
+                &JsValue::from_f64(value),
+            );
+        }
+        if let Some(value) = self.fly_over_longitude {
+            let _ = Reflect::set(
+                &options,
+                &JsValue::from_str("flyOverLongitude"),
+                &JsValue::from_f64(value),
+            );
+        }
+        if let Some(value) = self.fly_over_longitude_weight {
+            let _ = Reflect::set(
+                &options,
+                &JsValue::from_str("flyOverLongitudeWeight"),
+                &JsValue::from_f64(value),
+            );
+        }
+        if let Some(offset) = self.offset {
+            let _ = Reflect::set(
+                &options,
+                &JsValue::from_str("offset"),
+                &JsValue::from(offset),
+            );
+        }
+
+        options.into()
+    }
 }
 
 // Helper function to get current JulianDate using reflection

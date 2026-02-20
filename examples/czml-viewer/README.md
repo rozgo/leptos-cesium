@@ -1,11 +1,12 @@
 # CZML Viewer Example
 
-This example demonstrates loading and displaying CZML (Cesium Language) data sources with camera controls.
+This example demonstrates loading and displaying CZML (Cesium Language) data sources with viewer-level focus and clock tracking controls.
 
 ## Features
 
 - Load CZML data files dynamically
-- Control camera position and orientation
+- Focus the loaded CZML data source with `Viewer.flyTo`
+- Track CZML timeline with `viewer.clockTrackedDataSource`
 - Timeline and animation controls enabled
 - Remove/reset data sources
 
@@ -32,9 +33,9 @@ Then open http://localhost:8080
 
 ## Usage
 
-- **Satellites** button: Loads `SampleData/simple.czml` and flies camera to home position
-- **Vehicle** button: Loads `SampleData/Vehicle.czml` and sets a specific camera view
-- **Reset** button: Removes all loaded data sources
+- **Satellites** button: Loads `SampleData/simple.czml` and focuses that loaded data source
+- **Vehicle** button: Loads `SampleData/Vehicle.czml` and focuses that loaded data source
+- **Reset** button: Removes loaded data sources, clears clock tracking, and flies home
 
 ## CZML Data Files
 
@@ -53,33 +54,34 @@ The example demonstrates **declarative CZML loading and camera control**:
   - When the URL signal changes, the old data source is cleared and the new one is loaded
   - Automatically cleans up data sources when the component unmounts
 
-- **`<CameraFlyHome trigger=... />`** - Flies camera to home position when trigger signal updates
-  - Uses reactive signals to trigger camera movements declaratively
+- **`<ViewerFlyToTarget trigger=... target=... />`** - Triggers `Viewer.flyTo(target)` for loaded CZML data source objects
+  - Accepts target objects (data source/entity/JsValue), not only coordinate destinations
 
-- **`<CameraSetView destination=... orientation=... />`** - Sets camera view position and orientation
-  - Declaratively controls camera position via props
-  - Updates when any prop changes
+- **`<ViewerSetClockTrackedDataSource trigger=... data_source=... />`** - Triggers `viewer.clockTrackedDataSource = ...`
+  - Keeps timeline UI aligned with the currently loaded CZML data source clock
+
+- **`<CameraFlyHome trigger=... />`** - Flies camera to home position on reset
 
 ### Declarative Pattern:
 
 ```rust
 // Signals control state
 let (czml_url, set_czml_url) = signal("".to_string());
-let (show_vehicle_camera, set_show_vehicle_camera) = signal(false);
+let loaded_target = JsRwSignal::new_local(None::<ViewerTarget>);
+let loaded_data_source = JsRwSignal::new_local(None::<DataSource>);
 
 view! {
     <ViewerContainer>
-        // Conditionally render components based on state
+        // Conditionally load CZML
         {move || (!czml_url.get().is_empty()).then(|| view! {
-            <CzmlDataSource url=czml_url.get() />
-        })}
-
-        {move || show_vehicle_camera.get().then(|| view! {
-            <CameraSetView
-                destination=CameraDestination::Degrees(...)
-                orientation=CameraOrientation::HeadingPitchRoll(...)
+            <CzmlDataSource
+                url=czml_url.get()
+                on_loaded=on_loaded
             />
         })}
+
+        <ViewerFlyToTarget trigger=focus_loaded_trigger target=loaded_target />
+        <ViewerSetClockTrackedDataSource trigger=track_clock_trigger data_source=loaded_data_source />
     </ViewerContainer>
 }
 ```

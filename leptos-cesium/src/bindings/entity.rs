@@ -5,6 +5,7 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
+    #[derive(Clone)]
     #[wasm_bindgen(js_namespace = Cesium, js_name = Entity)]
     pub type Entity;
 

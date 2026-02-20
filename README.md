@@ -261,6 +261,34 @@ view! {
 }
 ```
 
+### Viewer Target Focus
+
+Cesium-parity viewer target focus for objects like loaded CZML data sources:
+
+```rust
+use leptos::prelude::*;
+use leptos_cesium::prelude::*;
+
+let loaded_target = JsRwSignal::new_local(None::<ViewerTarget>);
+let loaded_data_source = JsRwSignal::new_local(None::<DataSource>);
+let (focus_trigger, set_focus_trigger) = signal(());
+let (track_clock_trigger, set_track_clock_trigger) = signal(());
+
+view! {
+    <ViewerContainer ion_token=token>
+        <ViewerFlyToTarget
+            trigger=focus_trigger
+            target=loaded_target
+            duration=2.0
+        />
+        <ViewerSetClockTrackedDataSource
+            trigger=track_clock_trigger
+            data_source=loaded_data_source
+        />
+    </ViewerContainer>
+}
+```
+
 ### Viewer Events
 
 Attach viewer-level event handlers (selection/tracking) using `ViewerEvents`:
@@ -397,6 +425,7 @@ Loads Google's photorealistic 3D tiles via Cesium Ion or directly with a Google 
 - ✅ Points: PointGraphics with pixel size and color control
 - ✅ Materials: Color, Stripe, Checkerboard, PolylineGlow (all with builder APIs)
 - ✅ Camera Controls: CameraSetView, CameraFlyTo, CameraFlyToBoundingSphere, CameraLookAt, CameraLookAtTransform, CameraMove, CameraZoom, CameraFlyHome, CameraCancelFlight, CameraCompleteFlight, CameraController
+- ✅ Viewer Target Focus: ViewerFlyToTarget, ViewerZoomToTarget, ViewerSetClockTrackedDataSource
 - ✅ Clock Controls: ClockReset for animation timeline management
 - ✅ Data Sources: CZML (URL/inline + replace/append modes), GeoJSON with extensive styling options
 - ✅ 3D Tiles: Google Photorealistic 3D Tiles with cache and collision controls

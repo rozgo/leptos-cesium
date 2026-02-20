@@ -9,6 +9,7 @@ pub mod geojson_data_source;
 pub mod graphics;
 pub mod tileset;
 pub mod viewer_container;
+pub mod viewer_target;
 
 pub use camera::*;
 pub use context::*;
@@ -19,3 +20,4 @@ pub use geojson_data_source::*;
 pub use graphics::*;
 pub use tileset::*;
 pub use viewer_container::*;
+pub use viewer_target::*;

@@ -18,7 +18,7 @@ pub use crate::bindings::{
     DataSourceClock, DataSourceCollection, Ellipsoid, EntityCluster, HeadingPitchRange,
     HeadingPitchRoll, Material, Matrix4, PolygonHierarchy, PolylineGlowMaterialProperty,
     PolylineGlowOptions, Ray, Rectangle, ScreenSpaceCameraController, StripeMaterialProperty,
-    StripeOptions, Viewer,
+    StripeOptions, Viewer, ViewerFlyToOptions,
 };
 
 // Re-export math utilities
