@@ -47,10 +47,9 @@ pub fn ErrorTemplate(
     // this may be customized by the specific application
     cfg_if! { if #[cfg(feature="ssr")] {
         let response = use_context::<ResponseOptions>();
-        if let Some(response) = response {
-            if let Some(first_error) = errors.first() {
-                response.set_status(first_error.status_code());
-            }
+        if let Some(response) = response
+            && let Some(first_error) = errors.first() {
+            response.set_status(first_error.status_code());
         }
     }}
 

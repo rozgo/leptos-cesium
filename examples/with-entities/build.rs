@@ -5,18 +5,18 @@ fn main() {
         .and_then(|p| p.parent())
         .map(|p| p.join(".env.local"));
 
-    if let Some(path) = env_path {
-        if path.exists() {
-            // Read the file and parse CESIUM_ION_TOKEN
-            if let Ok(contents) = std::fs::read_to_string(&path) {
-                for line in contents.lines() {
-                    if let Some(token) = line.strip_prefix("CESIUM_ION_TOKEN=") {
-                        // Remove quotes if present
-                        let token = token.trim().trim_matches('"');
-                        println!("cargo:rustc-env=CESIUM_ION_TOKEN={}", token);
-                        println!("cargo:rerun-if-changed={}", path.display());
-                        return;
-                    }
+    if let Some(path) = env_path
+        && path.exists()
+    {
+        // Read the file and parse CESIUM_ION_TOKEN
+        if let Ok(contents) = std::fs::read_to_string(&path) {
+            for line in contents.lines() {
+                if let Some(token) = line.strip_prefix("CESIUM_ION_TOKEN=") {
+                    // Remove quotes if present
+                    let token = token.trim().trim_matches('"');
+                    println!("cargo:rustc-env=CESIUM_ION_TOKEN={}", token);
+                    println!("cargo:rerun-if-changed={}", path.display());
+                    return;
                 }
             }
         }

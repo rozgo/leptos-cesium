@@ -7,15 +7,17 @@ use crate::components::provide_cesium_context;
 use crate::core::{JsStoredValue, OwnedSlot};
 
 /// CDN base URL for Cesium assets (Workers, Assets, etc.)
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(target_arch = "wasm32", not(feature = "ssr")))]
 const CESIUM_CDN_BASE: &str = "https://cesium.com/downloads/cesiumjs/releases/1.138/Build/Cesium/";
 
 #[cfg(target_arch = "wasm32")]
-use crate::bindings::{Event, Viewer, set_base_url, set_default_access_token};
+use crate::bindings::Event;
+#[cfg(all(target_arch = "wasm32", not(feature = "ssr")))]
+use crate::bindings::{Viewer, set_base_url, set_default_access_token};
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::{JsCast, JsValue};
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(target_arch = "wasm32", not(feature = "ssr")))]
 use web_sys::HtmlElement;
 
 /// Minimal Cesium viewer container component.
