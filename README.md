@@ -75,7 +75,7 @@ Demonstrates declarative entity components: 2D shapes (rectangles, polygons, ell
 cd examples/czml-viewer
 trunk serve --open
 ```
-Demonstrates CZML data source loading with automatic clock synchronization and camera controls.
+Demonstrates CZML data source loading and camera controls.
 
 **GeoJSON data loading (maps, geographic features):**
 ```bash
@@ -303,7 +303,27 @@ view! {
 }
 ```
 
-CZML data sources automatically synchronize the viewer clock with animation timelines.
+Load inline CZML JSON and append updates:
+
+```rust
+use leptos_cesium::prelude::*;
+
+let initial = r#"[{\"id\":\"document\",\"version\":\"1.0\"}]"#.to_string();
+let update = r#"[{\"id\":\"sat-1\",\"position\":{\"cartographicDegrees\":[-75.0,40.0,0.0]}}]"#.to_string();
+
+view! {
+    <ViewerContainer
+        ion_token=token
+        automatically_track_data_source_clocks=true
+        allow_data_sources_to_suspend_animation=true
+    >
+        <CzmlDataSource data=initial mode=CzmlLoadMode::Replace />
+        <CzmlDataSource data=update mode=CzmlLoadMode::Append clear_existing=false />
+    </ViewerContainer>
+}
+```
+
+When loading multiple CZML sources, use the viewer clock APIs to explicitly choose clock-tracking behavior.
 
 **GeoJSON Data Source:**
 
@@ -364,7 +384,7 @@ Loads Google's photorealistic 3D tiles via Cesium Ion or directly with a Google 
 - ✅ Materials: Color, Stripe, Checkerboard, PolylineGlow (all with builder APIs)
 - ✅ Camera Controls: CameraFlyTo, CameraSetView, CameraFlyHome, CameraFlyToBoundingSphere
 - ✅ Clock Controls: ClockReset for animation timeline management
-- ✅ Data Sources: CZML with automatic clock synchronization, GeoJSON with extensive styling options
+- ✅ Data Sources: CZML (URL/inline + replace/append modes), GeoJSON with extensive styling options
 - ✅ 3D Tiles: Google Photorealistic 3D Tiles with cache and collision controls
 - ✅ Coordinate Helpers: Cartesian2, Cartesian3, Rectangle, PolygonHierarchy
 - ✅ Math Utilities: to_radians, to_degrees, HeadingPitchRoll, HeadingPitchRange

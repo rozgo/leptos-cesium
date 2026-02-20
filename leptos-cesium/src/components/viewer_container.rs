@@ -39,6 +39,8 @@ use web_sys::{HtmlElement, console};
 /// * `info_box` - Whether to show the default InfoBox widget when entities are selected. Defaults to true.
 /// * `selection_indicator` - Whether to show the green selection indicator when entities are selected. Defaults to true.
 /// * `should_animate` - Whether animations should play automatically. Defaults to true. Required for CZML animations.
+/// * `automatically_track_data_source_clocks` - Whether viewer clock auto-tracks newly added data sources. Defaults to true.
+/// * `allow_data_sources_to_suspend_animation` - Whether data sources may temporarily suspend animation while loading. Defaults to true.
 /// * `children` - Child components (entities, data sources, etc.)
 #[component]
 pub fn ViewerContainer(
@@ -56,6 +58,8 @@ pub fn ViewerContainer(
     #[prop(optional, default = true)] info_box: bool,
     #[prop(optional, default = true)] selection_indicator: bool,
     #[prop(optional, default = true)] should_animate: bool,
+    #[prop(optional, default = true)] automatically_track_data_source_clocks: bool,
+    #[prop(optional, default = true)] allow_data_sources_to_suspend_animation: bool,
     #[prop(optional, into, default = true.into())] globe: Signal<bool>,
     #[prop(optional)] children: Option<Children>,
 ) -> impl IntoView {
@@ -184,8 +188,16 @@ pub fn ViewerContainer(
                 &JsValue::from_str("shouldAnimate"),
                 &JsValue::from_bool(should_animate),
             );
+            let _ = js_sys::Reflect::set(
+                &options,
+                &JsValue::from_str("automaticallyTrackDataSourceClocks"),
+                &JsValue::from_bool(automatically_track_data_source_clocks),
+            );
 
             let viewer = Viewer::new(&element, &options.into());
+            viewer.set_allow_data_sources_to_suspend_animation(
+                allow_data_sources_to_suspend_animation,
+            );
             console::debug_1(&JsValue::from_str(
                 "ViewerContainer: viewer created; storing in context.",
             ));
@@ -219,6 +231,8 @@ pub fn ViewerContainer(
                 info_box,
                 selection_indicator,
                 should_animate,
+                automatically_track_data_source_clocks,
+                allow_data_sources_to_suspend_animation,
             );
         }
     });
@@ -333,6 +347,8 @@ pub fn ViewerContainer(
             info_box,
             selection_indicator,
             should_animate,
+            automatically_track_data_source_clocks,
+            allow_data_sources_to_suspend_animation,
             globe,
         );
     }

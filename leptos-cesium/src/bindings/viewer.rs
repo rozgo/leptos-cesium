@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 use web_sys::HtmlElement;
 
 use crate::bindings::JulianDate;
-use crate::bindings::data_source::DataSourceCollection;
+use crate::bindings::data_source::{DataSource, DataSourceCollection};
 use crate::bindings::entity::{Entity, EntityCollection};
 
 #[wasm_bindgen]
@@ -65,6 +65,20 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = trackedEntityChanged)]
     pub fn tracked_entity_changed(this: &Viewer) -> Event;
 
+    /// Gets or sets whether data sources can suspend animation while assets stream.
+    #[wasm_bindgen(method, getter, js_name = allowDataSourcesToSuspendAnimation)]
+    pub fn allow_data_sources_to_suspend_animation(this: &Viewer) -> bool;
+
+    #[wasm_bindgen(method, setter, js_name = allowDataSourcesToSuspendAnimation)]
+    pub fn set_allow_data_sources_to_suspend_animation(this: &Viewer, value: bool);
+
+    /// Gets or sets the data source tracked by the viewer clock.
+    #[wasm_bindgen(method, getter, js_name = clockTrackedDataSource)]
+    pub fn clock_tracked_data_source(this: &Viewer) -> Option<DataSource>;
+
+    #[wasm_bindgen(method, setter, js_name = clockTrackedDataSource)]
+    pub fn set_clock_tracked_data_source(this: &Viewer, value: Option<&DataSource>);
+
     /// Cesium Event type for event handling
     #[wasm_bindgen(js_namespace = Cesium, js_name = Event)]
     pub type Event;
@@ -98,11 +112,53 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = shouldAnimate)]
     pub fn set_should_animate(this: &Clock, value: bool);
 
+    #[wasm_bindgen(method, getter, js_name = canAnimate)]
+    pub fn can_animate(this: &Clock) -> bool;
+
+    #[wasm_bindgen(method, setter, js_name = canAnimate)]
+    pub fn set_can_animate(this: &Clock, value: bool);
+
     #[wasm_bindgen(method, getter, js_name = currentTime)]
     pub fn current_time(this: &Clock) -> JulianDate;
 
     #[wasm_bindgen(method, setter, js_name = currentTime)]
     pub fn set_current_time(this: &Clock, value: &JulianDate);
+
+    #[wasm_bindgen(method, getter, js_name = startTime)]
+    pub fn start_time(this: &Clock) -> JulianDate;
+
+    #[wasm_bindgen(method, setter, js_name = startTime)]
+    pub fn set_start_time(this: &Clock, value: &JulianDate);
+
+    #[wasm_bindgen(method, getter, js_name = stopTime)]
+    pub fn stop_time(this: &Clock) -> JulianDate;
+
+    #[wasm_bindgen(method, setter, js_name = stopTime)]
+    pub fn set_stop_time(this: &Clock, value: &JulianDate);
+
+    #[wasm_bindgen(method, getter, js_name = multiplier)]
+    pub fn multiplier(this: &Clock) -> f64;
+
+    #[wasm_bindgen(method, setter, js_name = multiplier)]
+    pub fn set_multiplier(this: &Clock, value: f64);
+
+    #[wasm_bindgen(method, getter, js_name = clockRange)]
+    pub fn clock_range(this: &Clock) -> i32;
+
+    #[wasm_bindgen(method, setter, js_name = clockRange)]
+    pub fn set_clock_range(this: &Clock, value: i32);
+
+    #[wasm_bindgen(method, getter, js_name = clockStep)]
+    pub fn clock_step(this: &Clock) -> i32;
+
+    #[wasm_bindgen(method, setter, js_name = clockStep)]
+    pub fn set_clock_step(this: &Clock, value: i32);
+
+    #[wasm_bindgen(method, getter, js_name = onTick)]
+    pub fn on_tick(this: &Clock) -> Event;
+
+    #[wasm_bindgen(method, getter, js_name = onStop)]
+    pub fn on_stop(this: &Clock) -> Event;
 
     /// Scene contains the primitives and other visual elements
     #[wasm_bindgen(js_namespace = Cesium, js_name = Scene)]
@@ -130,6 +186,22 @@ impl Viewer {
     pub fn clear_tracked_entity(&self) {
         self.set_tracked_entity(None);
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum ClockRangeMode {
+    #[default]
+    Unbounded = 0,
+    Clamped = 1,
+    LoopStop = 2,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum ClockStepMode {
+    #[default]
+    TickDependent = 0,
+    SystemClockMultiplier = 1,
+    SystemClock = 2,
 }
 
 // Helper function to get current JulianDate using reflection
