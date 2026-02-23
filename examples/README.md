@@ -18,6 +18,7 @@ for d in \
   examples/simple-viewer \
   examples/with-entities \
   examples/czml-viewer \
+  examples/czml-streaming \
   examples/geojson \
   examples/custom-selection \
   examples/google-3d-tiles \
