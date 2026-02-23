@@ -249,6 +249,83 @@ Material::polyline_glow(
 />
 ```
 
+### CZML Live Streaming Pattern
+
+Use two datasource layers:
+
+- Static layer (`Replace`/default): route geometry, pickup/dropoff markers, non-changing entities.
+- Dynamic layer (`Append`): high-frequency telemetry updates for moving entities.
+
+```rust
+let static_packet = Some(build_static_packet_json());
+let (delta_packet, set_delta_packet) = signal(Some(build_bootstrap_dynamic_packet_json()));
+let (delta_trigger, set_delta_trigger) = signal(());
+let (dynamic_mode, set_dynamic_mode) = signal(CzmlLoadMode::Replace);
+
+view! {
+    <ViewerContainer ion_token=token>
+        // Static geometry loaded once.
+        <CzmlDataSource
+            data=static_packet
+            clear_existing=false
+            on_loaded=on_static_loaded
+        />
+
+        // Dynamic telemetry stream (bootstrap replace, then append deltas).
+        <CzmlDataSource
+            data=delta_packet
+            mode=dynamic_mode
+            clear_existing=false
+            trigger=delta_trigger
+            on_loaded=on_dynamic_loaded
+            on_error=on_error
+        />
+    </ViewerContainer>
+}
+
+// On each telemetry tick:
+set_dynamic_mode.set(CzmlLoadMode::Append);
+set_delta_packet.set(Some(next_delta_json));
+set_delta_trigger.set(());
+```
+
+### Delta Trail Without Flicker
+
+For moving trails, prefer sampled position deltas + `path` on the entity instead of replacing polyline positions every update.
+
+- Bootstrap packet (replace): define entity `path` and initial `position` with `epoch`.
+- Delta packet (append): send one new sampled tuple `[t, lon, lat, h]` for the same entity id.
+- Keep static route polyline in the static datasource.
+
+This avoids whole-polyline redraw flicker and reduces per-tick payload.
+
+### Focus Wiring Parity
+
+For Cesium-parity app flow, wire focus to `on_loaded` output:
+
+```rust
+let target = JsRwSignal::new_local(None::<ViewerTarget>);
+let (focus_trigger, set_focus_trigger) = signal(());
+
+let on_loaded = Callback::new(move |value: JsValue| {
+    target.set(Some(ViewerTarget::from(value)));
+    set_focus_trigger.set(());
+});
+
+view! {
+    <CzmlDataSource on_loaded=on_loaded />
+    <ViewerZoomToTarget trigger=focus_trigger target=target />
+}
+```
+
+### Trigger Semantics
+
+Treat trigger-driven components as edge-triggered actions.
+
+- Trigger updates should execute even when payload/target is unchanged.
+- Use trigger ticks for repeated actions against same target or same delta packet identity.
+- Avoid relying on value changes alone for imperative Cesium actions.
+
 ### GeoJSON
 
 ```rust
@@ -375,6 +452,7 @@ fn from_degrees(west: f64, south: f64, east: f64, north: f64) -> Rectangle {
 | SSR warnings "unused variable" | Add `let _ = (prop1, prop2);` in `#[cfg(not(wasm32))]` block |
 | Signal not updating | Use `.get()` not `.get_untracked()` for reactive props |
 | JsSignal in SSR | JsSignal uses LocalStorage, only works in WASM |
+| CZML line/path flickers in streaming | Do not resend full polyline geometry each tick; use sampled `position` deltas + `path` and keep static geometry separate |
 
 ## Validation Commands
 
