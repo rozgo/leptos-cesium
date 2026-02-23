@@ -3,6 +3,9 @@
 use leptos::prelude::*;
 use wasm_bindgen::JsValue;
 
+#[cfg(target_arch = "wasm32")]
+use std::collections::VecDeque;
+
 use crate::bindings::EntityCluster;
 #[cfg(target_arch = "wasm32")]
 use crate::bindings::{
@@ -50,6 +53,13 @@ impl From<String> for CzmlSource {
     }
 }
 
+#[cfg(target_arch = "wasm32")]
+#[derive(Clone)]
+struct PendingAppendRequest {
+    czml_input: JsValue,
+    options_js: Option<JsValue>,
+}
+
 /// CZML data source component for declaratively loading CZML data
 ///
 /// This component loads CZML data and adds it to the viewer's data sources.
@@ -79,6 +89,9 @@ pub fn CzmlDataSource(
     /// Whether to use replace (`load`) or append (`process`) mode.
     #[prop(optional, into, default = CzmlLoadMode::Replace.into())]
     mode: Signal<CzmlLoadMode>,
+    /// Optional trigger for imperative-style reprocessing (for example, replaying the same payload).
+    #[prop(optional, into, default = ().into())]
+    trigger: Signal<()>,
     /// Whether to eagerly remove this component's currently tracked data source before loading (default: true).
     /// If false, the previous data source is kept until the new one loads successfully.
     #[prop(optional, into, default = true.into())]
@@ -127,10 +140,14 @@ pub fn CzmlDataSource(
             Event,
             Closure<dyn FnMut(JsValue, JsValue)>,
         )>::default());
+        let append_queue = JsRwSignal::new_local(VecDeque::<PendingAppendRequest>::new());
+        let append_worker_running = JsRwSignal::new_local(false);
         let request_gate = RequestGate::new();
         let request_gate_effect = request_gate.clone();
 
         Effect::new(move |_| {
+            trigger.get();
+
             let source = source.get();
             let url = url.get();
             let data = data.get();
@@ -141,7 +158,6 @@ pub fn CzmlDataSource(
             let source_uri_value = source_uri.get();
             let credit_value = credit.get();
             let clustering_value = clustering.get_untracked();
-            let next_request = request_gate_effect.begin_request();
             let on_loading_callback = on_loading;
             let on_error_callback = on_error;
             let on_changed_callback = on_changed;
@@ -150,6 +166,9 @@ pub fn CzmlDataSource(
             let czml_input = match resolve_czml_input(source, url, data) {
                 Ok(Some(value)) => value,
                 Ok(None) => {
+                    let _ = request_gate_effect.begin_request();
+                    append_queue.update(|queue| queue.clear());
+
                     if should_clear {
                         viewer_context.with_viewer(|viewer: Viewer| {
                             loaded_data_source.update_value(|owned| {
@@ -185,6 +204,100 @@ pub fn CzmlDataSource(
             let options_js = (!options_builder.is_empty()).then(|| options_builder.build());
 
             viewer_context.with_viewer(|viewer: Viewer| {
+                let existing_ds = current_data_source
+                    .get_untracked()
+                    .and_then(|value| value.dyn_into::<CesiumCzmlDataSource>().ok());
+
+                // Keep append mode ordered when writing into an existing data source.
+                // Cesium process() is async; queueing avoids out-of-order completion races.
+                if mode == CzmlLoadMode::Append && existing_ds.as_ref().is_some() {
+                    append_queue.update(|queue| {
+                        queue.push_back(PendingAppendRequest {
+                            czml_input: czml_input.clone(),
+                            options_js: options_js.clone(),
+                        });
+                    });
+
+                    if append_worker_running.get_untracked() {
+                        return;
+                    }
+
+                    append_worker_running.set(true);
+                    let worker_request = request_gate_effect.begin_request();
+                    if let Some(callback) = on_loading_callback {
+                        callback.run(true);
+                    }
+
+                    let append_queue_worker = append_queue;
+                    let append_worker_running_worker = append_worker_running;
+                    let current_data_source_worker = current_data_source;
+                    let request_gate_worker = request_gate_effect.clone();
+
+                    wasm_bindgen_futures::spawn_local(async move {
+                        loop {
+                            let mut next_request = None;
+                            append_queue_worker.update(|queue| {
+                                next_request = queue.pop_front();
+                            });
+                            let Some(request) = next_request else {
+                                break;
+                            };
+
+                            let Some(data_source) = current_data_source_worker
+                                .get_untracked()
+                                .and_then(|value| value.dyn_into::<CesiumCzmlDataSource>().ok())
+                            else {
+                                break;
+                            };
+
+                            let promise = match request.options_js.as_ref() {
+                                Some(options) => {
+                                    data_source.process_with_options(&request.czml_input, options)
+                                }
+                                None => data_source.process(&request.czml_input),
+                            };
+
+                            match JsFuture::from(promise).await {
+                                Ok(data_source_js) => {
+                                    if request_gate_worker.is_stale(worker_request) {
+                                        break;
+                                    }
+                                    if let Some(callback) = on_loaded_callback {
+                                        callback.run(data_source_js);
+                                    }
+                                }
+                                Err(e) => {
+                                    if request_gate_worker.is_stale(worker_request) {
+                                        break;
+                                    }
+
+                                    let message = js_error_to_string(&e);
+                                    if let Some(callback) = on_error_callback {
+                                        callback.run(message.clone());
+                                    } else {
+                                        web_sys::console::error_1(&JsValue::from_str(&format!(
+                                            "Failed to process CZML append packet: {}",
+                                            message
+                                        )));
+                                    }
+                                }
+                            }
+                        }
+
+                        if !request_gate_worker.is_stale(worker_request)
+                            && let Some(callback) = on_loading_callback
+                        {
+                            callback.run(false);
+                        }
+                        append_worker_running_worker.set(false);
+                    });
+
+                    return;
+                }
+
+                let next_request = request_gate_effect.begin_request();
+                append_queue.update(|queue| queue.clear());
+
                 if let Some(callback) = on_loading_callback {
                     callback.run(true);
                 }
@@ -205,13 +318,15 @@ pub fn CzmlDataSource(
                 let existing_ds = current_data_source
                     .get_untracked()
                     .and_then(|value| value.dyn_into::<CesiumCzmlDataSource>().ok());
-                let appending_to_existing =
-                    mode == CzmlLoadMode::Append && existing_ds.as_ref().is_some();
 
-                let promise = if let Some(existing_ds) = existing_ds {
+                // Replace mode on an existing source should call CzmlDataSource.load(),
+                // not process(), to preserve Cesium semantics.
+                let replacing_existing = mode == CzmlLoadMode::Replace && existing_ds.is_some();
+                let promise = if replacing_existing {
+                    let existing_ds = existing_ds.expect("checked above");
                     match options_js.as_ref() {
-                        Some(options) => existing_ds.process_with_options(&czml_input, options),
-                        None => existing_ds.process(&czml_input),
+                        Some(options) => existing_ds.load_with_options(&czml_input, options),
+                        None => existing_ds.load(&czml_input),
                     }
                 } else {
                     let load_promise = match options_js.as_ref() {
@@ -220,6 +335,7 @@ pub fn CzmlDataSource(
                     };
                     viewer.data_sources().add(load_promise)
                 };
+                let created_new_data_source = !replacing_existing;
 
                 // Handle the promise
                 let viewer_ctx_clone = viewer_context;
@@ -227,34 +343,37 @@ pub fn CzmlDataSource(
                 wasm_bindgen_futures::spawn_local(async move {
                     match JsFuture::from(promise).await {
                         Ok(data_source_js) => {
-                            let stale = request_gate.is_stale(next_request);
-                            if let Some(callback) = on_loaded_callback {
-                                callback.run(data_source_js.clone());
-                            }
                             if let Some(callback) = on_loading_callback {
                                 callback.run(false);
                             }
 
+                            let stale = request_gate.is_stale(next_request);
                             viewer_ctx_clone.with_viewer(|v: Viewer| {
                                 if stale {
-                                    if !appending_to_existing {
+                                    if created_new_data_source {
                                         let _ = v.data_sources().remove(&data_source_js);
                                     }
                                     return;
                                 }
 
-                                if !appending_to_existing {
-                                    loaded_data_source.update_value(|owned| {
-                                        owned.replace_with(data_source_js.clone(), |existing| {
-                                            let _ = v.data_sources().remove(existing);
-                                        });
-                                    });
-                                    current_data_source.set(Some(data_source_js.clone()));
-                                }
-
                                 if let Ok(data_source) =
                                     data_source_js.clone().dyn_into::<CesiumCzmlDataSource>()
                                 {
+                                    if let Some(callback) = on_loaded_callback {
+                                        callback.run(data_source_js.clone());
+                                    }
+                                    current_data_source.set(Some(data_source_js.clone()));
+                                    if created_new_data_source {
+                                        loaded_data_source.update_value(|owned| {
+                                            owned.replace_with(
+                                                data_source_js.clone(),
+                                                |existing| {
+                                                    let _ = v.data_sources().remove(existing);
+                                                },
+                                            );
+                                        });
+                                    }
+
                                     apply_czml_properties(
                                         &data_source,
                                         show_value,
@@ -319,6 +438,8 @@ pub fn CzmlDataSource(
 
         on_cleanup(move || {
             request_gate.close();
+            append_queue.update(|queue| queue.clear());
+            append_worker_running.set(false);
 
             viewer_context.with_viewer(|viewer: Viewer| {
                 loaded_data_source.update_value(|owned| {
@@ -341,6 +462,7 @@ pub fn CzmlDataSource(
             url,
             data,
             mode,
+            trigger,
             clear_existing,
             show,
             name,

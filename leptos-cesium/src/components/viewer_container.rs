@@ -33,6 +33,7 @@ use web_sys::HtmlElement;
 /// * `node_ref` - Optional node reference to access the underlying DOM element
 /// * `animation` - Whether to show animation widget. Defaults to true.
 /// * `timeline` - Whether to show timeline widget. Defaults to true.
+/// * `geocoder` - Whether to show geocoder/search widget. Defaults to true.
 /// * `base_layer_picker` - Whether to show base layer picker. Defaults to true.
 /// * `home_button` - Whether to show home button. Defaults to true.
 /// * `scene_mode_picker` - Whether to show scene mode picker. Defaults to true.
@@ -52,6 +53,7 @@ pub fn ViewerContainer(
     #[prop(optional, default = NodeRef::new())] node_ref: NodeRef<Div>,
     #[prop(optional, default = true)] animation: bool,
     #[prop(optional, default = true)] timeline: bool,
+    #[prop(optional, default = true)] geocoder: bool,
     #[prop(optional, default = true)] base_layer_picker: bool,
     #[prop(optional, default = true)] home_button: bool,
     #[prop(optional, default = true)] scene_mode_picker: bool,
@@ -106,6 +108,11 @@ pub fn ViewerContainer(
                 &options,
                 &JsValue::from_str("timeline"),
                 &JsValue::from_bool(timeline),
+            );
+            let _ = js_sys::Reflect::set(
+                &options,
+                &JsValue::from_str("geocoder"),
+                &JsValue::from_bool(geocoder),
             );
             let _ = js_sys::Reflect::set(
                 &options,
@@ -176,6 +183,7 @@ pub fn ViewerContainer(
                 ion_token,
                 animation,
                 timeline,
+                geocoder,
                 base_layer_picker,
                 home_button,
                 scene_mode_picker,
@@ -281,6 +289,7 @@ pub fn ViewerContainer(
             ion_token,
             animation,
             timeline,
+            geocoder,
             base_layer_picker,
             home_button,
             scene_mode_picker,

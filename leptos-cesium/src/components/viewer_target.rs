@@ -152,14 +152,9 @@ pub fn ViewerZoomToTarget(
     {
         let viewer_context =
             use_cesium_context().expect("ViewerZoomToTarget must be inside ViewerContainer");
-        let mut is_first_run = true;
 
         Effect::new(move |_| {
             trigger.get();
-            if is_first_run {
-                is_first_run = false;
-                return;
-            }
 
             // Trigger-driven action: read all arguments untracked.
             let Some(target) = target.get_untracked() else {

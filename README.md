@@ -345,13 +345,14 @@ view! {
 }
 ```
 
-Load inline CZML JSON and append updates:
+Load inline CZML JSON and append streaming updates on one data source:
 
 ```rust
 use leptos_cesium::prelude::*;
 
-let initial = r#"[{\"id\":\"document\",\"version\":\"1.0\"}]"#.to_string();
-let update = r#"[{\"id\":\"sat-1\",\"position\":{\"cartographicDegrees\":[-75.0,40.0,0.0]}}]"#.to_string();
+let initial_packet = r#"[{\"id\":\"document\",\"version\":\"1.0\"}]"#.to_string();
+let (packet, set_packet) = signal(Some(initial_packet));
+let (packet_trigger, set_packet_trigger) = signal(());
 
 view! {
     <ViewerContainer
@@ -359,10 +360,18 @@ view! {
         automatically_track_data_source_clocks=true
         allow_data_sources_to_suspend_animation=true
     >
-        <CzmlDataSource data=initial mode=CzmlLoadMode::Replace />
-        <CzmlDataSource data=update mode=CzmlLoadMode::Append clear_existing=false />
+        <CzmlDataSource
+            data=packet
+            mode=CzmlLoadMode::Append
+            clear_existing=false
+            trigger=packet_trigger
+        />
     </ViewerContainer>
 }
+
+// On each websocket/message update:
+set_packet.set(Some(delta_packet_json));
+set_packet_trigger.set(());
 ```
 
 When loading multiple CZML sources, use the viewer clock APIs to explicitly choose clock-tracking behavior.
