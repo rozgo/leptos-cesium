@@ -3,7 +3,9 @@ use serde_json::json;
 pub const STREAM_INTERVAL_MS: i32 = 1000;
 const CZML_START_EPOCH: &str = "2026-01-01T00:00:00Z";
 const SIM_SECONDS_PER_STEP: f64 = 20.0;
+const DEMO_INTERVAL_SECONDS: f64 = 20.0 * 60.0;
 pub const MEDIA_VIDEO_RECT_ENTITY_ID: &str = "media_video_rect";
+const MEDIA_VIDEO_ROUTE_ENTITY_ID: &str = "media_video_expected_route";
 const VIDEO_URI: &str = "https://cesium.com/public/SandcastleSampleData/big-buck-bunny_trailer.mp4";
 
 pub fn video_uri() -> &'static str {
@@ -33,11 +35,26 @@ fn sample_positions(step: usize) -> (f64, f64, f64, f64, f64, f64) {
     (driver_lon, driver_lat, west, south, east, north)
 }
 
+fn expected_video_route_positions() -> Vec<f64> {
+    let total_steps = (DEMO_INTERVAL_SECONDS / SIM_SECONDS_PER_STEP) as usize;
+    let mut positions = Vec::with_capacity((total_steps + 1) * 3);
+
+    for step in 0..=total_steps {
+        let (_, _, west, south, east, north) = sample_positions(step);
+        positions.push((west + east) * 0.5);
+        positions.push((south + north) * 0.5);
+        positions.push(11.0);
+    }
+
+    positions
+}
+
 pub fn media_demo_czml() -> String {
     let interval = "2026-01-01T00:00:00Z/2026-01-01T00:20:00Z";
     let epoch = CZML_START_EPOCH;
     let (driver_lon_0, driver_lat_0, west_0, south_0, east_0, north_0) = sample_positions(0);
     let (driver_lon_1, driver_lat_1, west_1, south_1, east_1, north_1) = sample_positions(1);
+    let video_route = expected_video_route_positions();
 
     json!([
         {
@@ -130,6 +147,23 @@ pub fn media_demo_czml() -> String {
                     "solidColor": {
                         "color": {
                             "rgba": [64, 200, 255, 220]
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "id": MEDIA_VIDEO_ROUTE_ENTITY_ID,
+            "name": "Video Expected Route",
+            "polyline": {
+                "positions": {
+                    "cartographicDegrees": video_route
+                },
+                "width": 2,
+                "material": {
+                    "solidColor": {
+                        "color": {
+                            "rgba": [255, 176, 59, 170]
                         }
                     }
                 }
