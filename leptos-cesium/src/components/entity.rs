@@ -13,8 +13,6 @@ use crate::components::use_cesium_context;
 use js_sys::{Object, Reflect};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsValue;
-#[cfg(target_arch = "wasm32")]
-use web_sys::console;
 
 /// Entity component for creating Cesium entities with graphics
 #[component]
@@ -42,14 +40,11 @@ pub fn Entity(
     Effect::new(move |_| {
         #[cfg(target_arch = "wasm32")]
         {
-            console::debug_1(&JsValue::from_str("Entity: effect tick"));
             if entity_context.entity_untracked::<CesiumEntity>().is_some() {
-                console::debug_1(&JsValue::from_str("Entity: entity already exists"));
                 return;
             }
 
             viewer_context.with_viewer(|viewer: Viewer| {
-                console::debug_1(&JsValue::from_str("Entity: creating entity"));
                 let entities = viewer.entities();
                 let entity_options = Object::new();
 
@@ -91,7 +86,6 @@ pub fn Entity(
                 }
 
                 let entity = entities.add_with_options(&entity_options.into());
-                console::debug_1(&JsValue::from_str("Entity: entity created"));
                 entity_context.set_entity(entity);
             });
         }
@@ -105,11 +99,9 @@ pub fn Entity(
     on_cleanup(move || {
         #[cfg(target_arch = "wasm32")]
         {
-            console::debug_1(&JsValue::from_str("Entity: cleanup"));
             if let Some(entity) = entity_context.entity_untracked::<CesiumEntity>() {
                 viewer_context.with_viewer(|viewer: Viewer| {
                     viewer.entities().remove(&entity);
-                    console::debug_1(&JsValue::from_str("Entity: removed from viewer"));
                 });
             }
         }

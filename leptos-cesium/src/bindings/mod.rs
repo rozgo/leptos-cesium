@@ -1,5 +1,6 @@
 //! Cesium bindings entry point.
 
+pub mod billboard;
 pub mod camera;
 pub mod cartesian2;
 pub mod color;
@@ -18,6 +19,7 @@ pub mod rectangle;
 pub mod tileset;
 pub mod viewer;
 
+pub use billboard::*;
 pub use camera::*;
 pub use cartesian2::*;
 pub use color::*;

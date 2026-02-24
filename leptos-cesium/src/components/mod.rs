@@ -3,6 +3,7 @@
 pub mod camera;
 pub mod context;
 pub mod czml_data_source;
+pub mod czml_media_bridge;
 pub mod entity;
 pub mod events;
 pub mod geojson_data_source;
@@ -14,6 +15,7 @@ pub mod viewer_target;
 pub use camera::*;
 pub use context::*;
 pub use czml_data_source::*;
+pub use czml_media_bridge::*;
 pub use entity::*;
 pub use events::*;
 pub use geojson_data_source::*;

@@ -1,10 +1,12 @@
 //! Cesium Material bindings
 
 pub mod checkerboard;
+pub mod image;
 pub mod polyline_glow;
 pub mod stripe;
 
 pub use checkerboard::*;
+pub use image::*;
 pub use polyline_glow::*;
 pub use stripe::*;
 
@@ -24,6 +26,8 @@ pub enum Material {
     PolylineGlow(ThreadSafeJsValue<PolylineGlowMaterialProperty>),
     /// Checkerboard pattern material
     Checkerboard(ThreadSafeJsValue<CheckerboardMaterialProperty>),
+    /// Image-backed material
+    Image(ThreadSafeJsValue<ImageMaterialProperty>),
 }
 
 impl Clone for Material {
@@ -33,6 +37,7 @@ impl Clone for Material {
             Material::Stripe(s) => Material::Stripe(s.clone()),
             Material::PolylineGlow(p) => Material::PolylineGlow(p.clone()),
             Material::Checkerboard(c) => Material::Checkerboard(c.clone()),
+            Material::Image(i) => Material::Image(i.clone()),
         }
     }
 }
@@ -59,6 +64,11 @@ impl Material {
         Material::Checkerboard(ThreadSafeJsValue::new(checkerboard))
     }
 
+    /// Create an image-backed material
+    pub fn image(image: ImageMaterialProperty) -> Self {
+        Material::Image(ThreadSafeJsValue::new(image))
+    }
+
     /// Convert to JsValue for Cesium API
     pub fn to_js_value(&self) -> JsValue {
         match self {
@@ -66,6 +76,7 @@ impl Material {
             Material::Stripe(stripe) => JsValue::from(stripe.value().clone()),
             Material::PolylineGlow(glow) => JsValue::from(glow.value().clone()),
             Material::Checkerboard(checkerboard) => JsValue::from(checkerboard.value().clone()),
+            Material::Image(image) => JsValue::from(image.value().clone()),
         }
     }
 }
@@ -86,5 +97,9 @@ impl Material {
 
     pub fn checkerboard(_checkerboard: CheckerboardMaterialProperty) -> Self {
         Material::Checkerboard(ThreadSafeJsValue::new(_checkerboard))
+    }
+
+    pub fn image(_image: ImageMaterialProperty) -> Self {
+        Material::Image(ThreadSafeJsValue::new(_image))
     }
 }

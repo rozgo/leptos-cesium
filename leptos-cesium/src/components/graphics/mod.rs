@@ -1,5 +1,6 @@
 //! Cesium Graphics Components
 
+pub mod billboard;
 pub mod r#box;
 pub mod corridor;
 pub mod cylinder;
@@ -12,6 +13,7 @@ pub mod polyline_volume;
 pub mod rectangle;
 pub mod wall;
 
+pub use billboard::*;
 pub use r#box::*;
 pub use corridor::*;
 pub use cylinder::*;

@@ -18,8 +18,11 @@ wasm-bindgen-futures = "0.4"
 web-sys = { workspace = true, features = [
     "Document",
     "Element",
+    "HtmlCanvasElement",
     "HtmlElement",
     "HtmlDivElement",
+    "HtmlImageElement",
+    "HtmlVideoElement",
     "Window",
     "console",
 ] }

@@ -19,6 +19,9 @@ for d in \
   examples/with-entities \
   examples/czml-viewer \
   examples/czml-streaming \
+  examples/pinned-image \
+  examples/pinned-video-material \
+  examples/czml-media-bridge \
   examples/geojson \
   examples/custom-selection \
   examples/google-3d-tiles \

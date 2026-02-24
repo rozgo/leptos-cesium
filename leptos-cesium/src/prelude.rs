@@ -16,9 +16,10 @@ pub use crate::bindings::{
     BoundingSphere, Camera, Cartesian2, Cartesian3, CheckerboardMaterialProperty,
     CheckerboardOptions, ClockRangeMode, ClockStepMode, Color, CzmlDataSource, DataSource,
     DataSourceClock, DataSourceCollection, Ellipsoid, EntityCluster, HeadingPitchRange,
-    HeadingPitchRoll, Material, Matrix4, PolygonHierarchy, PolylineGlowMaterialProperty,
+    HeadingPitchRoll, HorizontalOrigin, ImageMaterialProperty, ImageMaterialPropertyBuilder,
+    Material, Matrix4, MediaSource, PolygonHierarchy, PolylineGlowMaterialProperty,
     PolylineGlowOptions, Ray, Rectangle, ScreenSpaceCameraController, StripeMaterialProperty,
-    StripeOptions, Viewer, ViewerFlyToOptions,
+    StripeOptions, VerticalOrigin, Viewer, ViewerFlyToOptions,
 };
 
 // Re-export math utilities
