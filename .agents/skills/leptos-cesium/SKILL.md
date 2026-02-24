@@ -13,6 +13,8 @@ Declarative CesiumJS components for Leptos. Uses standard Rust types (glam, geo-
 
 - Cesium CDN/runtime target: `1.138`
 - Primary integration surface: `ViewerContainer`, `Entity` + graphics, camera controls, data sources, 3D tiles
+- Media surface: `BillboardGraphics`, `ImageMaterialPropertyBuilder`, `Material::image`, `MediaSource`
+- CZML media bridge: `CzmlMediaBridge` for `properties.media` metadata wiring
 - Viewer events available via `ViewerEvents` and `cesium_events!`
 - Strict lifecycle ownership is implemented for async loads/listeners:
   - stale async requests are gated (`RequestGate`)
@@ -80,6 +82,7 @@ All types re-exported from `leptos_cesium::prelude::*`.
 ViewerContainer (root, provides context)
 ├── Entity (creates Cesium entity)
 │   ├── PointGraphics
+│   ├── BillboardGraphics
 │   ├── RectangleGraphics
 │   ├── PolygonGraphics
 │   ├── PolylineGraphics
@@ -91,7 +94,7 @@ ViewerContainer (root, provides context)
 │   ├── CorridorGraphics
 │   └── PolylineVolumeGraphics
 ├── CameraSetView / CameraFlyTo / CameraFlyHome
-├── CzmlDataSource / GeoJsonDataSource
+├── CzmlDataSource / GeoJsonDataSource / CzmlMediaBridge
 └── GooglePhotorealistic3DTiles
 ```
 
@@ -236,6 +239,30 @@ Material::polyline_glow(
         .glow_power(0.25)
         .build()
 )
+
+// Image material (URL/data URL/HTML media)
+Material::image(
+    ImageMaterialPropertyBuilder::new()
+        .image(MediaSource::Url("https://example.com/texture.png".to_string()))
+        .build()
+)
+```
+
+## Billboard + Media
+
+Use `BillboardGraphics` for pinned image/media markers:
+
+```rust
+<Entity
+    name="Pin".to_string()
+    position=DVec3::new(-122.4786, 37.8194, 25.0)
+>
+    <BillboardGraphics
+        image=Some(MediaSource::Url("pin.svg".to_string()))
+        scale=Some(0.25)
+        vertical_origin=Some(VerticalOrigin::Bottom)
+    />
+</Entity>
 ```
 
 ## Data Sources
@@ -325,6 +352,27 @@ Treat trigger-driven components as edge-triggered actions.
 - Trigger updates should execute even when payload/target is unchanged.
 - Use trigger ticks for repeated actions against same target or same delta packet identity.
 - Avoid relying on value changes alone for imperative Cesium actions.
+
+### CZML Media Bridge Pattern
+
+Use `CzmlMediaBridge` only when media metadata comes from CZML custom properties.
+
+```rust
+let loaded = JsRwSignal::new_local(None::<JsValue>);
+let (bridge_trigger, set_bridge_trigger) = signal(());
+
+let on_loaded = Callback::new(move |value: JsValue| {
+    loaded.set(Some(value));
+    set_bridge_trigger.set(());
+});
+
+view! {
+    <CzmlDataSource on_loaded=on_loaded />
+    <CzmlMediaBridge data_source=loaded trigger=bridge_trigger />
+}
+```
+
+For non-CZML media, prefer direct graphics/material APIs (`BillboardGraphics`, `RectangleGraphics` + `Material::image`) instead of bridge plumbing.
 
 ### GeoJSON
 
@@ -476,9 +524,14 @@ for d in \
   examples/simple-viewer \
   examples/with-entities \
   examples/czml-viewer \
+  examples/czml-streaming \
+  examples/pinned-image \
+  examples/pinned-video-material \
+  examples/czml-media-bridge \
   examples/geojson \
   examples/custom-selection \
-  examples/google-3d-tiles
+  examples/google-3d-tiles \
+  examples/camera-control
 do
   (cd "$d" && trunk build)
 done
@@ -493,12 +546,16 @@ cargo check --manifest-path examples/with-server/Cargo.toml --features hydrate
   - `examples/simple-viewer`
   - `examples/with-entities`
   - `examples/czml-viewer`
+  - `examples/czml-streaming`
+  - `examples/pinned-image`
+  - `examples/pinned-video-material`
+  - `examples/czml-media-bridge`
   - `examples/geojson`
   - `examples/custom-selection`
   - `examples/google-3d-tiles`
+  - `examples/camera-control`
 - Server example:
   - `examples/with-server` (`cargo leptos watch`)
-- `examples/camera-control` is currently a scaffold directory (docs/public only).
 
 ## API Reference
 

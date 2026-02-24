@@ -4,6 +4,21 @@ Example applications live in the subdirectories of this folder.
 
 Cesium JS/CSS assets are loaded from the Cesium CDN by each example's `index.html`, so no local `public/Cesium` sync step is required.
 
+## Example Catalog
+
+- `simple-viewer`: minimal globe with `ViewerContainer`.
+- `with-entities`: declarative entity/graphics/material coverage.
+- `czml-viewer`: baseline CZML loading + camera focus behavior.
+- `czml-streaming`: append-style CZML deltas for moving entities.
+- `pinned-image`: non-CZML billboard image pin via `BillboardGraphics`.
+- `pinned-video-material`: non-CZML video texture on rectangle material.
+- `czml-media-bridge`: CZML `properties.media` bridge + append streaming.
+- `geojson`: GeoJSON loading and styling.
+- `custom-selection`: custom Leptos selection panel replacing default InfoBox.
+- `google-3d-tiles`: Google photorealistic 3D tiles.
+- `camera-control`: camera action/control parity surface.
+- `with-server`: SSR/hydrate example.
+
 Run a specific example:
 
 ```bash

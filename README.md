@@ -77,6 +77,27 @@ trunk serve --open
 ```
 Demonstrates CZML data source loading and camera controls.
 
+**Pinned image billboard (non-CZML):**
+```bash
+cd examples/pinned-image
+trunk serve --open
+```
+Demonstrates `BillboardGraphics` with `MediaSource::Url`.
+
+**Pinned video material (non-CZML):**
+```bash
+cd examples/pinned-video-material
+trunk serve --open
+```
+Demonstrates `ImageMaterialPropertyBuilder` + `Material::image(...)` on a rectangle.
+
+**CZML media bridge + append streaming:**
+```bash
+cd examples/czml-media-bridge
+trunk serve --open
+```
+Demonstrates CZML metadata-driven media assignment and `Append` (`process`) updates.
+
 **GeoJSON data loading (maps, geographic features):**
 ```bash
 cd examples/geojson
@@ -177,6 +198,7 @@ view! {
 
 **Points & Markers:**
 - **PointGraphics** - Point markers with pixel size and color customization
+- **BillboardGraphics** - Image/video/canvas billboards with origins, offsets, and scale
 
 ### Materials
 
@@ -215,6 +237,13 @@ Material::polyline_glow(
     PolylineGlowOptions::new()
         .color(Color::deepskyblue())
         .glow_power(0.25)
+        .build()
+)
+
+// Image material (image URL/data URL/HTML media element)
+Material::image(
+    ImageMaterialPropertyBuilder::new()
+        .image(MediaSource::Url("https://example.com/texture.png".to_string()))
         .build()
 )
 ```
@@ -376,6 +405,26 @@ set_packet_trigger.set(());
 
 When loading multiple CZML sources, use the viewer clock APIs to explicitly choose clock-tracking behavior.
 
+Bridge custom `properties.media` metadata from CZML into Cesium graphics:
+
+```rust
+let loaded = JsRwSignal::new_local(None::<JsValue>);
+let (bridge_trigger, set_bridge_trigger) = signal(());
+
+let on_loaded = Callback::new(move |value: JsValue| {
+    loaded.set(Some(value));
+    set_bridge_trigger.set(());
+});
+
+view! {
+    <CzmlDataSource on_loaded=on_loaded />
+    <CzmlMediaBridge
+        data_source=loaded
+        trigger=bridge_trigger
+    />
+}
+```
+
 **GeoJSON Data Source:**
 
 Load and style GeoJSON or TopoJSON data:
@@ -432,11 +481,13 @@ Loads Google's photorealistic 3D tiles via Cesium Ion or directly with a Google 
 - ✅ 3D Primitives: Box, Ellipsoid, Cylinder
 - ✅ Paths & Volumes: Polyline, Wall, Corridor, PolylineVolume
 - ✅ Points: PointGraphics with pixel size and color control
-- ✅ Materials: Color, Stripe, Checkerboard, PolylineGlow (all with builder APIs)
+- ✅ BillboardGraphics for image/media billboards
+- ✅ Materials: Color, Stripe, Checkerboard, PolylineGlow, Image (all with builder APIs)
 - ✅ Camera Controls: CameraSetView, CameraFlyTo, CameraFlyToBoundingSphere, CameraLookAt, CameraLookAtTransform, CameraMove, CameraZoom, CameraFlyHome, CameraCancelFlight, CameraCompleteFlight, CameraController
 - ✅ Viewer Target Focus: ViewerFlyToTarget, ViewerZoomToTarget, ViewerSetClockTrackedDataSource
 - ✅ Clock Controls: ClockReset for animation timeline management
 - ✅ Data Sources: CZML (URL/inline + replace/append modes), GeoJSON with extensive styling options
+- ✅ CZML Media Bridge: `properties.media` parsing to billboard/rectangle/polygon targets
 - ✅ 3D Tiles: Google Photorealistic 3D Tiles with cache and collision controls
 - ✅ Coordinate Helpers: Cartesian2, Cartesian3, Rectangle, PolygonHierarchy
 - ✅ Math Utilities: to_radians, to_degrees, HeadingPitchRoll, HeadingPitchRange
@@ -446,7 +497,7 @@ Loads Google's photorealistic 3D tiles via Cesium Ion or directly with a Google 
 - ✅ Strict lifecycle/resource ownership for data sources, primitives, and viewer event listeners
 
 **Planned:**
-- 🔲 Additional graphics types (Model, Billboard, Label, Path)
+- 🔲 Additional graphics types (Model, Label)
 - 🔲 Additional data sources (KML, GPX)
 - 🔲 Custom 3D Tileset loading (from URL or Ion asset ID)
 - 🔲 Expanded event coverage (click, hover, camera/mouse interactions)

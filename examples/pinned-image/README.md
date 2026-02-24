@@ -1,6 +1,6 @@
 # Pinned Image
 
-Shows `BillboardGraphics` with a pinned remote image source.
+Shows a non-CZML image pin using `BillboardGraphics` + `MediaSource::Url`.
 
 Run:
 

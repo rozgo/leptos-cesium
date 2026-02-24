@@ -8,6 +8,7 @@ explicit append updates:
 3. Send delta packets with `mode=Append` (`process()`) via trigger.
 4. Keep video material stable across geometry updates (no reassign each step).
 5. Use manual reapply button only when needed.
+6. Show a static expected route overlay for the video rectangle path.
 
 Run:
 
