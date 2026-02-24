@@ -7,7 +7,7 @@ use crate::bindings::MediaSource;
 use crate::core::JsSignal;
 
 #[cfg(target_arch = "wasm32")]
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[cfg(target_arch = "wasm32")]
 use crate::bindings::{CzmlDataSource as CesiumCzmlDataSource, ImageMaterialPropertyBuilder};
@@ -204,6 +204,8 @@ fn apply_media_bridge_pass(
         }
     };
 
+    let mut active_keys = HashSet::<MediaCacheKey>::new();
+
     for entity in entities_array.iter() {
         if request_gate.is_stale(request_id) {
             return;
@@ -224,6 +226,7 @@ fn apply_media_bridge_pass(
             uri: descriptor.uri.clone(),
             target: descriptor.target,
         };
+        active_keys.insert(cache_key.clone());
 
         let media_source = media_cache.with_value(|cache| cache.get(&cache_key).cloned());
         let media_source = match media_source {
@@ -254,6 +257,18 @@ fn apply_media_bridge_pass(
             emit_bridge_error(on_error, Some(descriptor.entity_id.clone()), error);
         }
     }
+
+    // Release cached media for entities/descriptors no longer present in current data.
+    media_cache.update_value(|cache| {
+        cache.retain(|key, source| {
+            if active_keys.contains(key) {
+                true
+            } else {
+                release_media_source(source);
+                false
+            }
+        });
+    });
 }
 
 #[cfg(target_arch = "wasm32")]
