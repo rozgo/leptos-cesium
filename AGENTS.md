@@ -83,6 +83,20 @@ pub fn App() -> impl IntoView {
 - Ensure Cargo.toml doesn't have conflicting `crate-type` settings when using binary crate
 - Check that the working directory is the example directory, not the workspace root
 
+### CZML media debugging
+
+- For CZML-driven image/video binding, use flattened custom properties such as `properties.media_uri`, `properties.media_kind`, and `properties.media_target`. Do not rely on nested `properties.media = { ... }` objects; Cesium may collapse them to a `Resource`/string and discard the rest of the metadata.
+- If a video rectangle is blank with no console error, inspect the live Cesium entity state in the browser:
+  - `entity.rectangle.material.getValue(viewer.clock.currentTime).image`
+  - Correct video behavior yields an `HTMLVideoElement`
+  - A string URL means the bridge fell back to image semantics instead of video semantics
+- For `CzmlDataSource.process()` append streams, repeat interpolation fields on appended position/rectangle packets:
+  - `interpolationAlgorithm`
+  - `interpolationDegree`
+  - `forwardExtrapolationType`
+  - `forwardExtrapolationDuration`
+  Without these, moving entities can appear to step between samples instead of interpolating smoothly.
+
 ## Cesium CDN
 
 Cesium assets (JS, CSS, Workers, Assets) are loaded from the official Cesium CDN:
@@ -192,6 +206,26 @@ view! {
 When in doubt, compare behavior and architecture decisions with `leptos-leaflet` and the upstream Leptos workspace for idiomatic practices.
 
 ## Code Gotchas & Patterns
+
+### CZML custom properties for media bridging
+
+**Use flattened `properties.media_*` fields, not nested media objects:**
+
+```json
+{
+  "properties": {
+    "media_kind": "video",
+    "media_target": "rectangle",
+    "media_uri": "https://example.com/video.mp4",
+    "media_autoplay": true,
+    "media_loop": true,
+    "media_muted": true,
+    "media_cross_origin": "anonymous"
+  }
+}
+```
+
+This shape survives Cesium's custom property handling. Nested `properties.media = { ... }` is not reliable for downstream runtime parsing.
 
 ### wasm_bindgen Cesium Bindings
 

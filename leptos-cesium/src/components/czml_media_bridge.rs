@@ -1,10 +1,10 @@
-//! Bridge component for applying image/video media metadata from CZML entity properties.
+//! Internal helpers for applying image/video media metadata from flattened CZML custom properties.
 
 use leptos::prelude::*;
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsValue;
 
 use crate::bindings::MediaSource;
-use crate::core::JsSignal;
 
 #[cfg(target_arch = "wasm32")]
 use std::collections::{HashMap, HashSet};
@@ -15,19 +15,20 @@ use crate::bindings::{CzmlDataSource as CesiumCzmlDataSource, ImageMaterialPrope
 use crate::core::{JsStoredValue, RequestGate};
 #[cfg(target_arch = "wasm32")]
 use js_sys::{Array, Function, Reflect};
+use url::Url;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsCast;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_futures::JsFuture;
 
-/// Media kind for CZML bridge metadata.
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// Media kind for CZML media metadata.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum CzmlMediaKind {
     Image,
     Video,
 }
 
-/// Target graphic for CZML bridge metadata.
+/// Target graphic for CZML media metadata.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum CzmlMediaTarget {
     Billboard,
@@ -46,8 +47,8 @@ impl CzmlMediaTarget {
     }
 }
 
-/// Parsed `properties.media` descriptor for one entity.
-#[derive(Clone, Debug)]
+/// Parsed `properties.media_*` descriptor for one entity.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct CzmlMediaDescriptor {
     pub entity_id: String,
     pub kind: CzmlMediaKind,
@@ -60,14 +61,14 @@ pub struct CzmlMediaDescriptor {
     pub cross_origin: Option<String>,
 }
 
-/// Structured bridge error payload.
-#[derive(Clone, Debug)]
-pub struct CzmlMediaBridgeError {
+/// Structured media error payload.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CzmlMediaError {
     pub entity_id: Option<String>,
     pub reason: String,
 }
 
-impl CzmlMediaBridgeError {
+impl CzmlMediaError {
     #[cfg(target_arch = "wasm32")]
     fn new(entity_id: Option<String>, reason: impl Into<String>) -> Self {
         Self {
@@ -77,104 +78,58 @@ impl CzmlMediaBridgeError {
     }
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg_attr(not(any(target_arch = "wasm32", test)), allow(dead_code))]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-struct MediaCacheKey {
+pub(crate) struct MediaCacheKey {
     entity_id: String,
-    uri: String,
+    kind: CzmlMediaKind,
     target: CzmlMediaTarget,
+    uri: String,
+    autoplay: bool,
+    loop_video: bool,
+    muted: bool,
+    plays_inline: bool,
+    cross_origin: Option<String>,
 }
 
-/// Optional bridge callback for custom URI -> media resolution.
+impl MediaCacheKey {
+    #[cfg_attr(not(any(target_arch = "wasm32", test)), allow(dead_code))]
+    fn from_descriptor(descriptor: &CzmlMediaDescriptor) -> Self {
+        Self {
+            entity_id: descriptor.entity_id.clone(),
+            kind: descriptor.kind.clone(),
+            target: descriptor.target,
+            uri: descriptor.uri.clone(),
+            autoplay: descriptor.autoplay,
+            loop_video: descriptor.loop_video,
+            muted: descriptor.muted,
+            plays_inline: descriptor.plays_inline,
+            cross_origin: descriptor.cross_origin.clone(),
+        }
+    }
+}
+
+/// Optional callback for custom URI -> media resolution.
 pub type CzmlMediaResolver = Callback<CzmlMediaDescriptor, Option<MediaSource>>;
 
-/// Reads CZML `properties.media` metadata and applies media to entity graphics.
-///
-/// Expected metadata schema:
-///
-/// ```json
-/// {
-///   "kind": "image" | "video",
-///   "uri": "https://...",
-///   "target": "billboard" | "rectangle" | "polygon",
-///   "autoplay": true,
-///   "loop": true,
-///   "muted": true,
-///   "playsinline": true,
-///   "cross_origin": "anonymous"
-/// }
-/// ```
-#[component(transparent)]
-pub fn CzmlMediaBridge(
-    /// CZML data source returned by `CzmlDataSource.on_loaded`.
-    #[prop(optional, into)]
-    data_source: JsSignal<Option<JsValue>>,
-    /// Optional re-application trigger.
-    #[prop(optional, into, default = ().into())]
-    trigger: Signal<()>,
-    /// Optional custom media resolver.
-    #[prop(optional)]
-    resolve_media: Option<CzmlMediaResolver>,
-    /// Called with loading transitions for bridge application.
-    #[prop(optional)]
-    on_loading: Option<Callback<bool>>,
-    /// Called with structured parse/apply errors.
-    #[prop(optional)]
-    on_error: Option<Callback<CzmlMediaBridgeError>>,
-) -> impl IntoView {
-    #[cfg(target_arch = "wasm32")]
-    {
-        let media_cache = JsStoredValue::new_local(HashMap::<MediaCacheKey, MediaSource>::new());
-        let request_gate = RequestGate::new();
-        let request_gate_effect = request_gate.clone();
+#[cfg(target_arch = "wasm32")]
+pub(crate) type CzmlMediaCache = JsStoredValue<HashMap<MediaCacheKey, MediaSource>>;
 
-        Effect::new(move |_| {
-            trigger.get();
-            let data_source_value = data_source.get();
-            let request_id = request_gate_effect.begin_request();
-
-            let Some(source_js) = data_source_value else {
-                clear_media_cache(media_cache);
-                return;
-            };
-            if let Some(callback) = on_loading {
-                callback.run(true);
-            }
-
-            apply_media_bridge_pass(
-                source_js,
-                request_id,
-                media_cache,
-                request_gate_effect.clone(),
-                resolve_media,
-                on_error,
-            );
-
-            if let Some(callback) = on_loading {
-                callback.run(false);
-            }
-        });
-
-        on_cleanup(move || {
-            request_gate.close();
-            clear_media_cache(media_cache);
-        });
-    }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        let _ = (data_source, trigger, resolve_media, on_loading, on_error);
-    }
+#[cfg(target_arch = "wasm32")]
+pub(crate) fn new_media_cache() -> CzmlMediaCache {
+    JsStoredValue::new_local(HashMap::<MediaCacheKey, MediaSource>::new())
 }
 
 #[cfg(target_arch = "wasm32")]
-fn apply_media_bridge_pass(
+pub(crate) fn reconcile_data_source_media(
     source_js: JsValue,
     request_id: u64,
-    media_cache: JsStoredValue<HashMap<MediaCacheKey, MediaSource>>,
+    media_cache: CzmlMediaCache,
     request_gate: RequestGate,
+    reapply_cached_bindings: bool,
     resolve_media: Option<CzmlMediaResolver>,
-    on_error: Option<Callback<CzmlMediaBridgeError>>,
+    on_error: Option<Callback<CzmlMediaError>>,
+    base_uri: Option<String>,
 ) {
     if request_gate.is_stale(request_id) {
         return;
@@ -183,10 +138,10 @@ fn apply_media_bridge_pass(
     let data_source = match source_js.dyn_into::<CesiumCzmlDataSource>() {
         Ok(value) => value,
         Err(_) => {
-            emit_bridge_error(
+            emit_media_error(
                 on_error,
                 None,
-                "CzmlMediaBridge expected a Cesium CzmlDataSource handle",
+                "CzmlDataSource media handling expected a Cesium CzmlDataSource handle",
             );
             return;
         }
@@ -195,7 +150,7 @@ fn apply_media_bridge_pass(
     let entities_array = match entity_values_array(&data_source) {
         Some(values) => values,
         None => {
-            emit_bridge_error(
+            emit_media_error(
                 on_error,
                 None,
                 "Unable to access dataSource.entities.values",
@@ -211,36 +166,47 @@ fn apply_media_bridge_pass(
             return;
         }
 
-        let descriptor = match parse_media_descriptor(&entity) {
+        let mut descriptor = match parse_media_descriptor(&entity) {
             Ok(Some(value)) => value,
             Ok(None) => continue,
             Err(error) => {
                 let entity_id = entity_id(&entity);
-                emit_bridge_error(on_error, entity_id, error);
+                emit_media_error(on_error, entity_id, error);
                 continue;
             }
         };
 
-        let cache_key = MediaCacheKey {
-            entity_id: descriptor.entity_id.clone(),
-            uri: descriptor.uri.clone(),
-            target: descriptor.target,
+        descriptor.uri = match normalize_media_uri(&descriptor.uri, base_uri.as_deref()) {
+            Ok(value) => value,
+            Err(error) => {
+                emit_media_error(on_error, Some(descriptor.entity_id.clone()), error);
+                continue;
+            }
         };
+
+        let cache_key = MediaCacheKey::from_descriptor(&descriptor);
         active_keys.insert(cache_key.clone());
 
-        let media_source = media_cache.with_value(|cache| cache.get(&cache_key).cloned());
-        let media_source = match media_source {
+        let cached_media_source = media_cache.with_value(|cache| cache.get(&cache_key).cloned());
+        let reused_cached_binding = cached_media_source.is_some();
+        let media_source = match cached_media_source {
             Some(value) => Some(value),
             None => {
                 let resolved = resolve_media.and_then(|resolver| resolver.run(descriptor.clone()));
                 match resolved {
                     Some(value) => Some(value),
-                    None => default_media_source(
+                    None => match default_media_source(
                         &descriptor,
                         request_id,
                         request_gate.clone(),
                         on_error,
-                    ),
+                    ) {
+                        Ok(value) => Some(value),
+                        Err(error) => {
+                            emit_media_error(on_error, Some(descriptor.entity_id.clone()), error);
+                            None
+                        }
+                    },
                 }
             }
         };
@@ -253,8 +219,10 @@ fn apply_media_bridge_pass(
             cache.insert(cache_key, media_source.clone());
         });
 
-        if let Err(error) = apply_media_to_entity(&entity, &descriptor, &media_source) {
-            emit_bridge_error(on_error, Some(descriptor.entity_id.clone()), error);
+        if (reapply_cached_bindings || !reused_cached_binding)
+            && let Err(error) = apply_media_to_entity(&entity, &descriptor, &media_source)
+        {
+            emit_media_error(on_error, Some(descriptor.entity_id.clone()), error);
         }
     }
 
@@ -269,6 +237,85 @@ fn apply_media_bridge_pass(
             }
         });
     });
+}
+
+#[cfg(target_arch = "wasm32")]
+pub(crate) fn clear_media_cache(media_cache: CzmlMediaCache) {
+    media_cache.update_value(|cache| {
+        for source in cache.values() {
+            release_media_source(source);
+        }
+        cache.clear();
+    });
+}
+
+#[cfg_attr(not(any(target_arch = "wasm32", test)), allow(dead_code))]
+fn normalize_media_uri(uri: &str, base_uri: Option<&str>) -> Result<String, String> {
+    if uri.is_empty() {
+        return Err("properties.media_uri must not be empty".to_string());
+    }
+
+    if has_absolute_or_special_uri(uri) {
+        return Ok(uri.to_string());
+    }
+
+    let Some(base_uri) = base_uri.map(str::trim).filter(|value| !value.is_empty()) else {
+        return Ok(uri.to_string());
+    };
+
+    if let Ok(base_url) = Url::parse(base_uri) {
+        return base_url
+            .join(uri)
+            .map(|value| value.to_string())
+            .map_err(|error| {
+                format!(
+                    "Failed to resolve media URI '{}' against '{}': {}",
+                    uri, base_uri, error
+                )
+            });
+    }
+
+    let dummy_origin =
+        Url::parse("https://leptos-cesium.invalid/").expect("dummy origin URL should always parse");
+    let base_url = dummy_origin
+        .join(base_uri)
+        .map_err(|error| format!("Failed to resolve media base URI '{}': {}", base_uri, error))?;
+    let joined = base_url.join(uri).map_err(|error| {
+        format!(
+            "Failed to resolve media URI '{}' against '{}': {}",
+            uri, base_uri, error
+        )
+    })?;
+
+    let preserve_root = base_uri.starts_with('/') || uri.starts_with('/');
+    Ok(stringify_relative_join(joined, preserve_root))
+}
+
+#[cfg_attr(not(any(target_arch = "wasm32", test)), allow(dead_code))]
+fn has_absolute_or_special_uri(uri: &str) -> bool {
+    uri.starts_with("//")
+        || uri.starts_with("data:")
+        || uri.starts_with("blob:")
+        || Url::parse(uri).is_ok()
+}
+
+#[cfg_attr(not(any(target_arch = "wasm32", test)), allow(dead_code))]
+fn stringify_relative_join(joined: Url, preserve_root: bool) -> String {
+    let mut result = joined.path().to_string();
+    if !preserve_root {
+        result = result.trim_start_matches('/').to_string();
+    }
+
+    if let Some(query) = joined.query() {
+        result.push('?');
+        result.push_str(query);
+    }
+    if let Some(fragment) = joined.fragment() {
+        result.push('#');
+        result.push_str(fragment);
+    }
+
+    result
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -288,58 +335,15 @@ fn parse_media_descriptor(entity: &JsValue) -> Result<Option<CzmlMediaDescriptor
         _ => return Ok(None),
     };
 
-    // CZML custom properties may surface either as direct PropertyBag fields
-    // (`entity.properties.media`) or only via `entity.properties.getValue()`.
     let properties_value = resolve_property_value(&properties);
-    let media_property = Reflect::get(&properties, &JsValue::from_str("media"))
-        .ok()
-        .filter(|value| !value.is_null() && !value.is_undefined())
-        .or_else(|| {
-            Reflect::get(&properties_value, &JsValue::from_str("media"))
-                .ok()
-                .filter(|value| !value.is_null() && !value.is_undefined())
-        });
-    let Some(media_property) = media_property else {
+    let uri = read_property_string_field(&properties, &properties_value, "media_uri")
+        .or_else(|| read_property_string_field(&properties, &properties_value, "media_url"));
+    let Some(uri) = uri else {
         return Ok(None);
     };
 
-    let mut media_value = resolve_property_value(&media_property);
-    // Support wrappers like `{ value: { ... } }` by unwrapping one level.
-    if media_value.is_object()
-        && let Ok(nested) = Reflect::get(&media_value, &JsValue::from_str("value"))
-        && !nested.is_null()
-        && !nested.is_undefined()
-    {
-        media_value = resolve_property_value(&nested);
-    }
-    if media_value.is_null() || media_value.is_undefined() {
-        return Ok(None);
-    }
-
-    if let Some(uri) = media_value.as_string() {
-        return Ok(Some(CzmlMediaDescriptor {
-            entity_id,
-            kind: CzmlMediaKind::Image,
-            target: infer_target(entity),
-            uri,
-            autoplay: false,
-            loop_video: false,
-            muted: false,
-            plays_inline: false,
-            cross_origin: None,
-        }));
-    }
-
-    if !media_value.is_object() {
-        return Err("properties.media must be an object or string".to_string());
-    }
-
-    let uri = read_string_field(&media_value, "uri")
-        .or_else(|| read_string_field(&media_value, "url"))
-        .ok_or_else(|| "properties.media.uri is required".to_string())?;
-
-    let kind = match read_string_field(&media_value, "kind")
-        .unwrap_or_else(|| "image".to_string())
+    let kind = match read_property_string_field(&properties, &properties_value, "media_kind")
+        .unwrap_or_else(|| infer_kind_from_uri(&uri).to_string())
         .to_lowercase()
         .as_str()
     {
@@ -347,35 +351,44 @@ fn parse_media_descriptor(entity: &JsValue) -> Result<Option<CzmlMediaDescriptor
         "video" => CzmlMediaKind::Video,
         other => {
             return Err(format!(
-                "Unsupported properties.media.kind '{}' (expected 'image' or 'video')",
+                "Unsupported properties.media_kind '{}' (expected 'image' or 'video')",
                 other
             ));
         }
     };
 
-    let target = match read_string_field(&media_value, "target") {
+    let target = match read_property_string_field(&properties, &properties_value, "media_target") {
         Some(value) => parse_target(&value)?,
         None => infer_target(entity),
     };
 
     let is_video = matches!(kind, CzmlMediaKind::Video);
 
-    let autoplay = read_bool_field(&media_value, "autoplay").unwrap_or(is_video);
-    let loop_video = read_bool_field(&media_value, "loop").unwrap_or(is_video);
-    let muted = read_bool_field(&media_value, "muted").unwrap_or(is_video);
-    let plays_inline = read_bool_field(&media_value, "playsinline")
-        .or_else(|| read_bool_field(&media_value, "plays_inline"))
+    let autoplay = read_property_bool_field(&properties, &properties_value, "media_autoplay")
         .unwrap_or(is_video);
+    let loop_video =
+        read_property_bool_field(&properties, &properties_value, "media_loop").unwrap_or(is_video);
+    let muted =
+        read_property_bool_field(&properties, &properties_value, "media_muted").unwrap_or(is_video);
+    let plays_inline =
+        read_property_bool_field(&properties, &properties_value, "media_playsinline")
+            .or_else(|| {
+                read_property_bool_field(&properties, &properties_value, "media_plays_inline")
+            })
+            .unwrap_or(is_video);
 
-    let cross_origin = read_string_field(&media_value, "cross_origin")
-        .or_else(|| read_string_field(&media_value, "crossOrigin"))
-        .or_else(|| {
-            if is_video && !uri.starts_with("data:") {
-                Some("anonymous".to_string())
-            } else {
-                None
-            }
-        });
+    let cross_origin =
+        read_property_string_field(&properties, &properties_value, "media_cross_origin")
+            .or_else(|| {
+                read_property_string_field(&properties, &properties_value, "media_crossOrigin")
+            })
+            .or_else(|| {
+                if is_video && !uri.starts_with("data:") {
+                    Some("anonymous".to_string())
+                } else {
+                    None
+                }
+            });
 
     Ok(Some(CzmlMediaDescriptor {
         entity_id,
@@ -391,13 +404,33 @@ fn parse_media_descriptor(entity: &JsValue) -> Result<Option<CzmlMediaDescriptor
 }
 
 #[cfg(target_arch = "wasm32")]
+fn infer_kind_from_uri(uri: &str) -> &'static str {
+    let normalized = uri
+        .split(['?', '#'])
+        .next()
+        .unwrap_or(uri)
+        .to_ascii_lowercase();
+    if normalized.ends_with(".mp4")
+        || normalized.ends_with(".webm")
+        || normalized.ends_with(".mov")
+        || normalized.ends_with(".m4v")
+        || normalized.ends_with(".ogv")
+        || normalized.ends_with(".m3u8")
+    {
+        "video"
+    } else {
+        "image"
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
 fn parse_target(value: &str) -> Result<CzmlMediaTarget, String> {
     match value.to_lowercase().as_str() {
         "billboard" => Ok(CzmlMediaTarget::Billboard),
         "rectangle" => Ok(CzmlMediaTarget::Rectangle),
         "polygon" => Ok(CzmlMediaTarget::Polygon),
         other => Err(format!(
-            "Unsupported properties.media.target '{}' (expected billboard|rectangle|polygon)",
+            "Unsupported properties.media_target '{}' (expected billboard|rectangle|polygon)",
             other
         )),
     }
@@ -426,15 +459,79 @@ fn has_entity_graphic(entity: &JsValue, property: &str) -> bool {
 #[cfg(target_arch = "wasm32")]
 fn read_string_field(object: &JsValue, key: &str) -> Option<String> {
     let value = Reflect::get(object, &JsValue::from_str(key)).ok()?;
-    let value = resolve_property_value(&value);
-    value.as_string()
+    extract_string_value(&value)
 }
 
 #[cfg(target_arch = "wasm32")]
 fn read_bool_field(object: &JsValue, key: &str) -> Option<bool> {
     let value = Reflect::get(object, &JsValue::from_str(key)).ok()?;
-    let value = resolve_property_value(&value);
-    value.as_bool()
+    extract_bool_value(&value)
+}
+
+#[cfg(target_arch = "wasm32")]
+fn read_property_string_field(
+    properties: &JsValue,
+    properties_value: &JsValue,
+    key: &str,
+) -> Option<String> {
+    read_string_field(properties, key).or_else(|| read_string_field(properties_value, key))
+}
+
+#[cfg(target_arch = "wasm32")]
+fn read_property_bool_field(
+    properties: &JsValue,
+    properties_value: &JsValue,
+    key: &str,
+) -> Option<bool> {
+    read_bool_field(properties, key).or_else(|| read_bool_field(properties_value, key))
+}
+
+#[cfg(target_arch = "wasm32")]
+fn extract_string_value(value: &JsValue) -> Option<String> {
+    let value = resolve_property_value(value);
+    if let Some(text) = value.as_string() {
+        return Some(text);
+    }
+
+    if !value.is_object() {
+        return None;
+    }
+
+    for key in ["value", "string", "uri", "url"] {
+        let Ok(nested) = Reflect::get(&value, &JsValue::from_str(key)) else {
+            continue;
+        };
+        let nested = resolve_property_value(&nested);
+        if let Some(text) = nested.as_string() {
+            return Some(text);
+        }
+    }
+
+    None
+}
+
+#[cfg(target_arch = "wasm32")]
+fn extract_bool_value(value: &JsValue) -> Option<bool> {
+    let value = resolve_property_value(value);
+    if let Some(flag) = value.as_bool() {
+        return Some(flag);
+    }
+
+    if !value.is_object() {
+        return None;
+    }
+
+    for key in ["value", "boolean"] {
+        let Ok(nested) = Reflect::get(&value, &JsValue::from_str(key)) else {
+            continue;
+        };
+        let nested = resolve_property_value(&nested);
+        if let Some(flag) = nested.as_bool() {
+            return Some(flag);
+        }
+    }
+
+    None
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -533,14 +630,14 @@ fn default_media_source(
     descriptor: &CzmlMediaDescriptor,
     request_id: u64,
     request_gate: RequestGate,
-    on_error: Option<Callback<CzmlMediaBridgeError>>,
-) -> Option<MediaSource> {
+    on_error: Option<Callback<CzmlMediaError>>,
+) -> Result<MediaSource, String> {
     match descriptor.kind {
         CzmlMediaKind::Image => {
             if descriptor.uri.starts_with("data:") {
-                Some(MediaSource::DataUrl(descriptor.uri.clone()))
+                Ok(MediaSource::DataUrl(descriptor.uri.clone()))
             } else {
-                Some(MediaSource::Url(descriptor.uri.clone()))
+                Ok(MediaSource::Url(descriptor.uri.clone()))
             }
         }
         CzmlMediaKind::Video => {
@@ -554,14 +651,17 @@ fn create_video_media_source(
     descriptor: &CzmlMediaDescriptor,
     request_id: u64,
     request_gate: RequestGate,
-    on_error: Option<Callback<CzmlMediaBridgeError>>,
-) -> Option<MediaSource> {
-    let document = web_sys::window()?.document()?;
+    on_error: Option<Callback<CzmlMediaError>>,
+) -> Result<MediaSource, String> {
+    let window = web_sys::window().ok_or_else(|| "Window is not available".to_string())?;
+    let document = window
+        .document()
+        .ok_or_else(|| "Document is not available".to_string())?;
     let video_element = document
         .create_element("video")
-        .ok()?
+        .map_err(js_error_to_string)?
         .dyn_into::<web_sys::HtmlVideoElement>()
-        .ok()?;
+        .map_err(|_| "Failed to create HTMLVideoElement".to_string())?;
 
     video_element.set_autoplay(descriptor.autoplay);
     video_element.set_loop(descriptor.loop_video);
@@ -588,7 +688,7 @@ fn create_video_media_source(
                 wasm_bindgen_futures::spawn_local(async move {
                     if JsFuture::from(promise).await.is_err() && !request_gate.is_stale(request_id)
                     {
-                        emit_bridge_error(
+                        emit_media_error(
                             on_error,
                             Some(entity_id),
                             "Video autoplay was blocked; user gesture may be required",
@@ -596,17 +696,16 @@ fn create_video_media_source(
                     }
                 });
             }
-            Err(_) => {
-                emit_bridge_error(
-                    on_error,
-                    Some(descriptor.entity_id.clone()),
-                    "Video autoplay failed to start",
-                );
+            Err(error) => {
+                return Err(format!(
+                    "Video autoplay failed to start: {}",
+                    js_error_to_string(error)
+                ));
             }
         }
     }
 
-    Some(MediaSource::HtmlVideo(video_element))
+    Ok(MediaSource::HtmlVideo(video_element))
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -620,22 +719,12 @@ fn release_media_source(media_source: &MediaSource) {
 }
 
 #[cfg(target_arch = "wasm32")]
-fn clear_media_cache(media_cache: JsStoredValue<HashMap<MediaCacheKey, MediaSource>>) {
-    media_cache.update_value(|cache| {
-        for source in cache.values() {
-            release_media_source(source);
-        }
-        cache.clear();
-    });
-}
-
-#[cfg(target_arch = "wasm32")]
-fn emit_bridge_error(
-    on_error: Option<Callback<CzmlMediaBridgeError>>,
+fn emit_media_error(
+    on_error: Option<Callback<CzmlMediaError>>,
     entity_id: Option<String>,
     reason: impl Into<String>,
 ) {
-    let error = CzmlMediaBridgeError::new(entity_id, reason);
+    let error = CzmlMediaError::new(entity_id, reason);
 
     if let Some(callback) = on_error {
         callback.run(error);
@@ -646,7 +735,7 @@ fn emit_bridge_error(
             .map(|id| format!("[{}] ", id))
             .unwrap_or_default();
         web_sys::console::warn_1(&JsValue::from_str(&format!(
-            "CzmlMediaBridge {}{}",
+            "CzmlMedia {}{}",
             entity_label, error.reason
         )));
     }
@@ -671,4 +760,95 @@ fn js_error_to_string(error: JsValue) -> String {
         return value;
     }
     format!("{:?}", error)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn keeps_absolute_media_uri_unchanged() {
+        let uri = "https://example.com/video.mp4";
+        assert_eq!(
+            normalize_media_uri(uri, Some("SampleData/demo.czml")).unwrap(),
+            uri
+        );
+    }
+
+    #[test]
+    fn resolves_relative_media_uri_against_relative_czml_path() {
+        assert_eq!(
+            normalize_media_uri("pin.svg", Some("SampleData/demo.czml")).unwrap(),
+            "SampleData/pin.svg"
+        );
+        assert_eq!(
+            normalize_media_uri("../pin.svg", Some("SampleData/demo.czml")).unwrap(),
+            "pin.svg"
+        );
+    }
+
+    #[test]
+    fn resolves_relative_media_uri_against_absolute_czml_url() {
+        assert_eq!(
+            normalize_media_uri(
+                "video.mp4",
+                Some("https://example.com/assets/routes/demo.czml"),
+            )
+            .unwrap(),
+            "https://example.com/assets/routes/video.mp4"
+        );
+    }
+
+    #[test]
+    fn cache_key_includes_video_flags() {
+        let base = CzmlMediaDescriptor {
+            entity_id: "video".to_string(),
+            kind: CzmlMediaKind::Video,
+            target: CzmlMediaTarget::Rectangle,
+            uri: "video.mp4".to_string(),
+            autoplay: true,
+            loop_video: true,
+            muted: true,
+            plays_inline: true,
+            cross_origin: Some("anonymous".to_string()),
+        };
+
+        let mut changed = base.clone();
+        changed.muted = false;
+
+        assert_ne!(
+            MediaCacheKey::from_descriptor(&base),
+            MediaCacheKey::from_descriptor(&changed)
+        );
+    }
+
+    #[test]
+    fn cache_key_includes_target_and_uri() {
+        let base = CzmlMediaDescriptor {
+            entity_id: "video".to_string(),
+            kind: CzmlMediaKind::Video,
+            target: CzmlMediaTarget::Rectangle,
+            uri: "video.mp4".to_string(),
+            autoplay: true,
+            loop_video: true,
+            muted: true,
+            plays_inline: true,
+            cross_origin: Some("anonymous".to_string()),
+        };
+
+        let mut changed_target = base.clone();
+        changed_target.target = CzmlMediaTarget::Polygon;
+
+        let mut changed_uri = base.clone();
+        changed_uri.uri = "video-2.mp4".to_string();
+
+        assert_ne!(
+            MediaCacheKey::from_descriptor(&base),
+            MediaCacheKey::from_descriptor(&changed_target)
+        );
+        assert_ne!(
+            MediaCacheKey::from_descriptor(&base),
+            MediaCacheKey::from_descriptor(&changed_uri)
+        );
+    }
 }

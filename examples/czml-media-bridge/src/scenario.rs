@@ -8,10 +8,6 @@ pub const MEDIA_VIDEO_RECT_ENTITY_ID: &str = "media_video_rect";
 const MEDIA_VIDEO_ROUTE_ENTITY_ID: &str = "media_video_expected_route";
 const VIDEO_URI: &str = "https://cesium.com/public/SandcastleSampleData/big-buck-bunny_trailer.mp4";
 
-pub fn video_uri() -> &'static str {
-    VIDEO_URI
-}
-
 pub fn initial_append_step() -> usize {
     1
 }
@@ -79,11 +75,9 @@ pub fn media_demo_czml() -> String {
                 "verticalOrigin": "BOTTOM"
             },
             "properties": {
-                "media": {
-                    "kind": "image",
-                    "target": "billboard",
-                    "uri": "pin.svg"
-                }
+                "media_kind": "image",
+                "media_target": "billboard",
+                "media_uri": "pin.svg"
             }
         },
         {
@@ -108,15 +102,13 @@ pub fn media_demo_czml() -> String {
                 }
             },
             "properties": {
-                "media": {
-                    "kind": "video",
-                    "target": "rectangle",
-                    "uri": VIDEO_URI,
-                    "autoplay": true,
-                    "loop": true,
-                    "muted": true,
-                    "cross_origin": "anonymous"
-                }
+                "media_kind": "video",
+                "media_target": "rectangle",
+                "media_uri": VIDEO_URI,
+                "media_autoplay": true,
+                "media_loop": true,
+                "media_muted": true,
+                "media_cross_origin": "anonymous"
             }
         },
         {
@@ -183,6 +175,10 @@ pub fn build_append_packet(step: usize) -> String {
             "id": "ride_driver",
             "position": {
                 "epoch": CZML_START_EPOCH,
+                "interpolationAlgorithm": "LAGRANGE",
+                "interpolationDegree": 1,
+                "forwardExtrapolationType": "HOLD",
+                "forwardExtrapolationDuration": 0.0,
                 "cartographicDegrees": [simulation_seconds, driver_lon, driver_lat, 20.0]
             }
         },
@@ -191,6 +187,10 @@ pub fn build_append_packet(step: usize) -> String {
             "rectangle": {
                 "coordinates": {
                     "epoch": CZML_START_EPOCH,
+                    "interpolationAlgorithm": "LAGRANGE",
+                    "interpolationDegree": 1,
+                    "forwardExtrapolationType": "HOLD",
+                    "forwardExtrapolationDuration": 0.0,
                     "wsenDegrees": [simulation_seconds, west, south, east, north]
                 }
             }

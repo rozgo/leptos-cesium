@@ -6,6 +6,9 @@ use wasm_bindgen::JsValue;
 #[cfg(target_arch = "wasm32")]
 use std::collections::VecDeque;
 
+use super::czml_media_bridge::{CzmlMediaError, CzmlMediaResolver};
+#[cfg(target_arch = "wasm32")]
+use super::czml_media_bridge::{clear_media_cache, new_media_cache, reconcile_data_source_media};
 use crate::bindings::EntityCluster;
 #[cfg(target_arch = "wasm32")]
 use crate::bindings::{
@@ -58,6 +61,8 @@ impl From<String> for CzmlSource {
 struct PendingAppendRequest {
     czml_input: JsValue,
     options_js: Option<JsValue>,
+    media_base_uri: Option<String>,
+    bridge_media: bool,
 }
 
 /// CZML data source component for declaratively loading CZML data
@@ -65,6 +70,8 @@ struct PendingAppendRequest {
 /// This component loads CZML data and adds it to the viewer's data sources.
 /// When the URL changes, the previous data source owned by this component can be removed
 /// before the new one is loaded.
+/// If packets include custom `properties.media_*` metadata, this component can automatically
+/// apply the corresponding image/video media to supported Cesium entity graphics.
 ///
 /// # Example
 ///
@@ -111,12 +118,24 @@ pub fn CzmlDataSource(
     /// Optional clustering configuration.
     #[prop(optional, into)]
     clustering: JsSignal<Option<EntityCluster>>,
+    /// Automatically bridge `properties.media_*` metadata into Cesium media/materials.
+    #[prop(optional, into, default = true.into())]
+    bridge_media: Signal<bool>,
+    /// Optional custom media resolver.
+    #[prop(optional)]
+    resolve_media: Option<CzmlMediaResolver>,
     /// Called with loading state transitions.
     #[prop(optional)]
     on_loading: Option<Callback<bool>>,
+    /// Called with media reconciliation state transitions.
+    #[prop(optional)]
+    on_media_loading: Option<Callback<bool>>,
     /// Called with load or runtime error messages.
     #[prop(optional)]
     on_error: Option<Callback<String>>,
+    /// Called with media parse/apply errors.
+    #[prop(optional)]
+    on_media_error: Option<Callback<CzmlMediaError>>,
     /// Called when the data source emits changed events.
     #[prop(optional)]
     on_changed: Option<Callback<JsValue>>,
@@ -142,6 +161,7 @@ pub fn CzmlDataSource(
         )>::default());
         let append_queue = JsRwSignal::new_local(VecDeque::<PendingAppendRequest>::new());
         let append_worker_running = JsRwSignal::new_local(false);
+        let media_cache = new_media_cache();
         let request_gate = RequestGate::new();
         let request_gate_effect = request_gate.clone();
 
@@ -158,10 +178,16 @@ pub fn CzmlDataSource(
             let source_uri_value = source_uri.get();
             let credit_value = credit.get();
             let clustering_value = clustering.get_untracked();
+            let bridge_media_enabled = bridge_media.get();
+            let media_base_uri =
+                derive_media_base_uri(source.clone(), url.clone(), source_uri_value.clone());
             let on_loading_callback = on_loading;
+            let on_media_loading_callback = on_media_loading;
             let on_error_callback = on_error;
+            let on_media_error_callback = on_media_error;
             let on_changed_callback = on_changed;
             let on_loaded_callback = on_loaded;
+            let resolve_media_callback = resolve_media;
 
             let czml_input = match resolve_czml_input(source, url, data) {
                 Ok(Some(value)) => value,
@@ -170,6 +196,7 @@ pub fn CzmlDataSource(
                     append_queue.update(|queue| queue.clear());
 
                     if should_clear {
+                        clear_media_cache(media_cache);
                         viewer_context.with_viewer(|viewer: Viewer| {
                             loaded_data_source.update_value(|owned| {
                                 owned.clear_with(|existing| {
@@ -215,6 +242,8 @@ pub fn CzmlDataSource(
                         queue.push_back(PendingAppendRequest {
                             czml_input: czml_input.clone(),
                             options_js: options_js.clone(),
+                            media_base_uri: media_base_uri.clone(),
+                            bridge_media: bridge_media_enabled,
                         });
                     });
 
@@ -232,6 +261,7 @@ pub fn CzmlDataSource(
                     let append_worker_running_worker = append_worker_running;
                     let current_data_source_worker = current_data_source;
                     let request_gate_worker = request_gate_effect.clone();
+                    let media_cache_worker = media_cache;
 
                     wasm_bindgen_futures::spawn_local(async move {
                         loop {
@@ -262,6 +292,19 @@ pub fn CzmlDataSource(
                                     if request_gate_worker.is_stale(worker_request) {
                                         break;
                                     }
+
+                                    reconcile_media_if_enabled(
+                                        request.bridge_media,
+                                        &data_source_js,
+                                        worker_request,
+                                        media_cache_worker,
+                                        request_gate_worker.clone(),
+                                        false,
+                                        resolve_media_callback,
+                                        on_media_loading_callback,
+                                        on_media_error_callback,
+                                        request.media_base_uri.clone(),
+                                    );
                                     if let Some(callback) = on_loaded_callback {
                                         callback.run(data_source_js);
                                     }
@@ -304,6 +347,7 @@ pub fn CzmlDataSource(
 
                 // Remove only the data source previously owned by this component.
                 if should_clear && mode == CzmlLoadMode::Replace {
+                    clear_media_cache(media_cache);
                     loaded_data_source.update_value(|owned| {
                         owned.clear_with(|existing| {
                             let _ = viewer.data_sources().remove(existing);
@@ -359,9 +403,6 @@ pub fn CzmlDataSource(
                                 if let Ok(data_source) =
                                     data_source_js.clone().dyn_into::<CesiumCzmlDataSource>()
                                 {
-                                    if let Some(callback) = on_loaded_callback {
-                                        callback.run(data_source_js.clone());
-                                    }
                                     current_data_source.set(Some(data_source_js.clone()));
                                     if created_new_data_source {
                                         loaded_data_source.update_value(|owned| {
@@ -396,6 +437,23 @@ pub fn CzmlDataSource(
                                         on_loading_callback,
                                         loading_listener,
                                     );
+
+                                    reconcile_media_if_enabled(
+                                        bridge_media_enabled,
+                                        &data_source_js,
+                                        next_request,
+                                        media_cache,
+                                        request_gate.clone(),
+                                        true,
+                                        resolve_media_callback,
+                                        on_media_loading_callback,
+                                        on_media_error_callback,
+                                        media_base_uri.clone(),
+                                    );
+
+                                    if let Some(callback) = on_loaded_callback {
+                                        callback.run(data_source_js.clone());
+                                    }
                                 }
                             });
 
@@ -440,6 +498,7 @@ pub fn CzmlDataSource(
             request_gate.close();
             append_queue.update(|queue| queue.clear());
             append_worker_running.set(false);
+            clear_media_cache(media_cache);
 
             viewer_context.with_viewer(|viewer: Viewer| {
                 loaded_data_source.update_value(|owned| {
@@ -469,8 +528,12 @@ pub fn CzmlDataSource(
             source_uri,
             credit,
             clustering,
+            bridge_media,
+            resolve_media,
             on_loading,
+            on_media_loading,
             on_error,
+            on_media_error,
             on_changed,
             on_loaded,
         );
@@ -515,6 +578,61 @@ fn apply_czml_properties(
     }
     if let Some(cluster) = clustering {
         data_source.set_clustering(&cluster);
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn derive_media_base_uri(
+    source: Option<CzmlSource>,
+    url: Option<String>,
+    source_uri: Option<String>,
+) -> Option<String> {
+    if let Some(source_uri) = source_uri.filter(|value| !value.is_empty()) {
+        return Some(source_uri);
+    }
+
+    match source {
+        Some(CzmlSource::Url(value)) if !value.is_empty() => Some(value),
+        Some(CzmlSource::Url(_)) => None,
+        Some(CzmlSource::JsonString(_)) => None,
+        None => url.filter(|value| !value.is_empty()),
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn reconcile_media_if_enabled(
+    bridge_media: bool,
+    data_source_js: &JsValue,
+    request_id: u64,
+    media_cache: super::czml_media_bridge::CzmlMediaCache,
+    request_gate: RequestGate,
+    reapply_cached_bindings: bool,
+    resolve_media: Option<CzmlMediaResolver>,
+    on_media_loading: Option<Callback<bool>>,
+    on_media_error: Option<Callback<CzmlMediaError>>,
+    media_base_uri: Option<String>,
+) {
+    if !bridge_media {
+        return;
+    }
+
+    if let Some(callback) = on_media_loading {
+        callback.run(true);
+    }
+
+    reconcile_data_source_media(
+        data_source_js.clone(),
+        request_id,
+        media_cache,
+        request_gate,
+        reapply_cached_bindings,
+        resolve_media,
+        on_media_error,
+        media_base_uri,
+    );
+
+    if let Some(callback) = on_media_loading {
+        callback.run(false);
     }
 }
 

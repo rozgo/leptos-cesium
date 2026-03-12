@@ -33,6 +33,7 @@ serde = { workspace = true, optional = true }
 tracing = { workspace = true, optional = true }
 thiserror = { workspace = true }
 serde_json = { workspace = true, optional = true }
+url = { workspace = true }
 
 # Standard Rust types for component props
 geo-types = "0.7"

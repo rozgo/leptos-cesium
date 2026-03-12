@@ -91,12 +91,12 @@ trunk serve --open
 ```
 Demonstrates `ImageMaterialPropertyBuilder` + `Material::image(...)` on a rectangle.
 
-**CZML media bridge + append streaming:**
+**CZML media stream + append streaming:**
 ```bash
 cd examples/czml-media-bridge
 trunk serve --open
 ```
-Demonstrates CZML metadata-driven media assignment and `Append` (`process`) updates.
+Demonstrates automatic CZML media assignment from flattened `properties.media_*` fields plus `Append` (`process`) updates.
 
 **GeoJSON data loading (maps, geographic features):**
 ```bash
@@ -405,25 +405,19 @@ set_packet_trigger.set(());
 
 When loading multiple CZML sources, use the viewer clock APIs to explicitly choose clock-tracking behavior.
 
-Bridge custom `properties.media` metadata from CZML into Cesium graphics:
+If CZML packets include custom `properties.media_*` metadata, `CzmlDataSource` automatically
+applies the corresponding image/video media to Cesium billboard, rectangle, or polygon graphics:
 
 ```rust
-let loaded = JsRwSignal::new_local(None::<JsValue>);
-let (bridge_trigger, set_bridge_trigger) = signal(());
-
-let on_loaded = Callback::new(move |value: JsValue| {
-    loaded.set(Some(value));
-    set_bridge_trigger.set(());
-});
-
 view! {
-    <CzmlDataSource on_loaded=on_loaded />
-    <CzmlMediaBridge
-        data_source=loaded
-        trigger=bridge_trigger
+    <CzmlDataSource
+        url="media-route.czml"
+        clear_existing=false
     />
 }
 ```
+
+Use `source_uri` when loading inline CZML and its `properties.media_uri` values are relative.
 
 **GeoJSON Data Source:**
 
@@ -487,7 +481,7 @@ Loads Google's photorealistic 3D tiles via Cesium Ion or directly with a Google 
 - ✅ Viewer Target Focus: ViewerFlyToTarget, ViewerZoomToTarget, ViewerSetClockTrackedDataSource
 - ✅ Clock Controls: ClockReset for animation timeline management
 - ✅ Data Sources: CZML (URL/inline + replace/append modes), GeoJSON with extensive styling options
-- ✅ CZML Media Bridge: `properties.media` parsing to billboard/rectangle/polygon targets
+- ✅ CZML Media: automatic `properties.media_*` parsing to billboard/rectangle/polygon targets
 - ✅ 3D Tiles: Google Photorealistic 3D Tiles with cache and collision controls
 - ✅ Coordinate Helpers: Cartesian2, Cartesian3, Rectangle, PolygonHierarchy
 - ✅ Math Utilities: to_radians, to_degrees, HeadingPitchRoll, HeadingPitchRange

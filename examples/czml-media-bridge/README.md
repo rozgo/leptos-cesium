@@ -1,14 +1,13 @@
-# CZML Video + Explicit `process()`
+# CZML Media Stream
 
-Demonstrates parity-style video material assignment for a CZML entity with
+Demonstrates automatic media assignment for a moving CZML rectangle with
 explicit append updates:
 
 1. Load base CZML using `CzmlDataSource` in `Replace` mode.
-2. Assign video texture once at initial load (Sandcastle-style runtime assignment).
+2. Let `CzmlDataSource` automatically apply flattened `properties.media_*` fields to the rectangle.
 3. Send delta packets with `mode=Append` (`process()`) via trigger.
-4. Keep video material stable across geometry updates (no reassign each step).
-5. Use manual reapply button only when needed.
-6. Show a static expected route overlay for the video rectangle path.
+4. Keep the video material stable across geometry updates while the rectangle moves.
+5. Show a static expected route overlay for the video rectangle path.
 
 Run:
 

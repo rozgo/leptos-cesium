@@ -2,8 +2,6 @@ mod scenario;
 
 #[cfg(target_arch = "wasm32")]
 mod stream_timer;
-#[cfg(target_arch = "wasm32")]
-mod video_material;
 
 use leptos::prelude::*;
 use leptos::wasm_bindgen::JsValue;
@@ -14,8 +12,6 @@ use scenario::STREAM_INTERVAL_MS;
 use scenario::{build_append_packet, initial_append_step, media_demo_czml};
 #[cfg(target_arch = "wasm32")]
 use stream_timer::StreamTimer;
-#[cfg(target_arch = "wasm32")]
-use video_material::apply_video_material_from_czml;
 
 const LOOKAHEAD_PRIME_STEPS: usize = 4;
 
@@ -39,35 +35,49 @@ fn App() -> impl IntoView {
     let (append_step, set_append_step) = signal(initial_append_step());
     let (is_streaming, set_is_streaming) = signal(false);
 
-    let (video_status, set_video_status) = signal("Waiting for CZML load".to_string());
-    let (video_error, set_video_error) = signal(Option::<String>::None);
+    let (data_status, set_data_status) = signal("Waiting for CZML load".to_string());
+    let (media_status, set_media_status) = signal("Waiting for media reconciliation".to_string());
+    let (data_error, set_data_error) = signal(Option::<String>::None);
+    let (media_error, set_media_error) = signal(Option::<String>::None);
 
     #[cfg(target_arch = "wasm32")]
     let stream_interval = StoredValue::new_local(None::<StreamTimer>);
 
-    let apply_video_now = {
-        move |data_source: &JsValue, context: &str| {
-            #[cfg(target_arch = "wasm32")]
-            {
-                match apply_video_material_from_czml(data_source) {
-                    Ok(()) => {
-                        set_video_error.set(None);
-                        set_video_status.set(format!("Video material applied ({context})"));
-                    }
-                    Err(message) => {
-                        set_video_error.set(Some(message.clone()));
-                        set_video_status.set(format!("Video assignment failed ({context})"));
-                    }
-                }
-            }
-
-            #[cfg(not(target_arch = "wasm32"))]
-            {
-                let _ = (data_source, context);
-                set_video_status.set("Video assignment is wasm-only".to_string());
-            }
+    let on_packet_loading = Callback::new(move |loading: bool| {
+        if loading {
+            set_data_error.set(None);
+            let message = if loaded_data_source.get_untracked().is_some() {
+                "Processing CZML packet"
+            } else {
+                "Loading base CZML"
+            };
+            set_data_status.set(message.to_string());
         }
-    };
+    });
+
+    let on_media_loading = Callback::new(move |loading: bool| {
+        if loading {
+            set_media_error.set(None);
+            set_media_status.set("Reconciling media".to_string());
+        } else if media_error.get_untracked().is_none() {
+            set_media_status.set("Media ready".to_string());
+        }
+    });
+
+    let on_packet_error = Callback::new(move |message: String| {
+        set_data_error.set(Some(message));
+        set_data_status.set("CZML loading failed".to_string());
+    });
+
+    let on_media_error = Callback::new(move |error: CzmlMediaError| {
+        let prefix = error
+            .entity_id
+            .as_deref()
+            .map(|id| format!("[{}] ", id))
+            .unwrap_or_default();
+        set_media_error.set(Some(format!("{}{}", prefix, error.reason)));
+        set_media_status.set("Media assignment failed".to_string());
+    });
 
     let on_packet_loaded = Callback::new(move |value: JsValue| {
         let first_load = loaded_data_source.get_untracked().is_none();
@@ -75,10 +85,10 @@ fn App() -> impl IntoView {
 
         if first_load {
             loaded_target.set(Some(ViewerTarget::from(value.clone())));
-            apply_video_now(&value, "initial load");
             set_focus_trigger.set(());
+            set_data_status.set("Base CZML loaded".to_string());
         } else {
-            set_video_status.set(format!(
+            set_data_status.set(format!(
                 "Append packet processed (step {})",
                 append_step.get_untracked()
             ));
@@ -88,7 +98,7 @@ fn App() -> impl IntoView {
     let push_packet = {
         move || {
             if loaded_data_source.get_untracked().is_none() {
-                set_video_status.set("Waiting for initial load before append".to_string());
+                set_data_status.set("Waiting for initial load before append".to_string());
                 return;
             }
 
@@ -117,7 +127,7 @@ fn App() -> impl IntoView {
                 }
 
                 if loaded_data_source.get_untracked().is_none() {
-                    set_video_status
+                    set_data_status
                         .set("Waiting for initial load before starting stream".to_string());
                     return;
                 }
@@ -132,7 +142,7 @@ fn App() -> impl IntoView {
                         });
                     }
                     Err(message) => {
-                        set_video_error
+                        set_data_error
                             .set(Some(format!("Failed to start stream timer: {}", message)));
                         return;
                     }
@@ -144,7 +154,7 @@ fn App() -> impl IntoView {
                 }
 
                 set_is_streaming.set(true);
-                set_video_status.set("Streaming append packets".to_string());
+                set_data_status.set("Streaming append packets".to_string());
             }
 
             #[cfg(not(target_arch = "wasm32"))]
@@ -163,12 +173,6 @@ fn App() -> impl IntoView {
         set_is_streaming.set(false);
     };
 
-    let on_reapply_video = move |_| {
-        if let Some(data_source) = loaded_data_source.get_untracked() {
-            apply_video_now(&data_source, "manual reapply");
-        }
-    };
-
     on_cleanup(move || {
         #[cfg(target_arch = "wasm32")]
         {
@@ -180,7 +184,8 @@ fn App() -> impl IntoView {
         <div style="width: 100%; height: 100%; position: relative;">
             <div class="panel">
                 "CZML Media Stream"
-                <div class="status">{move || video_status.get()}</div>
+                <div class="status">{move || data_status.get()}</div>
+                <div class="status">{move || media_status.get()}</div>
                 <div class="status">
                     {move || {
                         format!(
@@ -191,7 +196,12 @@ fn App() -> impl IntoView {
                     }}
                 </div>
                 {move || {
-                    video_error.get().map(|message| {
+                    data_error.get().map(|message| {
+                        view! { <div class="error">{message}</div> }
+                    })
+                }}
+                {move || {
+                    media_error.get().map(|message| {
                         view! { <div class="error">{message}</div> }
                     })
                 }}
@@ -204,9 +214,6 @@ fn App() -> impl IntoView {
                 <button on:click=stop_stream disabled=move || !is_streaming.get()>
                     "Stop Stream"
                 </button>
-                <button on:click=on_reapply_video>
-                    "Reapply Video"
-                </button>
             </div>
 
             <ViewerContainer
@@ -218,8 +225,12 @@ fn App() -> impl IntoView {
                 <CzmlDataSource
                     data=packet
                     mode=packet_mode
-                    clear_existing=true
+                    clear_existing=false
                     trigger=packet_trigger
+                    on_loading=on_packet_loading
+                    on_error=on_packet_error
+                    on_media_loading=on_media_loading
+                    on_media_error=on_media_error
                     on_loaded=on_packet_loaded
                 />
 
