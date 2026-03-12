@@ -91,12 +91,12 @@ trunk serve --open
 ```
 Demonstrates `ImageMaterialPropertyBuilder` + `Material::image(...)` on a rectangle.
 
-**CZML media stream + append streaming:**
+**CZML media animation:**
 ```bash
 cd examples/czml-media-bridge
 trunk serve --open
 ```
-Demonstrates automatic CZML media assignment from flattened `properties.media_*` fields plus `Append` (`process`) updates.
+Demonstrates automatic CZML media assignment from flattened `properties.media_*` fields using one fully generated CZML document.
 
 **GeoJSON data loading (maps, geographic features):**
 ```bash

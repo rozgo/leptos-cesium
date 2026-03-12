@@ -1,13 +1,12 @@
-# CZML Media Stream
+# CZML Media Animation
 
-Demonstrates automatic media assignment for a moving CZML rectangle with
-explicit append updates:
+Demonstrates smooth full-CZML animation with automatic media assignment:
 
-1. Load base CZML using `CzmlDataSource` in `Replace` mode.
-2. Let `CzmlDataSource` automatically apply flattened `properties.media_*` fields to the rectangle.
-3. Send delta packets with `mode=Append` (`process()`) via trigger.
-4. Keep the video material stable across geometry updates while the rectangle moves.
-5. Show a static expected route overlay for the video rectangle path.
+1. Load one fully generated CZML document through `CzmlDataSource`.
+2. Let `CzmlDataSource` automatically apply flattened `properties.media_*` fields.
+3. Animate a moving video rectangle and a moving billboard pin from sampled CZML data.
+4. Keep a static route overlay to ground the motion.
+5. Use Cesium's built-in timeline and animation widgets as the playback UI.
 
 Run:
 

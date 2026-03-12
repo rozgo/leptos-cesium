@@ -14,7 +14,7 @@ Declarative CesiumJS components for Leptos. Uses standard Rust types (glam, geo-
 - Cesium CDN/runtime target: `1.138`
 - Primary integration surface: `ViewerContainer`, `Entity` + graphics, camera controls, data sources, 3D tiles
 - Media surface: `BillboardGraphics`, `ImageMaterialPropertyBuilder`, `Material::image`, `MediaSource`
-- CZML media bridge: `CzmlMediaBridge` for `properties.media` metadata wiring
+- CZML media support: `CzmlDataSource` auto-bridges flattened `properties.media_*` custom fields into billboard/rectangle/polygon media
 - Viewer events available via `ViewerEvents` and `cesium_events!`
 - Strict lifecycle ownership is implemented for async loads/listeners:
   - stale async requests are gated (`RequestGate`)
@@ -94,7 +94,7 @@ ViewerContainer (root, provides context)
 │   ├── CorridorGraphics
 │   └── PolylineVolumeGraphics
 ├── CameraSetView / CameraFlyTo / CameraFlyHome
-├── CzmlDataSource / GeoJsonDataSource / CzmlMediaBridge
+├── CzmlDataSource / GeoJsonDataSource
 └── GooglePhotorealistic3DTiles
 ```
 
@@ -316,6 +316,16 @@ set_delta_packet.set(Some(next_delta_json));
 set_delta_trigger.set(());
 ```
 
+Cesium does the interpolation automatically once enough samples are loaded. First-pass motion can still look stepped if the clock reaches the stream frontier before future samples are processed. For multipart/append CZML:
+
+- preload future packets ahead of `viewer.clock.currentTime` like Cesium's own `Multi-part CZML` Sandcastle
+- keep a persistent `CzmlDataSource` and append with `process()`
+- repeat interpolation metadata on streamed sampled properties when emitting separate CZML parts for parity with Cesium examples:
+  - `interpolationAlgorithm`
+  - `interpolationDegree`
+  - `forwardExtrapolationType`
+  - `forwardExtrapolationDuration`
+
 ### Delta Trail Without Flicker
 
 For moving trails, prefer sampled position deltas + `path` on the entity instead of replacing polyline positions every update.
@@ -353,26 +363,35 @@ Treat trigger-driven components as edge-triggered actions.
 - Use trigger ticks for repeated actions against same target or same delta packet identity.
 - Avoid relying on value changes alone for imperative Cesium actions.
 
-### CZML Media Bridge Pattern
+### CZML Media Through `CzmlDataSource`
 
-Use `CzmlMediaBridge` only when media metadata comes from CZML custom properties.
+Use `CzmlDataSource` directly for CZML-driven image/video binding.
+
+- Encode media intent with flattened custom properties such as `media_uri`, `media_kind`, and `media_target`.
+- Do not rely on nested `properties.media = { ... }` objects for media metadata. In Cesium CZML parsing, objects containing typed keys like `uri` can be coerced into specialized property types, which loses the rest of the nested object shape.
 
 ```rust
-let loaded = JsRwSignal::new_local(None::<JsValue>);
-let (bridge_trigger, set_bridge_trigger) = signal(());
-
-let on_loaded = Callback::new(move |value: JsValue| {
-    loaded.set(Some(value));
-    set_bridge_trigger.set(());
+let on_media_error = Callback::new(move |error: CzmlMediaError| {
+    logging::error!("media error: {}", error.reason);
 });
 
 view! {
-    <CzmlDataSource on_loaded=on_loaded />
-    <CzmlMediaBridge data_source=loaded trigger=bridge_trigger />
+    <CzmlDataSource
+        data=packet
+        mode=packet_mode
+        clear_existing=false
+        on_media_error=on_media_error
+    />
 }
 ```
 
-For non-CZML media, prefer direct graphics/material APIs (`BillboardGraphics`, `RectangleGraphics` + `Material::image`) instead of bridge plumbing.
+If a video rectangle is blank with no console error, inspect:
+
+- `entity.rectangle.material.getValue(viewer.clock.currentTime).image`
+- `HTMLVideoElement` means the bridge created a video texture correctly
+- a string URL means the metadata was parsed as image/URI data instead of video data
+
+For non-CZML media, prefer direct graphics/material APIs (`BillboardGraphics`, `RectangleGraphics` + `Material::image`) instead of CZML media plumbing.
 
 ### GeoJSON
 
@@ -501,6 +520,7 @@ fn from_degrees(west: f64, south: f64, east: f64, north: f64) -> Rectangle {
 | Signal not updating | Use `.get()` not `.get_untracked()` for reactive props |
 | JsSignal in SSR | JsSignal uses LocalStorage, only works in WASM |
 | CZML line/path flickers in streaming | Do not resend full polyline geometry each tick; use sampled `position` deltas + `path` and keep static geometry separate |
+| CZML video rectangle blank with no error | Inspect `rectangle.material.getValue(...).image`; if it is a string URL, flatten media metadata to `properties.media_*` fields |
 
 ## Validation Commands
 
