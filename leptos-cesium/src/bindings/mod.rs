@@ -16,6 +16,7 @@ pub mod math;
 pub mod polygon_hierarchy;
 pub mod property;
 pub mod rectangle;
+pub mod scene_transforms;
 pub mod tileset;
 pub mod viewer;
 
@@ -38,5 +39,6 @@ pub use math::*;
 pub use polygon_hierarchy::*;
 pub use property::*;
 pub use rectangle::*;
+pub use scene_transforms::*;
 pub use tileset::*;
 pub use viewer::*;

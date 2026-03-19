@@ -2,7 +2,7 @@
 
 use leptos::{html::Div, prelude::*};
 
-use crate::components::provide_cesium_context;
+use crate::components::{provide_cesium_context, provide_cesium_overlay_context};
 #[cfg(target_arch = "wasm32")]
 use crate::core::{JsStoredValue, OwnedSlot};
 
@@ -68,6 +68,8 @@ pub fn ViewerContainer(
     #[prop(optional)] children: Option<Children>,
 ) -> impl IntoView {
     let viewer_context = provide_cesium_context();
+    let overlay_host_ref = NodeRef::<Div>::new();
+    let _overlay_context = provide_cesium_overlay_context(overlay_host_ref);
     #[cfg(target_arch = "wasm32")]
     let selected_entity_listener = JsStoredValue::new_local(OwnedSlot::<(
         Event,
@@ -304,9 +306,20 @@ pub fn ViewerContainer(
         );
     }
 
+    let container_style = if style.trim().is_empty() {
+        "position: relative;".to_string()
+    } else {
+        format!("{style}; position: relative;")
+    };
+
     view! {
-        <div node_ref=node_ref class=class style=style>
+        <div node_ref=node_ref class=class style=container_style>
             {children.map(|c| c())}
+            <div
+                node_ref=overlay_host_ref
+                class="leptos-cesium-overlay-host"
+                style="position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 20;"
+            ></div>
         </div>
     }
 }

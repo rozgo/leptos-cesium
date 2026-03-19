@@ -1,5 +1,6 @@
 //! Context types wiring Cesium state through the Leptos component tree.
 
+use leptos::html::Div;
 use leptos::prelude::*;
 use wasm_bindgen::{JsCast, JsValue};
 
@@ -301,6 +302,34 @@ pub fn provide_cesium_context() -> CesiumViewerContext {
 /// Retrieve the viewer context if one exists.
 pub fn use_cesium_context() -> Option<CesiumViewerContext> {
     use_context::<CesiumViewerContext>()
+}
+
+/// Context exposing the viewer-managed HTML overlay host.
+#[derive(Debug, Clone, Copy)]
+pub struct CesiumOverlayContext {
+    host: NodeRef<Div>,
+}
+
+impl CesiumOverlayContext {
+    pub fn new(host: NodeRef<Div>) -> Self {
+        Self { host }
+    }
+
+    pub fn host(&self) -> NodeRef<Div> {
+        self.host
+    }
+}
+
+/// Provide the overlay host context to descendants.
+pub fn provide_cesium_overlay_context(host: NodeRef<Div>) -> CesiumOverlayContext {
+    let context = CesiumOverlayContext::new(host);
+    provide_context(context);
+    context
+}
+
+/// Retrieve the overlay host context if one exists.
+pub fn use_cesium_overlay_context() -> Option<CesiumOverlayContext> {
+    use_context::<CesiumOverlayContext>()
 }
 
 /// Context exposing entity handles within a viewer.

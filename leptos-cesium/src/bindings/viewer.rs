@@ -480,8 +480,14 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = primitives)]
     pub fn primitives(this: &Scene) -> PrimitiveCollection;
 
+    #[wasm_bindgen(method, getter, js_name = postRender)]
+    pub fn post_render(this: &Scene) -> Event;
+
     #[wasm_bindgen(method, getter, js_name = screenSpaceCameraController)]
     pub fn screen_space_camera_controller(this: &Scene) -> ScreenSpaceCameraController;
+
+    #[wasm_bindgen(method, js_name = requestRender)]
+    pub fn request_render(this: &Scene);
 
     /// Camera interaction controller.
     #[wasm_bindgen(js_namespace = Cesium, js_name = ScreenSpaceCameraController)]

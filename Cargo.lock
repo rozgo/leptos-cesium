@@ -1664,6 +1664,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "pinned-youtube-overlay"
+version = "0.0.1"
+dependencies = [
+ "console_error_panic_hook",
+ "leptos",
+ "leptos-cesium",
+]
+
+[[package]]
 name = "potential_utf"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"

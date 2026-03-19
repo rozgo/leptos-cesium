@@ -91,6 +91,13 @@ trunk serve --open
 ```
 Demonstrates `ImageMaterialPropertyBuilder` + `Material::image(...)` on a rectangle.
 
+**Pinned YouTube overlay (HTML iframe):**
+```bash
+cd examples/pinned-youtube-overlay
+trunk serve --open
+```
+Demonstrates an official YouTube iframe visually pinned to a globe position via `YouTubeOverlay`.
+
 **CZML media animation:**
 ```bash
 cd examples/czml-media-bridge
@@ -199,6 +206,51 @@ view! {
 **Points & Markers:**
 - **PointGraphics** - Point markers with pixel size and color customization
 - **BillboardGraphics** - Image/video/canvas billboards with origins, offsets, and scale
+- **GeoAnchoredHtmlOverlay** - Screen-space HTML aligned to world coordinates
+- **YouTubeOverlay** - YouTube iframe wrapper built on globe-anchored HTML overlay support
+
+### HTML Overlays
+
+Use HTML overlays when you need DOM content to track a globe position instead of becoming a
+Cesium material or billboard texture.
+
+```rust
+use leptos::prelude::*;
+use leptos_cesium::prelude::*;
+
+view! {
+    <ViewerContainer ion_token=token>
+        <GeoAnchoredHtmlOverlay
+            position=DVec3::new(-122.4465, 37.8050, 120.0)
+            pointer_events=true
+        >
+            <div
+                style="padding: 10px 12px; border-radius: 12px; background: rgba(8, 17, 29, 0.9); color: white;"
+            >
+                "DOM content pinned to the globe"
+            </div>
+        </GeoAnchoredHtmlOverlay>
+    </ViewerContainer>
+}
+```
+
+For official YouTube embeds, use `YouTubeOverlay`:
+
+```rust
+view! {
+    <ViewerContainer ion_token=token>
+        <YouTubeOverlay
+            video_id="M7lc1UVf-VE".to_string()
+            position=DVec3::new(-122.4465, 37.8050, 140.0)
+            width_px=420_u32
+            height_px=236_u32
+        />
+    </ViewerContainer>
+}
+```
+
+If you need a true globe texture instead of an iframe overlay, keep using
+`ImageMaterialPropertyBuilder` + `Material::image(...)` with a real `HTMLVideoElement`.
 
 ### Materials
 
