@@ -128,9 +128,7 @@ pub fn media_demo_czml() -> String {
                 "media_autoplay": true,
                 "media_loop": true,
                 "media_muted": true,
-                "media_controls": false,
-                "media_cross_origin": "anonymous",
-                "media_preload": "metadata"
+                "media_controls": false
             },
             "path": {
                 "show": true,

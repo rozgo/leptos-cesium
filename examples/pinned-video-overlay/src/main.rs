@@ -46,8 +46,6 @@ fn App() -> impl IntoView {
                     autoplay=true
                     muted=true
                     loop_video=true
-                    controls=true
-                    cross_origin=Some("anonymous".to_string())
                 />
 
                 <CameraSetView destination=Some(DVec3::new(anchor.x, anchor.y, 3800.0).into()) />

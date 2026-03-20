@@ -270,11 +270,13 @@ view! {
             autoplay=true
             muted=true
             loop_video=true
-            controls=true
         />
     </ViewerContainer>
 }
 ```
+
+Native video overlays rely on the browser's normal autoplay policy and reveal
+controls on hover.
 
 If you need a true globe texture instead of a DOM overlay, keep using
 `ImageMaterialPropertyBuilder` + `Material::image(...)` with a real `HTMLVideoElement`.

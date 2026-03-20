@@ -414,17 +414,9 @@ fn parse_media_descriptor(entity: &JsValue) -> Result<Option<CzmlMediaDescriptor
         .unwrap_or(is_youtube);
 
     let cross_origin =
-        read_property_string_field(&properties, &properties_value, "media_cross_origin")
-            .or_else(|| {
-                read_property_string_field(&properties, &properties_value, "media_crossOrigin")
-            })
-            .or_else(|| {
-                if is_video && !uri.starts_with("data:") {
-                    Some("anonymous".to_string())
-                } else {
-                    None
-                }
-            });
+        read_property_string_field(&properties, &properties_value, "media_cross_origin").or_else(
+            || read_property_string_field(&properties, &properties_value, "media_crossOrigin"),
+        );
 
     let width_px =
         read_property_u32_field(&properties, &properties_value, "media_width").unwrap_or(320);

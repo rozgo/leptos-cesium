@@ -5,7 +5,8 @@ using `VideoOverlay`.
 
 This example demonstrates the DOM overlay path, not a Cesium billboard or
 material texture. The video stays aligned to a world position while the camera
-moves, but playback is handled by the browser's native media element.
+moves, but playback is handled by the browser's native media element. Browser
+controls appear when the video is hovered.
 
 Run:
 

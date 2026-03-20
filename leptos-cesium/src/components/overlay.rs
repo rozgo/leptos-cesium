@@ -384,6 +384,7 @@ fn VideoOverlayBody(
     #[prop(optional, into)] poster: Signal<Option<String>>,
     #[prop(optional, into)] preload: Signal<Option<String>>,
 ) -> impl IntoView {
+    let hover_controls = RwSignal::new(false);
     let video_ref = NodeRef::<Video>::new();
 
     #[cfg(not(feature = "ssr"))]
@@ -419,14 +420,16 @@ fn VideoOverlayBody(
             width=move || width_px.get().to_string()
             height=move || height_px.get().to_string()
             autoplay=move || autoplay.get()
-            controls=move || controls.get()
+            controls=move || controls.get() || hover_controls.get()
             muted=move || muted.get()
             playsinline=move || plays_inline.get()
             r#loop=move || loop_video.get()
             crossorigin=move || cross_origin.get()
             poster=move || poster.get()
-            preload=move || preload.get().unwrap_or_else(|| "metadata".to_string())
+            preload=move || preload.get()
             src=move || src.get()
+            on:mouseenter=move |_| hover_controls.set(true)
+            on:mouseleave=move |_| hover_controls.set(false)
             style="border: 0; border-radius: 14px; background: #000; box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38);"
         ></video>
     }
