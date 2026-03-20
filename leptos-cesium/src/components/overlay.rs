@@ -811,26 +811,33 @@ fn update_overlay_world_position(
     pointer_events: bool,
 ) {
     if !show {
-        apply_overlay_style(overlay, 0.0, 0.0, false, pointer_events);
+        apply_overlay_style(overlay, 0.0, 0.0, false, pointer_events, 0);
         return;
     }
 
     let Some(world_position) = world_position else {
-        apply_overlay_style(overlay, 0.0, 0.0, false, pointer_events);
+        apply_overlay_style(overlay, 0.0, 0.0, false, pointer_events, 0);
         return;
     };
 
-    if hide_when_behind_globe
-        && !is_anchor_visible_from_camera(&viewer.camera().position_wc(), &world_position)
-    {
-        apply_overlay_style(overlay, 0.0, 0.0, false, pointer_events);
+    let camera = viewer.camera();
+    let camera_position = camera.position_wc();
+
+    if hide_when_behind_globe && !is_anchor_visible_from_camera(&camera_position, &world_position) {
+        apply_overlay_style(overlay, 0.0, 0.0, false, pointer_events, 0);
+        return;
+    }
+
+    let view_depth = camera_view_depth(&camera_position, &camera.direction_wc(), &world_position);
+    if !view_depth.is_finite() || view_depth <= 0.0 {
+        apply_overlay_style(overlay, 0.0, 0.0, false, pointer_events, 0);
         return;
     }
 
     let Some(window_position) =
         SceneTransforms::world_to_window_coordinates(&viewer.scene(), &world_position)
     else {
-        apply_overlay_style(overlay, 0.0, 0.0, false, pointer_events);
+        apply_overlay_style(overlay, 0.0, 0.0, false, pointer_events, 0);
         return;
     };
 
@@ -842,7 +849,12 @@ fn update_overlay_world_position(
         && top <= f64::from(host.client_height());
 
     let visible = !hide_when_offscreen || within_bounds;
-    apply_overlay_style(overlay, left, top, visible, pointer_events);
+    let z_index = if visible {
+        overlay_z_index_from_view_depth(view_depth)
+    } else {
+        0
+    };
+    apply_overlay_style(overlay, left, top, visible, pointer_events, z_index);
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -852,6 +864,7 @@ fn apply_overlay_style(
     top: f64,
     visible: bool,
     pointer_events: bool,
+    z_index: i32,
 ) {
     let visibility = if visible { "visible" } else { "hidden" };
     let pointer_events = if visible && pointer_events {
@@ -860,9 +873,34 @@ fn apply_overlay_style(
         "none"
     };
     let style = format!(
-        "position: absolute; left: {left:.2}px; top: {top:.2}px; transform: translate(-50%, -50%); visibility: {visibility}; pointer-events: {pointer_events}; will-change: transform;"
+        "position: absolute; left: {left:.2}px; top: {top:.2}px; transform: translate(-50%, -50%); visibility: {visibility}; pointer-events: {pointer_events}; z-index: {z_index}; will-change: transform;"
     );
     let _ = overlay.set_attribute("style", &style);
+}
+
+#[cfg(target_arch = "wasm32")]
+fn camera_view_depth(
+    camera_position: &crate::bindings::Cartesian3,
+    camera_direction: &crate::bindings::Cartesian3,
+    world_position: &Cartesian3,
+) -> f64 {
+    let offset_x = world_position.x() - camera_position.x();
+    let offset_y = world_position.y() - camera_position.y();
+    let offset_z = world_position.z() - camera_position.z();
+
+    (offset_x * camera_direction.x())
+        + (offset_y * camera_direction.y())
+        + (offset_z * camera_direction.z())
+}
+
+#[cfg_attr(not(any(target_arch = "wasm32", test)), allow(dead_code))]
+fn overlay_z_index_from_view_depth(view_depth: f64) -> i32 {
+    if !view_depth.is_finite() || view_depth <= 0.0 {
+        return 0;
+    }
+
+    let clamped_depth = view_depth.floor().clamp(0.0, f64::from(i32::MAX - 1));
+    i32::MAX - clamped_depth as i32
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -883,7 +921,7 @@ fn is_anchor_visible_from_camera(
 
 #[cfg(test)]
 mod tests {
-    use super::build_youtube_embed_url;
+    use super::{build_youtube_embed_url, overlay_z_index_from_view_depth};
 
     #[test]
     fn youtube_embed_url_includes_default_inline_playback() {
@@ -903,5 +941,16 @@ mod tests {
             url,
             "https://www.youtube.com/embed/M7lc1UVf-VE?playsinline=1&autoplay=1&mute=1&controls=0&start=42"
         );
+    }
+
+    #[test]
+    fn nearer_view_depth_gets_higher_overlay_z_index() {
+        assert!(overlay_z_index_from_view_depth(10.0) > overlay_z_index_from_view_depth(100.0));
+    }
+
+    #[test]
+    fn non_positive_view_depth_hides_overlay_z_index() {
+        assert_eq!(overlay_z_index_from_view_depth(0.0), 0);
+        assert_eq!(overlay_z_index_from_view_depth(-15.0), 0);
     }
 }
