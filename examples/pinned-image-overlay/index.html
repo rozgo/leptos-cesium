@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Leptos Cesium – CZML Overlay Media</title>
+    <title>Leptos Cesium – Pinned Image Overlay</title>
     <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.138/Build/Cesium/Widgets/widgets.css" />
     <link data-trunk rel="copy-file" href="public/pin.svg" />
     <script src="https://cesium.com/downloads/cesiumjs/releases/1.138/Build/Cesium/Cesium.js"></script>
@@ -14,44 +14,26 @@
         margin: 0;
         width: 100%;
         height: 100%;
-        background: #0b1020;
+        background: #08111d;
         overflow: hidden;
       }
 
-      .panel {
+      .hud {
         position: absolute;
         top: 12px;
         left: 12px;
         z-index: 1000;
-        min-width: 300px;
         max-width: 420px;
         padding: 10px 12px;
-        border-radius: 8px;
-        background: rgba(11, 16, 32, 0.82);
-        color: #deebff;
+        border-radius: 10px;
+        background: rgba(8, 17, 29, 0.82);
+        color: #e4ecff;
         font-family: sans-serif;
       }
 
-      .panel button {
-        margin-top: 8px;
-        border: 0;
-        border-radius: 6px;
-        padding: 6px 10px;
-        color: #f6fbff;
-        background: #255dc6;
-        cursor: pointer;
+      .hud small {
+        color: #9db3d8;
       }
-
-      .panel .status {
-        margin-top: 8px;
-        color: #9cc7ff;
-      }
-
-      .panel .error {
-        margin-top: 8px;
-        color: #ffb8c4;
-      }
-
     </style>
   </head>
   <body>

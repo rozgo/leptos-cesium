@@ -84,6 +84,13 @@ trunk serve --open
 ```
 Demonstrates `BillboardGraphics` with `MediaSource::Url`.
 
+**Pinned image overlay (HTML `<img>`):**
+```bash
+cd examples/pinned-image-overlay
+trunk serve --open
+```
+Demonstrates a native HTML `<img>` visually pinned to a globe position via `ImageOverlay`.
+
 **Pinned video material (non-CZML):**
 ```bash
 cd examples/pinned-video-material
@@ -110,7 +117,7 @@ Demonstrates an official YouTube iframe visually pinned to a globe position via 
 cd examples/czml-overlay-media
 trunk serve --open
 ```
-Demonstrates overlay-based CZML media tracking from flattened `properties.media_*` fields using moving entity positions.
+Demonstrates overlay-based CZML media tracking from flattened `properties.media_*` fields using moving image, video, and YouTube entity positions.
 
 **GeoJSON data loading (maps, geographic features):**
 ```bash
@@ -498,9 +505,11 @@ view! {
 }
 ```
 
-Supported overlay kinds are `video` and `youtube`. In v1, overlay media requires `entity.position`;
-`media_target` is still parsed for validation, but rendering is point-anchored rather than billboard,
-rectangle, or polygon texture mutation.
+Supported overlay kinds are `image`, `video`, and `youtube`. In v1, overlay media requires `entity.position`;
+the schema is overlay-only and no longer accepts legacy billboard/rectangle/polygon media fields.
+
+Use `media_uri` for image and native video overlays, and `media_youtube_id` for YouTube overlays. Legacy
+aliases such as `media_target`, `media_url`, and `media_start` are not supported.
 
 Use `source_uri` when loading inline CZML and its `properties.media_uri` values are relative.
 

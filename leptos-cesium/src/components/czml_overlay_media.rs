@@ -17,21 +17,11 @@ use url::Url;
 use wasm_bindgen::JsCast;
 
 /// Media kind for CZML media metadata.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum CzmlMediaKind {
+    Image,
     Video,
     Youtube,
-}
-
-/// Target metadata declared in CZML.
-///
-/// Overlay media is point-anchored in v1, but this field is retained for validation and
-/// backwards-compatible parsing of existing `properties.media_target` packets.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum CzmlMediaTarget {
-    Billboard,
-    Rectangle,
-    Polygon,
 }
 
 /// Parsed `properties.media_*` descriptor for one entity.
@@ -39,8 +29,8 @@ pub enum CzmlMediaTarget {
 pub struct CzmlMediaDescriptor {
     pub entity_id: String,
     pub kind: CzmlMediaKind,
-    pub target: CzmlMediaTarget,
-    pub uri: String,
+    pub media_uri: Option<String>,
+    pub youtube_id: Option<String>,
     pub autoplay: bool,
     pub loop_video: bool,
     pub muted: bool,
@@ -77,6 +67,12 @@ pub type CzmlMediaResolver = Callback<CzmlMediaDescriptor, Option<MediaSource>>;
 #[cfg(target_arch = "wasm32")]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum CzmlOverlayMedia {
+    Image {
+        src: String,
+        width_px: u32,
+        height_px: u32,
+        cross_origin: Option<String>,
+    },
     Video {
         src: String,
         width_px: u32,
@@ -110,7 +106,7 @@ pub(crate) struct CzmlOverlayBinding {
 }
 
 #[cfg(target_arch = "wasm32")]
-pub(crate) fn reconcile_data_source_media(
+pub(crate) fn reconcile_data_source_overlay_media(
     source_js: JsValue,
     request_id: u64,
     request_gate: RequestGate,
@@ -163,21 +159,12 @@ pub(crate) fn reconcile_data_source_media(
             }
         };
 
-        if descriptor.target != CzmlMediaTarget::Billboard {
-            emit_media_error(
-                on_error,
-                Some(descriptor.entity_id.clone()),
-                "Overlay media only supports point anchors (`entity.position`) in v1",
-            );
-            continue;
-        }
-
         if let Some(resolver) = resolve_media
             && matches!(descriptor.kind, CzmlMediaKind::Video)
             && let Some(resolved) = resolver.run(descriptor.clone())
         {
             match resolved_media_uri(&resolved) {
-                Ok(uri) => descriptor.uri = uri,
+                Ok(uri) => descriptor.media_uri = Some(uri),
                 Err(error) => {
                     emit_media_error(on_error, Some(descriptor.entity_id.clone()), error);
                     continue;
@@ -185,9 +172,18 @@ pub(crate) fn reconcile_data_source_media(
             }
         }
 
-        if matches!(descriptor.kind, CzmlMediaKind::Video) {
-            descriptor.uri = match normalize_media_uri(&descriptor.uri, base_uri.as_deref()) {
-                Ok(value) => value,
+        if matches!(descriptor.kind, CzmlMediaKind::Image | CzmlMediaKind::Video) {
+            let Some(media_uri) = descriptor.media_uri.as_deref() else {
+                emit_media_error(
+                    on_error,
+                    Some(descriptor.entity_id.clone()),
+                    media_uri_required_error(descriptor.kind),
+                );
+                continue;
+            };
+
+            descriptor.media_uri = match normalize_media_uri(media_uri, base_uri.as_deref()) {
+                Ok(value) => Some(value),
                 Err(error) => {
                     emit_media_error(on_error, Some(descriptor.entity_id.clone()), error);
                     continue;
@@ -239,8 +235,20 @@ fn overlay_media_from_descriptor(
     descriptor: &CzmlMediaDescriptor,
 ) -> Result<CzmlOverlayMedia, String> {
     match descriptor.kind {
+        CzmlMediaKind::Image => Ok(CzmlOverlayMedia::Image {
+            src: descriptor
+                .media_uri
+                .clone()
+                .ok_or_else(|| media_uri_required_error(CzmlMediaKind::Image).to_string())?,
+            width_px: descriptor.width_px,
+            height_px: descriptor.height_px,
+            cross_origin: descriptor.cross_origin.clone(),
+        }),
         CzmlMediaKind::Video => Ok(CzmlOverlayMedia::Video {
-            src: descriptor.uri.clone(),
+            src: descriptor
+                .media_uri
+                .clone()
+                .ok_or_else(|| media_uri_required_error(CzmlMediaKind::Video).to_string())?,
             width_px: descriptor.width_px,
             height_px: descriptor.height_px,
             autoplay: descriptor.autoplay,
@@ -252,24 +260,26 @@ fn overlay_media_from_descriptor(
             poster: descriptor.poster.clone(),
             preload: descriptor.preload.clone(),
         }),
-        CzmlMediaKind::Youtube => {
-            let Some(video_id) = extract_youtube_video_id(&descriptor.uri) else {
-                return Err(format!(
-                    "Unable to extract a YouTube video id from '{}'",
-                    descriptor.uri
-                ));
-            };
+        CzmlMediaKind::Youtube => Ok(CzmlOverlayMedia::Youtube {
+            video_id: descriptor.youtube_id.clone().ok_or_else(|| {
+                "YouTube overlay media requires `properties.media_youtube_id`".to_string()
+            })?,
+            width_px: descriptor.width_px,
+            height_px: descriptor.height_px,
+            autoplay: descriptor.autoplay,
+            mute: descriptor.muted,
+            controls: descriptor.controls,
+            start_seconds: descriptor.start_seconds,
+        }),
+    }
+}
 
-            Ok(CzmlOverlayMedia::Youtube {
-                video_id,
-                width_px: descriptor.width_px,
-                height_px: descriptor.height_px,
-                autoplay: descriptor.autoplay,
-                mute: descriptor.muted,
-                controls: descriptor.controls,
-                start_seconds: descriptor.start_seconds,
-            })
-        }
+#[cfg(target_arch = "wasm32")]
+fn media_uri_required_error(kind: CzmlMediaKind) -> &'static str {
+    match kind {
+        CzmlMediaKind::Image => "Image overlay media requires `properties.media_uri`",
+        CzmlMediaKind::Video => "Video overlay media requires `properties.media_uri`",
+        CzmlMediaKind::Youtube => "YouTube overlay media does not use `properties.media_uri`",
     }
 }
 
@@ -360,39 +370,57 @@ fn parse_media_descriptor(entity: &JsValue) -> Result<Option<CzmlMediaDescriptor
     };
 
     let properties_value = resolve_property_value(&properties);
-    let explicit_youtube_id =
-        read_property_string_field(&properties, &properties_value, "media_youtube_id");
-    let uri = read_property_string_field(&properties, &properties_value, "media_uri")
-        .or_else(|| read_property_string_field(&properties, &properties_value, "media_url"))
-        .or(explicit_youtube_id.clone());
-    let Some(uri) = uri else {
+    let media_kind = read_property_string_field(&properties, &properties_value, "media_kind");
+    let media_uri = read_property_string_field(&properties, &properties_value, "media_uri");
+    let youtube_id = read_property_string_field(&properties, &properties_value, "media_youtube_id");
+    let legacy_media_target =
+        read_property_string_field(&properties, &properties_value, "media_target");
+    let legacy_media_url = read_property_string_field(&properties, &properties_value, "media_url");
+    let legacy_media_start = read_property_u32_field(&properties, &properties_value, "media_start");
+
+    if media_kind.is_none()
+        && media_uri.is_none()
+        && youtube_id.is_none()
+        && legacy_media_target.is_none()
+        && legacy_media_url.is_none()
+        && legacy_media_start.is_none()
+    {
         return Ok(None);
+    }
+
+    if legacy_media_target.is_some() {
+        return Err(
+            "Legacy `properties.media_target` is no longer supported; overlay media now uses `entity.position` only".to_string(),
+        );
+    }
+
+    if legacy_media_url.is_some() {
+        return Err(
+            "Legacy `properties.media_url` is no longer supported; use `properties.media_uri`"
+                .to_string(),
+        );
+    }
+
+    if legacy_media_start.is_some() {
+        return Err(
+            "Legacy `properties.media_start` is no longer supported; use `properties.media_start_seconds`".to_string(),
+        );
+    }
+
+    let Some(kind_value) = media_kind else {
+        return Err("Overlay media requires `properties.media_kind`".to_string());
     };
 
-    let kind = match read_property_string_field(&properties, &properties_value, "media_kind")
-        .unwrap_or_else(|| {
-            if explicit_youtube_id.is_some() {
-                "youtube".to_string()
-            } else {
-                infer_kind_from_uri(&uri).to_string()
-            }
-        })
-        .to_lowercase()
-        .as_str()
-    {
+    let kind = match kind_value.to_lowercase().as_str() {
+        "image" => CzmlMediaKind::Image,
         "video" => CzmlMediaKind::Video,
         "youtube" => CzmlMediaKind::Youtube,
         other => {
             return Err(format!(
-                "Unsupported properties.media_kind '{}' (expected 'video' or 'youtube')",
+                "Unsupported properties.media_kind '{}' (expected 'image', 'video' or 'youtube')",
                 other
             ));
         }
-    };
-
-    let target = match read_property_string_field(&properties, &properties_value, "media_target") {
-        Some(value) => parse_target(&value)?,
-        None => infer_target(entity),
     };
 
     let is_video = matches!(kind, CzmlMediaKind::Video);
@@ -424,14 +452,42 @@ fn parse_media_descriptor(entity: &JsValue) -> Result<Option<CzmlMediaDescriptor
         read_property_u32_field(&properties, &properties_value, "media_height").unwrap_or(180);
     let poster = read_property_string_field(&properties, &properties_value, "media_poster");
     let preload = read_property_string_field(&properties, &properties_value, "media_preload");
-    let start_seconds = read_property_u32_field(&properties, &properties_value, "media_start")
-        .or_else(|| read_property_u32_field(&properties, &properties_value, "media_start_seconds"));
+    let start_seconds =
+        read_property_u32_field(&properties, &properties_value, "media_start_seconds");
+
+    let (media_uri, youtube_id) = match kind {
+        CzmlMediaKind::Image => {
+            let Some(image_uri) = media_uri else {
+                return Err(media_uri_required_error(CzmlMediaKind::Image).to_string());
+            };
+            (Some(image_uri), None)
+        }
+        CzmlMediaKind::Video => {
+            let Some(video_uri) = media_uri else {
+                return Err(media_uri_required_error(CzmlMediaKind::Video).to_string());
+            };
+            (Some(video_uri), None)
+        }
+        CzmlMediaKind::Youtube => {
+            if media_uri.is_some() {
+                return Err(
+                    "YouTube overlay media requires `properties.media_youtube_id`; `properties.media_uri` is not supported".to_string(),
+                );
+            }
+            let Some(youtube_id) = youtube_id else {
+                return Err(
+                    "YouTube overlay media requires `properties.media_youtube_id`".to_string(),
+                );
+            };
+            (None, Some(youtube_id))
+        }
+    };
 
     Ok(Some(CzmlMediaDescriptor {
         entity_id,
         kind,
-        target,
-        uri,
+        media_uri,
+        youtube_id,
         autoplay,
         loop_video,
         muted,
@@ -444,63 +500,6 @@ fn parse_media_descriptor(entity: &JsValue) -> Result<Option<CzmlMediaDescriptor
         preload,
         start_seconds,
     }))
-}
-
-#[cfg(target_arch = "wasm32")]
-fn infer_kind_from_uri(uri: &str) -> &'static str {
-    if extract_youtube_video_id(uri).is_some() && looks_like_youtube_source(uri) {
-        return "youtube";
-    }
-
-    let normalized = uri
-        .split(['?', '#'])
-        .next()
-        .unwrap_or(uri)
-        .to_ascii_lowercase();
-    if normalized.ends_with(".mp4")
-        || normalized.ends_with(".webm")
-        || normalized.ends_with(".mov")
-        || normalized.ends_with(".m4v")
-        || normalized.ends_with(".ogv")
-        || normalized.ends_with(".m3u8")
-    {
-        "video"
-    } else {
-        "video"
-    }
-}
-
-#[cfg(target_arch = "wasm32")]
-fn parse_target(value: &str) -> Result<CzmlMediaTarget, String> {
-    match value.to_lowercase().as_str() {
-        "billboard" => Ok(CzmlMediaTarget::Billboard),
-        "rectangle" => Ok(CzmlMediaTarget::Rectangle),
-        "polygon" => Ok(CzmlMediaTarget::Polygon),
-        other => Err(format!(
-            "Unsupported properties.media_target '{}' (expected billboard|rectangle|polygon)",
-            other
-        )),
-    }
-}
-
-#[cfg(target_arch = "wasm32")]
-fn infer_target(entity: &JsValue) -> CzmlMediaTarget {
-    if has_entity_graphic(entity, "billboard") {
-        CzmlMediaTarget::Billboard
-    } else if has_entity_graphic(entity, "rectangle") {
-        CzmlMediaTarget::Rectangle
-    } else if has_entity_graphic(entity, "polygon") {
-        CzmlMediaTarget::Polygon
-    } else {
-        CzmlMediaTarget::Billboard
-    }
-}
-
-#[cfg(target_arch = "wasm32")]
-fn has_entity_graphic(entity: &JsValue, property: &str) -> bool {
-    Reflect::get(entity, &JsValue::from_str(property))
-        .map(|value| !value.is_null() && !value.is_undefined())
-        .unwrap_or(false)
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -670,68 +669,6 @@ fn resolved_media_uri(media_source: &MediaSource) -> Result<String, String> {
     }
 }
 
-#[cfg_attr(not(any(target_arch = "wasm32", test)), allow(dead_code))]
-fn extract_youtube_video_id(source: &str) -> Option<String> {
-    let trimmed = source.trim();
-    if trimmed.is_empty() {
-        return None;
-    }
-
-    if !trimmed.contains('/') && !trimmed.contains('?') && !trimmed.contains('&') {
-        return Some(trimmed.to_string());
-    }
-
-    let Ok(url) = Url::parse(trimmed) else {
-        return None;
-    };
-    let host = url.host_str()?.to_ascii_lowercase();
-
-    if host == "youtu.be" {
-        return url
-            .path_segments()
-            .and_then(|mut segments| segments.next())
-            .filter(|value| !value.is_empty())
-            .map(str::to_string);
-    }
-
-    if !host.contains("youtube.com") {
-        return None;
-    }
-
-    if let Some(video_id) = url
-        .query_pairs()
-        .find_map(|(key, value)| (key == "v" && !value.is_empty()).then(|| value.into_owned()))
-    {
-        return Some(video_id);
-    }
-
-    url.path_segments().and_then(|mut segments| {
-        let first = segments.next()?;
-        let second = segments.next()?;
-        matches!(first, "embed" | "shorts" | "live")
-            .then(|| second.to_string())
-            .filter(|value| !value.is_empty())
-    })
-}
-
-#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-fn looks_like_youtube_source(source: &str) -> bool {
-    let trimmed = source.trim();
-    trimmed.contains("youtu.be")
-        || trimmed.contains("youtube.com")
-        || read_plain_youtube_id(trimmed).is_some()
-}
-
-#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-fn read_plain_youtube_id(source: &str) -> Option<&str> {
-    let trimmed = source.trim();
-    (trimmed.len() >= 6
-        && !trimmed.contains('/')
-        && !trimmed.contains('?')
-        && !trimmed.contains('&'))
-    .then_some(trimmed)
-}
-
 #[cfg(target_arch = "wasm32")]
 fn emit_media_error(
     on_error: Option<Callback<CzmlMediaError>>,
@@ -796,30 +733,6 @@ mod tests {
             )
             .unwrap(),
             "https://example.com/assets/demo/pin.svg"
-        );
-    }
-
-    #[test]
-    fn extracts_youtube_id_from_short_url() {
-        assert_eq!(
-            extract_youtube_video_id("https://youtu.be/M7lc1UVf-VE"),
-            Some("M7lc1UVf-VE".to_string())
-        );
-    }
-
-    #[test]
-    fn extracts_youtube_id_from_watch_url() {
-        assert_eq!(
-            extract_youtube_video_id("https://www.youtube.com/watch?v=M7lc1UVf-VE"),
-            Some("M7lc1UVf-VE".to_string())
-        );
-    }
-
-    #[test]
-    fn accepts_plain_youtube_ids() {
-        assert_eq!(
-            extract_youtube_video_id("M7lc1UVf-VE"),
-            Some("M7lc1UVf-VE".to_string())
         );
     }
 }

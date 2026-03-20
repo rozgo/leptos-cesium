@@ -217,6 +217,30 @@ pub fn GeoAnchoredHtmlOverlay(
     render_overlay_portal(overlay_ref, children)
 }
 
+/// Native HTML image overlay pinned to a Cesium world position.
+#[component]
+pub fn ImageOverlay(
+    #[prop(into)] src: Signal<String>,
+    #[prop(into)] position: Signal<DVec3>,
+    #[prop(optional, into, default = 320.into())] width_px: Signal<u32>,
+    #[prop(optional, into, default = 180.into())] height_px: Signal<u32>,
+    #[prop(optional, into, default = true.into())] show: Signal<bool>,
+    #[prop(optional, into)] alt: Signal<Option<String>>,
+    #[prop(optional, into)] cross_origin: Signal<Option<String>>,
+) -> impl IntoView {
+    view! {
+        <GeoAnchoredHtmlOverlay position=position show=show>
+            <ImageOverlayBody
+                src=src
+                width_px=width_px
+                height_px=height_px
+                alt=alt
+                cross_origin=cross_origin
+            />
+        </GeoAnchoredHtmlOverlay>
+    }
+}
+
 /// Native HTML video overlay pinned to a Cesium world position.
 #[component]
 pub fn VideoOverlay(
@@ -301,6 +325,33 @@ pub fn YouTubeOverlay(
 
 #[cfg(target_arch = "wasm32")]
 #[component]
+pub(crate) fn TrackedEntityImageOverlay(
+    entity: ThreadSafeJsValue<Entity>,
+    #[prop(into)] show: Signal<bool>,
+    src: String,
+    width_px: u32,
+    height_px: u32,
+    cross_origin: Option<String>,
+) -> impl IntoView {
+    let src = RwSignal::new(src);
+    let alt = RwSignal::new(None::<String>);
+    let cross_origin = RwSignal::new(cross_origin);
+
+    view! {
+        <TrackedEntityHtmlOverlay entity=entity show=show>
+            <ImageOverlayBody
+                src=src
+                width_px=width_px
+                height_px=height_px
+                alt=alt
+                cross_origin=cross_origin
+            />
+        </TrackedEntityHtmlOverlay>
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[component]
 pub(crate) fn TrackedEntityVideoOverlay(
     entity: ThreadSafeJsValue<Entity>,
     #[prop(into)] show: Signal<bool>,
@@ -367,6 +418,26 @@ pub(crate) fn TrackedEntityYouTubeOverlay(
                 start_seconds=start_seconds
             />
         </TrackedEntityHtmlOverlay>
+    }
+}
+
+#[component]
+fn ImageOverlayBody(
+    #[prop(into)] src: Signal<String>,
+    #[prop(optional, into, default = 320.into())] width_px: Signal<u32>,
+    #[prop(optional, into, default = 180.into())] height_px: Signal<u32>,
+    #[prop(optional, into)] alt: Signal<Option<String>>,
+    #[prop(optional, into)] cross_origin: Signal<Option<String>>,
+) -> impl IntoView {
+    view! {
+        <img
+            width=move || width_px.get().to_string()
+            height=move || height_px.get().to_string()
+            alt=move || alt.get().unwrap_or_default()
+            crossorigin=move || cross_origin.get()
+            src=move || src.get()
+            style="display: block; border: 0; border-radius: 14px; background: rgba(8, 17, 29, 0.92); box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38);"
+        />
     }
 }
 

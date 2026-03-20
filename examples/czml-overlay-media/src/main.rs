@@ -48,7 +48,7 @@ fn App() -> impl IntoView {
                 "Overlay media driven by CZML entity positions"
                 <br />
                 <small>
-                    "Flattened properties.media_* fields describe native video and YouTube overlays."
+                    "Flattened properties.media_* fields describe image, native video, and YouTube overlays."
                 </small>
                 <br />
                 <small>

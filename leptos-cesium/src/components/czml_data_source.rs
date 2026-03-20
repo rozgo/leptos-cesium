@@ -6,11 +6,15 @@ use wasm_bindgen::JsValue;
 #[cfg(target_arch = "wasm32")]
 use std::collections::VecDeque;
 
-use super::czml_media_bridge::{CzmlMediaError, CzmlMediaResolver};
+use super::czml_overlay_media::{CzmlMediaError, CzmlMediaResolver};
 #[cfg(target_arch = "wasm32")]
-use super::czml_media_bridge::{CzmlOverlayBinding, CzmlOverlayMedia, reconcile_data_source_media};
+use super::czml_overlay_media::{
+    CzmlOverlayBinding, CzmlOverlayMedia, reconcile_data_source_overlay_media,
+};
 #[cfg(target_arch = "wasm32")]
-use super::overlay::{TrackedEntityVideoOverlay, TrackedEntityYouTubeOverlay};
+use super::overlay::{
+    TrackedEntityImageOverlay, TrackedEntityVideoOverlay, TrackedEntityYouTubeOverlay,
+};
 use crate::bindings::EntityCluster;
 #[cfg(target_arch = "wasm32")]
 use crate::bindings::{
@@ -64,7 +68,7 @@ struct PendingAppendRequest {
     czml_input: JsValue,
     options_js: Option<JsValue>,
     media_base_uri: Option<String>,
-    bridge_media: bool,
+    media_overlays: bool,
 }
 
 /// CZML data source component for declaratively loading CZML data
@@ -120,9 +124,9 @@ pub fn CzmlDataSource(
     /// Optional clustering configuration.
     #[prop(optional, into)]
     clustering: JsSignal<Option<EntityCluster>>,
-    /// Automatically parse and render `properties.media_*` overlay media from `entity.position`.
+    /// Whether `properties.media_*` overlay media should be rendered from `entity.position`.
     #[prop(optional, into, default = true.into())]
-    bridge_media: Signal<bool>,
+    media_overlays: Signal<bool>,
     /// Optional custom media resolver.
     #[prop(optional)]
     resolve_media: Option<CzmlMediaResolver>,
@@ -180,7 +184,7 @@ pub fn CzmlDataSource(
             let source_uri_value = source_uri.get();
             let credit_value = credit.get();
             let clustering_value = clustering.get_untracked();
-            let bridge_media_enabled = bridge_media.get();
+            let media_overlays_enabled = media_overlays.get();
             let media_base_uri =
                 derive_media_base_uri(source.clone(), url.clone(), source_uri_value.clone());
             let on_loading_callback = on_loading;
@@ -245,7 +249,7 @@ pub fn CzmlDataSource(
                             czml_input: czml_input.clone(),
                             options_js: options_js.clone(),
                             media_base_uri: media_base_uri.clone(),
-                            bridge_media: bridge_media_enabled,
+                            media_overlays: media_overlays_enabled,
                         });
                     });
 
@@ -295,8 +299,8 @@ pub fn CzmlDataSource(
                                         break;
                                     }
 
-                                    reconcile_media_if_enabled(
-                                        request.bridge_media,
+                                    reconcile_media_overlays_if_enabled(
+                                        request.media_overlays,
                                         &data_source_js,
                                         worker_request,
                                         request_gate_worker.clone(),
@@ -439,8 +443,8 @@ pub fn CzmlDataSource(
                                         loading_listener,
                                     );
 
-                                    reconcile_media_if_enabled(
-                                        bridge_media_enabled,
+                                    reconcile_media_overlays_if_enabled(
+                                        media_overlays_enabled,
                                         &data_source_js,
                                         next_request,
                                         request_gate.clone(),
@@ -523,6 +527,24 @@ pub fn CzmlDataSource(
                     let entity = binding.entity.clone();
 
                     match binding.media.clone() {
+                        CzmlOverlayMedia::Image {
+                            src,
+                            width_px,
+                            height_px,
+                            cross_origin,
+                        } => {
+                            view! {
+                                <TrackedEntityImageOverlay
+                                    entity=entity
+                                    show=show
+                                    src=src
+                                    width_px=width_px
+                                    height_px=height_px
+                                    cross_origin=cross_origin
+                                />
+                            }
+                                .into_any()
+                        }
                         CzmlOverlayMedia::Video {
                             src,
                             width_px,
@@ -599,7 +621,7 @@ pub fn CzmlDataSource(
             source_uri,
             credit,
             clustering,
-            bridge_media,
+            media_overlays,
             resolve_media,
             on_loading,
             on_media_loading,
@@ -673,8 +695,8 @@ fn derive_media_base_uri(
 }
 
 #[cfg(target_arch = "wasm32")]
-fn reconcile_media_if_enabled(
-    bridge_media: bool,
+fn reconcile_media_overlays_if_enabled(
+    media_overlays: bool,
     data_source_js: &JsValue,
     request_id: u64,
     request_gate: RequestGate,
@@ -684,7 +706,7 @@ fn reconcile_media_if_enabled(
     on_media_error: Option<Callback<CzmlMediaError>>,
     media_base_uri: Option<String>,
 ) {
-    if !bridge_media {
+    if !media_overlays {
         overlay_bindings.set(Vec::new());
         return;
     }
@@ -693,7 +715,7 @@ fn reconcile_media_if_enabled(
         callback.run(true);
     }
 
-    let bindings = reconcile_data_source_media(
+    let bindings = reconcile_data_source_overlay_media(
         data_source_js.clone(),
         request_id,
         request_gate,

@@ -1,0 +1,13 @@
+[package]
+name = "pinned-image-overlay"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+console_error_panic_hook.workspace = true
+leptos = { workspace = true, default-features = false, features = ["csr"] }
+leptos-cesium = { path = "../../leptos-cesium", default-features = false, features = ["csr"] }
+
+[features]
+csr = []

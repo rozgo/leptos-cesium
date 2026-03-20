@@ -1655,6 +1655,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "pinned-image-overlay"
+version = "0.0.1"
+dependencies = [
+ "console_error_panic_hook",
+ "leptos",
+ "leptos-cesium",
+]
+
+[[package]]
 name = "pinned-video-material"
 version = "0.0.1"
 dependencies = [
