@@ -91,6 +91,13 @@ trunk serve --open
 ```
 Demonstrates `ImageMaterialPropertyBuilder` + `Material::image(...)` on a rectangle.
 
+**Pinned video overlay (non-CZML):**
+```bash
+cd examples/pinned-video-overlay
+trunk serve --open
+```
+Demonstrates a native HTML `<video>` visually pinned to a globe position via `VideoOverlay`.
+
 **Pinned YouTube overlay (HTML iframe):**
 ```bash
 cd examples/pinned-youtube-overlay
@@ -98,12 +105,12 @@ trunk serve --open
 ```
 Demonstrates an official YouTube iframe visually pinned to a globe position via `YouTubeOverlay`.
 
-**CZML media animation:**
+**CZML overlay media animation:**
 ```bash
-cd examples/czml-media-bridge
+cd examples/czml-overlay-media
 trunk serve --open
 ```
-Demonstrates automatic CZML media assignment from flattened `properties.media_*` fields using one fully generated CZML document.
+Demonstrates overlay-based CZML media tracking from flattened `properties.media_*` fields using moving entity positions.
 
 **GeoJSON data loading (maps, geographic features):**
 ```bash
@@ -207,6 +214,7 @@ view! {
 - **PointGraphics** - Point markers with pixel size and color customization
 - **BillboardGraphics** - Image/video/canvas billboards with origins, offsets, and scale
 - **GeoAnchoredHtmlOverlay** - Screen-space HTML aligned to world coordinates
+- **VideoOverlay** - Native HTML video wrapper built on globe-anchored HTML overlay support
 - **YouTubeOverlay** - YouTube iframe wrapper built on globe-anchored HTML overlay support
 
 ### HTML Overlays
@@ -249,7 +257,26 @@ view! {
 }
 ```
 
-If you need a true globe texture instead of an iframe overlay, keep using
+For native DOM video, use `VideoOverlay`:
+
+```rust
+view! {
+    <ViewerContainer ion_token=token>
+        <VideoOverlay
+            src="https://cesium.com/public/SandcastleSampleData/big-buck-bunny_trailer.mp4".to_string()
+            position=DVec3::new(-122.4465, 37.8050, 140.0)
+            width_px=420_u32
+            height_px=236_u32
+            autoplay=true
+            muted=true
+            loop_video=true
+            controls=true
+        />
+    </ViewerContainer>
+}
+```
+
+If you need a true globe texture instead of a DOM overlay, keep using
 `ImageMaterialPropertyBuilder` + `Material::image(...)` with a real `HTMLVideoElement`.
 
 ### Materials
@@ -457,8 +484,8 @@ set_packet_trigger.set(());
 
 When loading multiple CZML sources, use the viewer clock APIs to explicitly choose clock-tracking behavior.
 
-If CZML packets include custom `properties.media_*` metadata, `CzmlDataSource` automatically
-applies the corresponding image/video media to Cesium billboard, rectangle, or polygon graphics:
+If CZML packets include flattened `properties.media_*` metadata, `CzmlDataSource` can render
+overlay media that tracks each matching entity's `position` over CZML time:
 
 ```rust
 view! {
@@ -468,6 +495,10 @@ view! {
     />
 }
 ```
+
+Supported overlay kinds are `video` and `youtube`. In v1, overlay media requires `entity.position`;
+`media_target` is still parsed for validation, but rendering is point-anchored rather than billboard,
+rectangle, or polygon texture mutation.
 
 Use `source_uri` when loading inline CZML and its `properties.media_uri` values are relative.
 
@@ -528,12 +559,13 @@ Loads Google's photorealistic 3D tiles via Cesium Ion or directly with a Google 
 - ✅ Paths & Volumes: Polyline, Wall, Corridor, PolylineVolume
 - ✅ Points: PointGraphics with pixel size and color control
 - ✅ BillboardGraphics for image/media billboards
+- ✅ HTML Overlays: GeoAnchoredHtmlOverlay, VideoOverlay, YouTubeOverlay
 - ✅ Materials: Color, Stripe, Checkerboard, PolylineGlow, Image (all with builder APIs)
 - ✅ Camera Controls: CameraSetView, CameraFlyTo, CameraFlyToBoundingSphere, CameraLookAt, CameraLookAtTransform, CameraMove, CameraZoom, CameraFlyHome, CameraCancelFlight, CameraCompleteFlight, CameraController
 - ✅ Viewer Target Focus: ViewerFlyToTarget, ViewerZoomToTarget, ViewerSetClockTrackedDataSource
 - ✅ Clock Controls: ClockReset for animation timeline management
 - ✅ Data Sources: CZML (URL/inline + replace/append modes), GeoJSON with extensive styling options
-- ✅ CZML Media: automatic `properties.media_*` parsing to billboard/rectangle/polygon targets
+- ✅ CZML Overlay Media: flattened `properties.media_*` parsing to tracked native video and YouTube overlays
 - ✅ 3D Tiles: Google Photorealistic 3D Tiles with cache and collision controls
 - ✅ Coordinate Helpers: Cartesian2, Cartesian3, Rectangle, PolygonHierarchy
 - ✅ Math Utilities: to_radians, to_degrees, HeadingPitchRoll, HeadingPitchRange

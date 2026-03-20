@@ -8,7 +8,9 @@ use std::collections::VecDeque;
 
 use super::czml_media_bridge::{CzmlMediaError, CzmlMediaResolver};
 #[cfg(target_arch = "wasm32")]
-use super::czml_media_bridge::{clear_media_cache, new_media_cache, reconcile_data_source_media};
+use super::czml_media_bridge::{CzmlOverlayBinding, CzmlOverlayMedia, reconcile_data_source_media};
+#[cfg(target_arch = "wasm32")]
+use super::overlay::{TrackedEntityVideoOverlay, TrackedEntityYouTubeOverlay};
 use crate::bindings::EntityCluster;
 #[cfg(target_arch = "wasm32")]
 use crate::bindings::{
@@ -70,8 +72,8 @@ struct PendingAppendRequest {
 /// This component loads CZML data and adds it to the viewer's data sources.
 /// When the URL changes, the previous data source owned by this component can be removed
 /// before the new one is loaded.
-/// If packets include custom `properties.media_*` metadata, this component can automatically
-/// apply the corresponding image/video media to supported Cesium entity graphics.
+/// If packets include flattened `properties.media_*` metadata, this component can automatically
+/// render tracked DOM overlays for supported media kinds using each entity's `position`.
 ///
 /// # Example
 ///
@@ -118,7 +120,7 @@ pub fn CzmlDataSource(
     /// Optional clustering configuration.
     #[prop(optional, into)]
     clustering: JsSignal<Option<EntityCluster>>,
-    /// Automatically bridge `properties.media_*` metadata into Cesium media/materials.
+    /// Automatically parse and render `properties.media_*` overlay media from `entity.position`.
     #[prop(optional, into, default = true.into())]
     bridge_media: Signal<bool>,
     /// Optional custom media resolver.
@@ -133,7 +135,7 @@ pub fn CzmlDataSource(
     /// Called with load or runtime error messages.
     #[prop(optional)]
     on_error: Option<Callback<String>>,
-    /// Called with media parse/apply errors.
+    /// Called with media parse/reconciliation errors.
     #[prop(optional)]
     on_media_error: Option<Callback<CzmlMediaError>>,
     /// Called when the data source emits changed events.
@@ -161,7 +163,7 @@ pub fn CzmlDataSource(
         )>::default());
         let append_queue = JsRwSignal::new_local(VecDeque::<PendingAppendRequest>::new());
         let append_worker_running = JsRwSignal::new_local(false);
-        let media_cache = new_media_cache();
+        let overlay_bindings = JsRwSignal::new_local(Vec::<CzmlOverlayBinding>::new());
         let request_gate = RequestGate::new();
         let request_gate_effect = request_gate.clone();
 
@@ -196,7 +198,7 @@ pub fn CzmlDataSource(
                     append_queue.update(|queue| queue.clear());
 
                     if should_clear {
-                        clear_media_cache(media_cache);
+                        overlay_bindings.set(Vec::new());
                         viewer_context.with_viewer(|viewer: Viewer| {
                             loaded_data_source.update_value(|owned| {
                                 owned.clear_with(|existing| {
@@ -261,7 +263,7 @@ pub fn CzmlDataSource(
                     let append_worker_running_worker = append_worker_running;
                     let current_data_source_worker = current_data_source;
                     let request_gate_worker = request_gate_effect.clone();
-                    let media_cache_worker = media_cache;
+                    let overlay_bindings_worker = overlay_bindings;
 
                     wasm_bindgen_futures::spawn_local(async move {
                         loop {
@@ -297,9 +299,8 @@ pub fn CzmlDataSource(
                                         request.bridge_media,
                                         &data_source_js,
                                         worker_request,
-                                        media_cache_worker,
                                         request_gate_worker.clone(),
-                                        false,
+                                        overlay_bindings_worker,
                                         resolve_media_callback,
                                         on_media_loading_callback,
                                         on_media_error_callback,
@@ -347,7 +348,7 @@ pub fn CzmlDataSource(
 
                 // Remove only the data source previously owned by this component.
                 if should_clear && mode == CzmlLoadMode::Replace {
-                    clear_media_cache(media_cache);
+                    overlay_bindings.set(Vec::new());
                     loaded_data_source.update_value(|owned| {
                         owned.clear_with(|existing| {
                             let _ = viewer.data_sources().remove(existing);
@@ -442,9 +443,8 @@ pub fn CzmlDataSource(
                                         bridge_media_enabled,
                                         &data_source_js,
                                         next_request,
-                                        media_cache,
                                         request_gate.clone(),
-                                        true,
+                                        overlay_bindings,
                                         resolve_media_callback,
                                         on_media_loading_callback,
                                         on_media_error_callback,
@@ -498,7 +498,7 @@ pub fn CzmlDataSource(
             request_gate.close();
             append_queue.update(|queue| queue.clear());
             append_worker_running.set(false);
-            clear_media_cache(media_cache);
+            overlay_bindings.set(Vec::new());
 
             viewer_context.with_viewer(|viewer: Viewer| {
                 loaded_data_source.update_value(|owned| {
@@ -512,6 +512,77 @@ pub fn CzmlDataSource(
             detach_listener_2(error_listener);
             detach_listener_2(loading_listener);
         });
+
+        view! {
+            <For
+                each=move || overlay_bindings.get()
+                key=|binding| binding.entity_id.clone()
+                let:binding
+            >
+                {move || {
+                    let entity = binding.entity.clone();
+
+                    match binding.media.clone() {
+                        CzmlOverlayMedia::Video {
+                            src,
+                            width_px,
+                            height_px,
+                            autoplay,
+                            loop_video,
+                            muted,
+                            plays_inline,
+                            controls,
+                            cross_origin,
+                            poster,
+                            preload,
+                        } => {
+                            view! {
+                                <TrackedEntityVideoOverlay
+                                    entity=entity
+                                    show=show
+                                    src=src
+                                    width_px=width_px
+                                    height_px=height_px
+                                    autoplay=autoplay
+                                    loop_video=loop_video
+                                    muted=muted
+                                    plays_inline=plays_inline
+                                    controls=controls
+                                    cross_origin=cross_origin
+                                    poster=poster
+                                    preload=preload
+                                />
+                            }
+                                .into_any()
+                        }
+                        CzmlOverlayMedia::Youtube {
+                            video_id,
+                            width_px,
+                            height_px,
+                            autoplay,
+                            mute,
+                            controls,
+                            start_seconds,
+                        } => {
+                            view! {
+                                <TrackedEntityYouTubeOverlay
+                                    entity=entity
+                                    show=show
+                                    video_id=video_id
+                                    width_px=width_px
+                                    height_px=height_px
+                                    autoplay=autoplay
+                                    mute=mute
+                                    controls=controls
+                                    start_seconds=start_seconds
+                                />
+                            }
+                                .into_any()
+                        }
+                    }
+                }}
+            </For>
+        }
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -537,6 +608,8 @@ pub fn CzmlDataSource(
             on_changed,
             on_loaded,
         );
+
+        ().into_view()
     }
 }
 
@@ -604,15 +677,15 @@ fn reconcile_media_if_enabled(
     bridge_media: bool,
     data_source_js: &JsValue,
     request_id: u64,
-    media_cache: super::czml_media_bridge::CzmlMediaCache,
     request_gate: RequestGate,
-    reapply_cached_bindings: bool,
+    overlay_bindings: JsRwSignal<Vec<CzmlOverlayBinding>>,
     resolve_media: Option<CzmlMediaResolver>,
     on_media_loading: Option<Callback<bool>>,
     on_media_error: Option<Callback<CzmlMediaError>>,
     media_base_uri: Option<String>,
 ) {
     if !bridge_media {
+        overlay_bindings.set(Vec::new());
         return;
     }
 
@@ -620,16 +693,17 @@ fn reconcile_media_if_enabled(
         callback.run(true);
     }
 
-    reconcile_data_source_media(
+    let bindings = reconcile_data_source_media(
         data_source_js.clone(),
         request_id,
-        media_cache,
         request_gate,
-        reapply_cached_bindings,
         resolve_media,
         on_media_error,
         media_base_uri,
     );
+    if let Some(bindings) = bindings {
+        overlay_bindings.set(bindings);
+    }
 
     if let Some(callback) = on_media_loading {
         callback.run(false);

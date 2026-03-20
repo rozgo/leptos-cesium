@@ -406,7 +406,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "czml-media-bridge"
+name = "czml-overlay-media"
 version = "0.0.1"
 dependencies = [
  "console_error_panic_hook",
@@ -1656,6 +1656,15 @@ dependencies = [
 
 [[package]]
 name = "pinned-video-material"
+version = "0.0.1"
+dependencies = [
+ "console_error_panic_hook",
+ "leptos",
+ "leptos-cesium",
+]
+
+[[package]]
+name = "pinned-video-overlay"
 version = "0.0.1"
 dependencies = [
  "console_error_panic_hook",

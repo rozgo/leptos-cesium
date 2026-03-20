@@ -1,0 +1,57 @@
+use leptos::prelude::*;
+use leptos_cesium::prelude::*;
+
+const VIDEO_URI: &str = "https://cesium.com/public/SandcastleSampleData/big-buck-bunny_trailer.mp4";
+
+fn main() {
+    console_error_panic_hook::set_once();
+    leptos::mount::mount_to_body(App);
+}
+
+#[component]
+fn App() -> impl IntoView {
+    let ion_token = option_env!("CESIUM_ION_TOKEN").map(|s| s.to_string());
+    let anchor = DVec3::new(-122.4465, 37.8050, 20.0);
+
+    view! {
+        <div style="width: 100%; height: 100%; position: relative;">
+            <div class="hud">
+                "Native HTML video pinned to a globe anchor"
+                <br />
+                <small>
+                    "The browser renders the <video> element while Cesium keeps the anchor aligned to lon/lat/height."
+                </small>
+            </div>
+
+            <ViewerContainer
+                ion_token=ion_token
+                animation=false
+                timeline=false
+                info_box=false
+                selection_indicator=false
+                style="width: 100%; height: 100%;".to_string()
+            >
+                <Entity name="Video anchor".to_string() position=anchor>
+                    <PointGraphics
+                        pixel_size=14.0
+                        color=Some(Srgba::new(1.0, 0.69, 0.23, 1.0))
+                    />
+                </Entity>
+
+                <VideoOverlay
+                    src=VIDEO_URI.to_string()
+                    position=DVec3::new(anchor.x, anchor.y, 140.0)
+                    width_px=420_u32
+                    height_px=236_u32
+                    autoplay=true
+                    muted=true
+                    loop_video=true
+                    controls=true
+                    cross_origin=Some("anonymous".to_string())
+                />
+
+                <CameraSetView destination=Some(DVec3::new(anchor.x, anchor.y, 3800.0).into()) />
+            </ViewerContainer>
+        </div>
+    }
+}

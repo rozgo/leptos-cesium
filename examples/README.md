@@ -12,8 +12,9 @@ Cesium JS/CSS assets are loaded from the Cesium CDN by each example's `index.htm
 - `czml-streaming`: append-style CZML deltas for moving entities.
 - `pinned-image`: non-CZML billboard image pin via `BillboardGraphics`.
 - `pinned-video-material`: non-CZML video texture on rectangle material.
+- `pinned-video-overlay`: native HTML `<video>` visually pinned to a globe anchor.
 - `pinned-youtube-overlay`: official YouTube iframe visually pinned to a globe anchor.
-- `czml-media-bridge`: automatic CZML `properties.media_*` media binding with smooth full-CZML animation.
+- `czml-overlay-media`: overlay-based CZML `properties.media_*` media tracking with moving native video and YouTube anchors.
 - `geojson`: GeoJSON loading and styling.
 - `custom-selection`: custom Leptos selection panel replacing default InfoBox.
 - `google-3d-tiles`: Google photorealistic 3D tiles.
@@ -37,8 +38,9 @@ for d in \
   examples/czml-streaming \
   examples/pinned-image \
   examples/pinned-video-material \
+  examples/pinned-video-overlay \
   examples/pinned-youtube-overlay \
-  examples/czml-media-bridge \
+  examples/czml-overlay-media \
   examples/geojson \
   examples/custom-selection \
   examples/google-3d-tiles \

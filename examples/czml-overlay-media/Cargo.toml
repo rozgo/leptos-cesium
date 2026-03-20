@@ -1,5 +1,5 @@
 [package]
-name = "czml-media-bridge"
+name = "czml-overlay-media"
 version.workspace = true
 edition.workspace = true
 publish = false
