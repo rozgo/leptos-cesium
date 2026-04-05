@@ -8,7 +8,7 @@ use crate::core::{JsStoredValue, OwnedSlot};
 
 /// CDN base URL for Cesium assets (Workers, Assets, etc.)
 #[cfg(all(target_arch = "wasm32", not(feature = "ssr")))]
-const CESIUM_CDN_BASE: &str = "https://cesium.com/downloads/cesiumjs/releases/1.138/Build/Cesium/";
+const CESIUM_CDN_BASE: &str = "https://cesium.com/downloads/cesiumjs/releases/1.140/Build/Cesium/";
 
 #[cfg(target_arch = "wasm32")]
 use crate::bindings::Event;

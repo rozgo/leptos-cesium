@@ -100,7 +100,7 @@ pub fn App() -> impl IntoView {
 ## Cesium CDN
 
 Cesium assets (JS, CSS, Workers, Assets) are loaded from the official Cesium CDN:
-- Base URL: `https://cesium.com/downloads/cesiumjs/releases/1.138/Build/Cesium/`
+- Base URL: `https://cesium.com/downloads/cesiumjs/releases/1.140/Build/Cesium/`
 - The `ViewerContainer` component automatically configures the base URL for Workers and Assets
 - Internet connectivity is required at runtime
 
@@ -121,8 +121,8 @@ examples/my-example/
 **Required HTML structure:**
 ```html
 <head>
-  <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.138/Build/Cesium/Widgets/widgets.css" />
-  <script src="https://cesium.com/downloads/cesiumjs/releases/1.138/Build/Cesium/Cesium.js"></script>
+  <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.140/Build/Cesium/Widgets/widgets.css" />
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.140/Build/Cesium/Cesium.js"></script>
 </head>
 <body>
   <link data-trunk rel="rust" data-bindgen-target="web" />
@@ -189,8 +189,8 @@ view! {
 4. **Update HTML to load Cesium from CDN:**
 ```html
 <head>
-  <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.138/Build/Cesium/Widgets/widgets.css" />
-  <script src="https://cesium.com/downloads/cesiumjs/releases/1.138/Build/Cesium/Cesium.js"></script>
+  <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.140/Build/Cesium/Widgets/widgets.css" />
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.140/Build/Cesium/Cesium.js"></script>
 </head>
 ```
 

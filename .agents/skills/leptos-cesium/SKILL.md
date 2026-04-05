@@ -11,7 +11,7 @@ Declarative CesiumJS components for Leptos. Uses standard Rust types (glam, geo-
 
 ## Current Baseline
 
-- Cesium CDN/runtime target: `1.138`
+- Cesium CDN/runtime target: `1.140`
 - Primary integration surface: `ViewerContainer`, `Entity` + graphics, camera controls, data sources, 3D tiles
 - Media surface: `BillboardGraphics`, `ImageMaterialPropertyBuilder`, `Material::image`, `MediaSource`
 - CZML media support: `CzmlDataSource` auto-bridges flattened `properties.media_*` custom fields into billboard/rectangle/polygon media
