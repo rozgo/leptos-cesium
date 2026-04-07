@@ -238,13 +238,14 @@ pub fn CzmlDataSource(
 
             viewer_context.with_viewer(|viewer: Viewer| {
                 let existing_ds = current_data_source
-                    .get_untracked()
+                    .try_get_untracked()
+                    .flatten()
                     .and_then(|value| value.dyn_into::<CesiumCzmlDataSource>().ok());
 
                 // Keep append mode ordered when writing into an existing data source.
                 // Cesium process() is async; queueing avoids out-of-order completion races.
                 if mode == CzmlLoadMode::Append && existing_ds.as_ref().is_some() {
-                    append_queue.update(|queue| {
+                    let _ = append_queue.try_update(|queue| {
                         queue.push_back(PendingAppendRequest {
                             czml_input: czml_input.clone(),
                             options_js: options_js.clone(),
@@ -253,11 +254,11 @@ pub fn CzmlDataSource(
                         });
                     });
 
-                    if append_worker_running.get_untracked() {
+                    if append_worker_running.try_get_untracked().unwrap_or(false) {
                         return;
                     }
 
-                    append_worker_running.set(true);
+                    let _ = append_worker_running.try_set(true);
                     let worker_request = request_gate_effect.begin_request();
                     if let Some(callback) = on_loading_callback {
                         callback.run(true);
@@ -271,16 +272,26 @@ pub fn CzmlDataSource(
 
                     wasm_bindgen_futures::spawn_local(async move {
                         loop {
+                            if request_gate_worker.is_stale(worker_request) {
+                                break;
+                            }
+
                             let mut next_request = None;
-                            append_queue_worker.update(|queue| {
-                                next_request = queue.pop_front();
-                            });
+                            if append_queue_worker
+                                .try_update(|queue| {
+                                    next_request = queue.pop_front();
+                                })
+                                .is_none()
+                            {
+                                break;
+                            }
                             let Some(request) = next_request else {
                                 break;
                             };
 
                             let Some(data_source) = current_data_source_worker
-                                .get_untracked()
+                                .try_get_untracked()
+                                .flatten()
                                 .and_then(|value| value.dyn_into::<CesiumCzmlDataSource>().ok())
                             else {
                                 break;
@@ -337,14 +348,14 @@ pub fn CzmlDataSource(
                         {
                             callback.run(false);
                         }
-                        append_worker_running_worker.set(false);
+                        let _ = append_worker_running_worker.try_set(false);
                     });
 
                     return;
                 }
 
                 let next_request = request_gate_effect.begin_request();
-                append_queue.update(|queue| queue.clear());
+                let _ = append_queue.try_update(|queue| queue.clear());
 
                 if let Some(callback) = on_loading_callback {
                     callback.run(true);
@@ -352,20 +363,21 @@ pub fn CzmlDataSource(
 
                 // Remove only the data source previously owned by this component.
                 if should_clear && mode == CzmlLoadMode::Replace {
-                    overlay_bindings.set(Vec::new());
-                    loaded_data_source.update_value(|owned| {
+                    let _ = overlay_bindings.try_set(Vec::new());
+                    let _ = loaded_data_source.try_update_value(|owned| {
                         owned.clear_with(|existing| {
                             let _ = viewer.data_sources().remove(existing);
                         });
                     });
-                    current_data_source.set(None);
+                    let _ = current_data_source.try_set(None);
                     detach_listener(changed_listener);
                     detach_listener_2(error_listener);
                     detach_listener_2(loading_listener);
                 }
 
                 let existing_ds = current_data_source
-                    .get_untracked()
+                    .try_get_untracked()
+                    .flatten()
                     .and_then(|value| value.dyn_into::<CesiumCzmlDataSource>().ok());
 
                 // Replace mode on an existing source should call CzmlDataSource.load(),
@@ -392,80 +404,87 @@ pub fn CzmlDataSource(
                 wasm_bindgen_futures::spawn_local(async move {
                     match JsFuture::from(promise).await {
                         Ok(data_source_js) => {
+                            if request_gate.is_stale(next_request) {
+                                if created_new_data_source {
+                                    let _ = viewer_ctx_clone.with_viewer(|v: Viewer| {
+                                        let _ = v.data_sources().remove(&data_source_js);
+                                    });
+                                }
+                                return;
+                            }
+
                             if let Some(callback) = on_loading_callback {
                                 callback.run(false);
                             }
 
-                            let stale = request_gate.is_stale(next_request);
-                            viewer_ctx_clone.with_viewer(|v: Viewer| {
-                                if stale {
-                                    if created_new_data_source {
-                                        let _ = v.data_sources().remove(&data_source_js);
-                                    }
-                                    return;
+                            let Some(v) = viewer_ctx_clone.viewer_untracked() else {
+                                return;
+                            };
+
+                            if let Ok(data_source) =
+                                data_source_js.clone().dyn_into::<CesiumCzmlDataSource>()
+                            {
+                                let _ = current_data_source.try_set(Some(data_source_js.clone()));
+                                if created_new_data_source {
+                                    let _ = loaded_data_source.try_update_value(|owned| {
+                                        owned.replace_with(
+                                            data_source_js.clone(),
+                                            |existing| {
+                                                let _ = v.data_sources().remove(existing);
+                                            },
+                                        );
+                                    });
                                 }
 
-                                if let Ok(data_source) =
-                                    data_source_js.clone().dyn_into::<CesiumCzmlDataSource>()
-                                {
-                                    current_data_source.set(Some(data_source_js.clone()));
-                                    if created_new_data_source {
-                                        loaded_data_source.update_value(|owned| {
-                                            owned.replace_with(
-                                                data_source_js.clone(),
-                                                |existing| {
-                                                    let _ = v.data_sources().remove(existing);
-                                                },
-                                            );
-                                        });
-                                    }
+                                apply_czml_properties(
+                                    &data_source,
+                                    show_value,
+                                    name_value.clone(),
+                                    clustering_value.clone(),
+                                );
 
-                                    apply_czml_properties(
-                                        &data_source,
-                                        show_value,
-                                        name_value.clone(),
-                                        clustering_value.clone(),
-                                    );
+                                attach_changed_listener(
+                                    &data_source,
+                                    on_changed_callback,
+                                    changed_listener,
+                                );
+                                attach_error_listener(
+                                    &data_source,
+                                    on_error_callback,
+                                    error_listener,
+                                );
+                                attach_loading_listener(
+                                    &data_source,
+                                    on_loading_callback,
+                                    loading_listener,
+                                );
 
-                                    attach_changed_listener(
-                                        &data_source,
-                                        on_changed_callback,
-                                        changed_listener,
-                                    );
-                                    attach_error_listener(
-                                        &data_source,
-                                        on_error_callback,
-                                        error_listener,
-                                    );
-                                    attach_loading_listener(
-                                        &data_source,
-                                        on_loading_callback,
-                                        loading_listener,
-                                    );
+                                reconcile_media_overlays_if_enabled(
+                                    media_overlays_enabled,
+                                    &data_source_js,
+                                    next_request,
+                                    request_gate.clone(),
+                                    overlay_bindings,
+                                    resolve_media_callback,
+                                    on_media_loading_callback,
+                                    on_media_error_callback,
+                                    media_base_uri.clone(),
+                                );
 
-                                    reconcile_media_overlays_if_enabled(
-                                        media_overlays_enabled,
-                                        &data_source_js,
-                                        next_request,
-                                        request_gate.clone(),
-                                        overlay_bindings,
-                                        resolve_media_callback,
-                                        on_media_loading_callback,
-                                        on_media_error_callback,
-                                        media_base_uri.clone(),
-                                    );
-
-                                    if let Some(callback) = on_loaded_callback {
-                                        callback.run(data_source_js.clone());
-                                    }
+                                if let Some(callback) = on_loaded_callback {
+                                    callback.run(data_source_js.clone());
                                 }
-                            });
+                            }
 
                             web_sys::console::log_1(&JsValue::from_str(
                                 "Successfully loaded CZML data source",
                             ));
                         }
                         Err(e) => {
+                            if request_gate.is_stale(next_request) {
+                                return;
+                            }
+
                             if let Some(callback) = on_loading_callback {
                                 callback.run(false);
                             }
@@ -500,18 +519,18 @@ pub fn CzmlDataSource(
 
         on_cleanup(move || {
             request_gate.close();
-            append_queue.update(|queue| queue.clear());
-            append_worker_running.set(false);
-            overlay_bindings.set(Vec::new());
+            let _ = append_queue.try_update(|queue| queue.clear());
+            let _ = append_worker_running.try_set(false);
+            let _ = overlay_bindings.try_set(Vec::new());
 
             viewer_context.with_viewer(|viewer: Viewer| {
-                loaded_data_source.update_value(|owned| {
+                let _ = loaded_data_source.try_update_value(|owned| {
                     owned.clear_with(|existing| {
                         let _ = viewer.data_sources().remove(existing);
                     });
                 });
             });
-            current_data_source.set(None);
+            let _ = current_data_source.try_set(None);
             detach_listener(changed_listener);
             detach_listener_2(error_listener);
             detach_listener_2(loading_listener);

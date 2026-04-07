@@ -55,7 +55,7 @@ impl CesiumViewerContext {
             return;
         }
         let value: JsValue = viewer.into();
-        self.viewer.set(Some(ThreadSafeJsValue::new(value)));
+        let _ = self.viewer.try_set(Some(ThreadSafeJsValue::new(value)));
     }
 
     #[cfg(feature = "ssr")]
@@ -67,7 +67,8 @@ impl CesiumViewerContext {
     #[cfg(not(feature = "ssr"))]
     pub fn viewer(&self) -> Option<Viewer> {
         self.viewer
-            .get()
+            .try_get()
+            .flatten()
             .map(|value| value.value().clone().unchecked_into::<Viewer>())
     }
 
@@ -80,7 +81,8 @@ impl CesiumViewerContext {
     #[cfg(not(feature = "ssr"))]
     pub fn viewer_untracked(&self) -> Option<Viewer> {
         self.viewer
-            .get_untracked()
+            .try_get_untracked()
+            .flatten()
             .map(|value| value.value().clone().unchecked_into::<Viewer>())
     }
 
@@ -110,7 +112,7 @@ impl CesiumViewerContext {
     #[cfg(not(feature = "ssr"))]
     pub fn clear_viewer(&self) {
         if self.is_valid() {
-            self.viewer.set(None);
+            let _ = self.viewer.try_set(None);
         }
     }
 
@@ -127,7 +129,8 @@ impl CesiumViewerContext {
     {
         let viewer = self
             .viewer
-            .get_untracked()
+            .try_get_untracked()
+            .flatten()
             .map(|value| value.value().clone().unchecked_into::<Viewer>())?;
         Some(f(viewer))
     }
@@ -151,13 +154,14 @@ impl CesiumViewerContext {
         }
         if let Some(e) = entity {
             let value: JsValue = e.into();
-            self.selected_entity
-                .set(Some(ThreadSafeJsValue::new(value)));
+            let _ = self
+                .selected_entity
+                .try_set(Some(ThreadSafeJsValue::new(value)));
         } else {
-            self.selected_entity.set(None);
+            let _ = self.selected_entity.try_set(None);
         }
         // Increment version to trigger reactivity
-        self.selection_version.update(|v| *v += 1);
+        let _ = self.selection_version.try_update(|v| *v += 1);
     }
 
     #[cfg(feature = "ssr")]
@@ -176,13 +180,14 @@ impl CesiumViewerContext {
             return;
         }
         if entity.is_undefined() || entity.is_null() {
-            self.selected_entity.set(None);
+            let _ = self.selected_entity.try_set(None);
         } else {
-            self.selected_entity
-                .set(Some(ThreadSafeJsValue::new(entity)));
+            let _ = self
+                .selected_entity
+                .try_set(Some(ThreadSafeJsValue::new(entity)));
         }
         // Increment version to trigger reactivity
-        self.selection_version.update(|v| *v += 1);
+        let _ = self.selection_version.try_update(|v| *v += 1);
     }
 
     #[cfg(feature = "ssr")]
@@ -195,7 +200,8 @@ impl CesiumViewerContext {
     #[cfg(not(feature = "ssr"))]
     pub fn selected_entity(&self) -> Option<Entity> {
         self.selected_entity
-            .get()
+            .try_get()
+            .flatten()
             .and_then(|value| value.value().clone().dyn_into::<Entity>().ok())
     }
 
@@ -208,7 +214,8 @@ impl CesiumViewerContext {
     #[cfg(not(feature = "ssr"))]
     pub fn selected_entity_untracked(&self) -> Option<Entity> {
         self.selected_entity
-            .get_untracked()
+            .try_get_untracked()
+            .flatten()
             .and_then(|value| value.value().clone().dyn_into::<Entity>().ok())
     }
 
@@ -221,7 +228,8 @@ impl CesiumViewerContext {
     #[cfg(not(feature = "ssr"))]
     pub fn selected_entity_as<T: JsCast>(&self) -> Option<T> {
         self.selected_entity
-            .get()
+            .try_get()
+            .flatten()
             .and_then(|value| value.value().clone().dyn_into::<T>().ok())
     }
 
@@ -252,8 +260,8 @@ impl CesiumViewerContext {
     #[cfg(not(feature = "ssr"))]
     pub fn clear_selected_entity(&self) {
         if self.is_valid() {
-            self.selected_entity.set(None);
-            self.selection_version.update(|v| *v += 1);
+            let _ = self.selected_entity.try_set(None);
+            let _ = self.selection_version.try_update(|v| *v += 1);
         }
     }
 
@@ -365,7 +373,7 @@ impl CesiumEntityContext {
             return;
         }
         let value: JsValue = entity.into();
-        self.entity.set(Some(ThreadSafeJsValue::new(value)));
+        let _ = self.entity.try_set(Some(ThreadSafeJsValue::new(value)));
     }
 
     #[cfg(feature = "ssr")]
@@ -377,7 +385,8 @@ impl CesiumEntityContext {
     pub fn entity<T: JsCast>(&self) -> Option<T> {
         if self.is_valid() {
             self.entity
-                .get()
+                .try_get()
+                .flatten()
                 .and_then(|value| value.value().clone().dyn_into::<T>().ok())
         } else {
             leptos::logging::error!(
@@ -397,7 +406,8 @@ impl CesiumEntityContext {
     pub fn entity_untracked<T: JsCast>(&self) -> Option<T> {
         if self.is_valid() {
             self.entity
-                .get_untracked()
+                .try_get_untracked()
+                .flatten()
                 .and_then(|value| value.value().clone().dyn_into::<T>().ok())
         } else {
             leptos::logging::error!(
@@ -417,7 +427,7 @@ impl CesiumEntityContext {
     #[cfg(not(feature = "ssr"))]
     pub fn clear_entity(&self) {
         if self.is_valid() {
-            self.entity.set(None);
+            let _ = self.entity.try_set(None);
         }
     }
 
