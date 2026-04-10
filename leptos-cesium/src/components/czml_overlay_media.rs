@@ -32,6 +32,7 @@ pub struct CzmlMediaDescriptor {
     pub kind: CzmlMediaKind,
     pub media_uri: Option<String>,
     pub youtube_id: Option<String>,
+    pub resizable: bool,
     pub autoplay: bool,
     pub loop_video: bool,
     pub muted: bool,
@@ -72,12 +73,14 @@ pub(crate) enum CzmlOverlayMedia {
         src: String,
         width_px: u32,
         height_px: u32,
+        resizable: bool,
         cross_origin: Option<String>,
     },
     Video {
         src: String,
         width_px: u32,
         height_px: u32,
+        resizable: bool,
         autoplay: bool,
         loop_video: bool,
         muted: bool,
@@ -91,6 +94,7 @@ pub(crate) enum CzmlOverlayMedia {
         video_id: String,
         width_px: u32,
         height_px: u32,
+        resizable: bool,
         autoplay: bool,
         mute: bool,
         controls: bool,
@@ -101,6 +105,7 @@ pub(crate) enum CzmlOverlayMedia {
         src: String,
         width_px: u32,
         height_px: u32,
+        resizable: bool,
     },
 }
 
@@ -252,6 +257,7 @@ fn overlay_media_from_descriptor(
                 .ok_or_else(|| media_uri_required_error(CzmlMediaKind::Image).to_string())?,
             width_px: descriptor.width_px,
             height_px: descriptor.height_px,
+            resizable: descriptor.resizable,
             cross_origin: descriptor.cross_origin.clone(),
         }),
         CzmlMediaKind::Video => Ok(CzmlOverlayMedia::Video {
@@ -261,6 +267,7 @@ fn overlay_media_from_descriptor(
                 .ok_or_else(|| media_uri_required_error(CzmlMediaKind::Video).to_string())?,
             width_px: descriptor.width_px,
             height_px: descriptor.height_px,
+            resizable: descriptor.resizable,
             autoplay: descriptor.autoplay,
             loop_video: descriptor.loop_video,
             muted: descriptor.muted,
@@ -276,6 +283,7 @@ fn overlay_media_from_descriptor(
             })?,
             width_px: descriptor.width_px,
             height_px: descriptor.height_px,
+            resizable: descriptor.resizable,
             autoplay: descriptor.autoplay,
             mute: descriptor.muted,
             controls: descriptor.controls,
@@ -441,6 +449,8 @@ fn parse_media_descriptor(entity: &JsValue) -> Result<Option<CzmlMediaDescriptor
 
     let autoplay = read_property_bool_field(&properties, &properties_value, "media_autoplay")
         .unwrap_or(is_video);
+    let resizable = read_property_bool_field(&properties, &properties_value, "media_resizable")
+        .unwrap_or(false);
     let loop_video =
         read_property_bool_field(&properties, &properties_value, "media_loop").unwrap_or(is_video);
     let muted = read_property_bool_field(&properties, &properties_value, "media_muted")
@@ -507,6 +517,7 @@ fn parse_media_descriptor(entity: &JsValue) -> Result<Option<CzmlMediaDescriptor
         kind,
         media_uri,
         youtube_id,
+        resizable,
         autoplay,
         loop_video,
         muted,
@@ -701,6 +712,7 @@ fn rerun_overlay_media_from_descriptor(
         src: absolutize_browser_url(&src),
         width_px: descriptor.width_px,
         height_px: descriptor.height_px,
+        resizable: descriptor.resizable,
     })
 }
 

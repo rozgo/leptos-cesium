@@ -211,6 +211,7 @@ pub fn media_demo_czml() -> String {
             "properties": {
                 "media_kind": "image",
                 "media_uri": IMAGE_URI,
+                "media_resizable": true,
                 "media_width": 160,
                 "media_height": 200
             },
@@ -252,6 +253,7 @@ pub fn media_demo_czml() -> String {
             "properties": {
                 "media_kind": "video",
                 "media_uri": VIDEO_URI,
+                "media_resizable": true,
                 "media_width": 320,
                 "media_height": 180,
                 "media_autoplay": true,
@@ -297,6 +299,7 @@ pub fn media_demo_czml() -> String {
             "properties": {
                 "media_kind": "youtube",
                 "media_youtube_id": YOUTUBE_VIDEO_ID,
+                "media_resizable": true,
                 "media_width": 360,
                 "media_height": 203,
                 "media_autoplay": true,
@@ -342,6 +345,7 @@ pub fn media_demo_czml() -> String {
             "properties": {
                 "media_kind": "rerun",
                 "media_uri": RERUN_URI,
+                "media_resizable": true,
                 "media_width": 360,
                 "media_height": 224
             },

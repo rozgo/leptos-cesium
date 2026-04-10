@@ -21,6 +21,10 @@ fn App() -> impl IntoView {
                 <small>
                     "The browser renders the <video> element while Cesium keeps the anchor aligned to lon/lat/height."
                 </small>
+                <br />
+                <small>
+                    "Drag the lower-right corner of the overlay to resize it."
+                </small>
             </div>
 
             <ViewerContainer
@@ -43,6 +47,7 @@ fn App() -> impl IntoView {
                     position=DVec3::new(anchor.x, anchor.y, 140.0)
                     width_px=420_u32
                     height_px=236_u32
+                    resizable=true
                     autoplay=true
                     muted=true
                     loop_video=true

@@ -549,6 +549,7 @@ pub fn CzmlDataSource(
                             src,
                             width_px,
                             height_px,
+                            resizable,
                             cross_origin,
                         } => {
                             view! {
@@ -558,6 +559,7 @@ pub fn CzmlDataSource(
                                     src=src
                                     width_px=width_px
                                     height_px=height_px
+                                    resizable=resizable
                                     cross_origin=cross_origin
                                 />
                             }
@@ -567,6 +569,7 @@ pub fn CzmlDataSource(
                             src,
                             width_px,
                             height_px,
+                            resizable,
                             autoplay,
                             loop_video,
                             muted,
@@ -583,6 +586,7 @@ pub fn CzmlDataSource(
                                     src=src
                                     width_px=width_px
                                     height_px=height_px
+                                    resizable=resizable
                                     autoplay=autoplay
                                     loop_video=loop_video
                                     muted=muted
@@ -599,6 +603,7 @@ pub fn CzmlDataSource(
                             video_id,
                             width_px,
                             height_px,
+                            resizable,
                             autoplay,
                             mute,
                             controls,
@@ -611,6 +616,7 @@ pub fn CzmlDataSource(
                                     video_id=video_id
                                     width_px=width_px
                                     height_px=height_px
+                                    resizable=resizable
                                     autoplay=autoplay
                                     mute=mute
                                     controls=controls
@@ -624,6 +630,7 @@ pub fn CzmlDataSource(
                             src,
                             width_px,
                             height_px,
+                            resizable,
                         } => {
                             view! {
                                 <TrackedEntityRerunOverlay
@@ -632,6 +639,7 @@ pub fn CzmlDataSource(
                                     src=src
                                     width_px=width_px
                                     height_px=height_px
+                                    resizable=resizable
                                 />
                             }
                                 .into_any()

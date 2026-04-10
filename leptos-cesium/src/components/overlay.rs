@@ -219,6 +219,146 @@ pub fn GeoAnchoredHtmlOverlay(
     render_overlay_portal(overlay_ref, children)
 }
 
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+const RESIZABLE_MEDIA_OVERLAY_MIN_WIDTH_PX: u32 = 160;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct OverlayFrameSize {
+    width_px: u32,
+    height_px: u32,
+}
+
+impl OverlayFrameSize {
+    fn new(width_px: u32, height_px: u32) -> Self {
+        Self {
+            width_px: width_px.max(1),
+            height_px: height_px.max(1),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct OverlayResizeDragState {
+    pointer_id: i32,
+    start_client_x: f64,
+    start_client_y: f64,
+    start_size: OverlayFrameSize,
+}
+
+#[component]
+fn MediaOverlayFrame(
+    #[prop(optional, into)] width_px: Signal<u32>,
+    #[prop(optional, into)] height_px: Signal<u32>,
+    #[prop(optional, into, default = false.into())] resizable: Signal<bool>,
+    children: Children,
+) -> impl IntoView {
+    let initial_size = OverlayFrameSize::new(width_px.get_untracked(), height_px.get_untracked());
+    let frame_size = RwSignal::new(initial_size);
+    let last_input_size = RwSignal::new(initial_size);
+    let drag_state = RwSignal::new(None::<OverlayResizeDragState>);
+    let resize_handle_ref = NodeRef::<Div>::new();
+
+    Effect::new(move |_| {
+        let next_size = OverlayFrameSize::new(width_px.get(), height_px.get());
+        if next_size != last_input_size.get_untracked() {
+            last_input_size.set(next_size);
+            frame_size.set(next_size);
+            drag_state.set(None);
+        }
+    });
+
+    view! {
+        <div
+            style=move || {
+                let size = frame_size.get();
+                format!(
+                    "position: relative; width:{}px; height:{}px;",
+                    size.width_px, size.height_px
+                )
+            }
+        >
+            {children()}
+            <Show when=move || resizable.get()>
+                <div
+                    node_ref=resize_handle_ref
+                    on:pointerdown=move |_ev| {
+                        #[cfg(target_arch = "wasm32")]
+                        {
+                            _ev.prevent_default();
+
+                            let pointer_id = _ev.pointer_id();
+                            if let Some(handle) = resize_handle_ref.get_untracked() {
+                                let _ = handle.set_pointer_capture(pointer_id);
+                            }
+
+                            drag_state.set(Some(OverlayResizeDragState {
+                                pointer_id,
+                                start_client_x: f64::from(_ev.client_x()),
+                                start_client_y: f64::from(_ev.client_y()),
+                                start_size: frame_size.get_untracked(),
+                            }));
+                        }
+                    }
+                    on:pointermove=move |_ev| {
+                        #[cfg(target_arch = "wasm32")]
+                        {
+                            let Some(state) = drag_state.get_untracked() else {
+                                return;
+                            };
+                            if _ev.pointer_id() != state.pointer_id {
+                                return;
+                            }
+
+                            _ev.prevent_default();
+                            let delta_x = f64::from(_ev.client_x()) - state.start_client_x;
+                            let delta_y = f64::from(_ev.client_y()) - state.start_client_y;
+                            frame_size.set(resize_overlay_size_from_corner(
+                                state.start_size,
+                                delta_x,
+                                delta_y,
+                                RESIZABLE_MEDIA_OVERLAY_MIN_WIDTH_PX,
+                            ));
+                        }
+                    }
+                    on:pointerup=move |_ev| {
+                        #[cfg(target_arch = "wasm32")]
+                        {
+                            let Some(state) = drag_state.get_untracked() else {
+                                return;
+                            };
+                            if _ev.pointer_id() != state.pointer_id {
+                                return;
+                            }
+
+                            if let Some(handle) = resize_handle_ref.get_untracked() {
+                                let _ = handle.release_pointer_capture(state.pointer_id);
+                            }
+                            drag_state.set(None);
+                        }
+                    }
+                    on:pointercancel=move |_ev| {
+                        #[cfg(target_arch = "wasm32")]
+                        {
+                            let Some(state) = drag_state.get_untracked() else {
+                                return;
+                            };
+                            if _ev.pointer_id() != state.pointer_id {
+                                return;
+                            }
+
+                            if let Some(handle) = resize_handle_ref.get_untracked() {
+                                let _ = handle.release_pointer_capture(state.pointer_id);
+                            }
+                            drag_state.set(None);
+                        }
+                    }
+                    style="position:absolute; right:6px; bottom:6px; width:18px; height:18px; cursor:nwse-resize; touch-action:none; z-index:2; border-right:2px solid rgba(239, 246, 255, 0.92); border-bottom:2px solid rgba(239, 246, 255, 0.92); border-bottom-right-radius:8px; background:linear-gradient(135deg, rgba(37, 93, 198, 0) 0%, rgba(37, 93, 198, 0) 52%, rgba(37, 93, 198, 0.34) 100%);"
+                ></div>
+            </Show>
+        </div>
+    }
+}
+
 /// Native HTML image overlay pinned to a Cesium world position.
 #[component]
 pub fn ImageOverlay(
@@ -227,18 +367,23 @@ pub fn ImageOverlay(
     #[prop(optional, into, default = 320.into())] width_px: Signal<u32>,
     #[prop(optional, into, default = 180.into())] height_px: Signal<u32>,
     #[prop(optional, into, default = true.into())] show: Signal<bool>,
+    #[prop(optional, into, default = false.into())] resizable: Signal<bool>,
     #[prop(optional, into)] alt: Signal<Option<String>>,
     #[prop(optional, into)] cross_origin: Signal<Option<String>>,
 ) -> impl IntoView {
     view! {
-        <GeoAnchoredHtmlOverlay position=position show=show>
-            <ImageOverlayBody
-                src=src
+        <GeoAnchoredHtmlOverlay
+            position=position
+            show=show
+            pointer_events=Signal::derive(move || resizable.get())
+        >
+            <MediaOverlayFrame
                 width_px=width_px
                 height_px=height_px
-                alt=alt
-                cross_origin=cross_origin
-            />
+                resizable=resizable
+            >
+                <ImageOverlayBody src=src alt=alt cross_origin=cross_origin />
+            </MediaOverlayFrame>
         </GeoAnchoredHtmlOverlay>
     }
 }
@@ -251,6 +396,7 @@ pub fn VideoOverlay(
     #[prop(optional, into, default = 480.into())] width_px: Signal<u32>,
     #[prop(optional, into, default = 270.into())] height_px: Signal<u32>,
     #[prop(optional, into, default = true.into())] show: Signal<bool>,
+    #[prop(optional, into, default = false.into())] resizable: Signal<bool>,
     #[prop(optional, into, default = false.into())] autoplay: Signal<bool>,
     #[prop(optional, into, default = false.into())] loop_video: Signal<bool>,
     #[prop(optional, into, default = false.into())] muted: Signal<bool>,
@@ -262,19 +408,23 @@ pub fn VideoOverlay(
 ) -> impl IntoView {
     view! {
         <GeoAnchoredHtmlOverlay position=position show=show pointer_events=true>
-            <VideoOverlayBody
-                src=src
+            <MediaOverlayFrame
                 width_px=width_px
                 height_px=height_px
-                autoplay=autoplay
-                loop_video=loop_video
-                muted=muted
-                plays_inline=plays_inline
-                controls=controls
-                cross_origin=cross_origin
-                poster=poster
-                preload=preload
-            />
+                resizable=resizable
+            >
+                <VideoOverlayBody
+                    src=src
+                    autoplay=autoplay
+                    loop_video=loop_video
+                    muted=muted
+                    plays_inline=plays_inline
+                    controls=controls
+                    cross_origin=cross_origin
+                    poster=poster
+                    preload=preload
+                />
+            </MediaOverlayFrame>
         </GeoAnchoredHtmlOverlay>
     }
 }
@@ -297,6 +447,9 @@ pub fn YouTubeOverlay(
     /// Show or hide the overlay.
     #[prop(optional, into, default = true.into())]
     show: Signal<bool>,
+    /// Allow drag-resizing from the bottom-right corner while preserving aspect ratio.
+    #[prop(optional, into, default = false.into())]
+    resizable: Signal<bool>,
     /// Enable autoplay in the player URL.
     #[prop(optional, into, default = false.into())]
     autoplay: Signal<bool>,
@@ -312,15 +465,19 @@ pub fn YouTubeOverlay(
 ) -> impl IntoView {
     view! {
         <GeoAnchoredHtmlOverlay position=position show=show pointer_events=true>
-            <YouTubeOverlayBody
-                video_id=video_id
+            <MediaOverlayFrame
                 width_px=width_px
                 height_px=height_px
-                autoplay=autoplay
-                mute=mute
-                controls=controls
-                start_seconds=start_seconds
-            />
+                resizable=resizable
+            >
+                <YouTubeOverlayBody
+                    video_id=video_id
+                    autoplay=autoplay
+                    mute=mute
+                    controls=controls
+                    start_seconds=start_seconds
+                />
+            </MediaOverlayFrame>
         </GeoAnchoredHtmlOverlay>
     }
 }
@@ -344,14 +501,19 @@ pub fn RerunOverlay(
     /// Show or hide the overlay.
     #[prop(optional, into, default = true.into())]
     show: Signal<bool>,
+    /// Allow drag-resizing from the bottom-right corner while preserving aspect ratio.
+    #[prop(optional, into, default = false.into())]
+    resizable: Signal<bool>,
 ) -> impl IntoView {
     view! {
         <GeoAnchoredHtmlOverlay position=position show=show pointer_events=true>
-            <RerunOverlayBody
-                src=src
+            <MediaOverlayFrame
                 width_px=width_px
                 height_px=height_px
-            />
+                resizable=resizable
+            >
+                <RerunOverlayBody src=src />
+            </MediaOverlayFrame>
         </GeoAnchoredHtmlOverlay>
     }
 }
@@ -364,6 +526,7 @@ pub(crate) fn TrackedEntityImageOverlay(
     src: String,
     width_px: u32,
     height_px: u32,
+    resizable: bool,
     cross_origin: Option<String>,
 ) -> impl IntoView {
     let src = RwSignal::new(src);
@@ -372,13 +535,13 @@ pub(crate) fn TrackedEntityImageOverlay(
 
     view! {
         <TrackedEntityHtmlOverlay entity=entity show=show>
-            <ImageOverlayBody
-                src=src
+            <MediaOverlayFrame
                 width_px=width_px
                 height_px=height_px
-                alt=alt
-                cross_origin=cross_origin
-            />
+                resizable=resizable
+            >
+                <ImageOverlayBody src=src alt=alt cross_origin=cross_origin />
+            </MediaOverlayFrame>
         </TrackedEntityHtmlOverlay>
     }
 }
@@ -391,6 +554,7 @@ pub(crate) fn TrackedEntityVideoOverlay(
     src: String,
     width_px: u32,
     height_px: u32,
+    resizable: bool,
     autoplay: bool,
     loop_video: bool,
     muted: bool,
@@ -407,19 +571,23 @@ pub(crate) fn TrackedEntityVideoOverlay(
 
     view! {
         <TrackedEntityHtmlOverlay entity=entity show=show pointer_events=true>
-            <VideoOverlayBody
-                src=src
+            <MediaOverlayFrame
                 width_px=width_px
                 height_px=height_px
-                autoplay=autoplay
-                loop_video=loop_video
-                muted=muted
-                plays_inline=plays_inline
-                controls=controls
-                cross_origin=cross_origin
-                poster=poster
-                preload=preload
-            />
+                resizable=resizable
+            >
+                <VideoOverlayBody
+                    src=src
+                    autoplay=autoplay
+                    loop_video=loop_video
+                    muted=muted
+                    plays_inline=plays_inline
+                    controls=controls
+                    cross_origin=cross_origin
+                    poster=poster
+                    preload=preload
+                />
+            </MediaOverlayFrame>
         </TrackedEntityHtmlOverlay>
     }
 }
@@ -432,6 +600,7 @@ pub(crate) fn TrackedEntityYouTubeOverlay(
     video_id: String,
     width_px: u32,
     height_px: u32,
+    resizable: bool,
     autoplay: bool,
     mute: bool,
     controls: bool,
@@ -441,15 +610,19 @@ pub(crate) fn TrackedEntityYouTubeOverlay(
 
     view! {
         <TrackedEntityHtmlOverlay entity=entity show=show pointer_events=true>
-            <YouTubeOverlayBody
-                video_id=video_id
+            <MediaOverlayFrame
                 width_px=width_px
                 height_px=height_px
-                autoplay=autoplay
-                mute=mute
-                controls=controls
-                start_seconds=start_seconds
-            />
+                resizable=resizable
+            >
+                <YouTubeOverlayBody
+                    video_id=video_id
+                    autoplay=autoplay
+                    mute=mute
+                    controls=controls
+                    start_seconds=start_seconds
+                />
+            </MediaOverlayFrame>
         </TrackedEntityHtmlOverlay>
     }
 }
@@ -462,16 +635,19 @@ pub(crate) fn TrackedEntityRerunOverlay(
     src: String,
     width_px: u32,
     height_px: u32,
+    resizable: bool,
 ) -> impl IntoView {
     let src = RwSignal::new(src);
 
     view! {
         <TrackedEntityHtmlOverlay entity=entity show=show pointer_events=true>
-            <RerunOverlayBody
-                src=src
+            <MediaOverlayFrame
                 width_px=width_px
                 height_px=height_px
-            />
+                resizable=resizable
+            >
+                <RerunOverlayBody src=src />
+            </MediaOverlayFrame>
         </TrackedEntityHtmlOverlay>
     }
 }
@@ -479,19 +655,15 @@ pub(crate) fn TrackedEntityRerunOverlay(
 #[component]
 fn ImageOverlayBody(
     #[prop(into)] src: Signal<String>,
-    #[prop(optional, into, default = 320.into())] width_px: Signal<u32>,
-    #[prop(optional, into, default = 180.into())] height_px: Signal<u32>,
     #[prop(optional, into)] alt: Signal<Option<String>>,
     #[prop(optional, into)] cross_origin: Signal<Option<String>>,
 ) -> impl IntoView {
     view! {
         <img
-            width=move || width_px.get().to_string()
-            height=move || height_px.get().to_string()
             alt=move || alt.get().unwrap_or_default()
             crossorigin=move || cross_origin.get()
             src=move || src.get()
-            style="display: block; border: 0; border-radius: 14px; background: rgba(8, 17, 29, 0.92); box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38);"
+            style="display:block; width:100%; height:100%; border:0; border-radius:14px; background:rgba(8, 17, 29, 0.92); box-shadow:0 18px 48px rgba(0, 0, 0, 0.38);"
         />
     }
 }
@@ -499,8 +671,6 @@ fn ImageOverlayBody(
 #[component]
 fn VideoOverlayBody(
     #[prop(into)] src: Signal<String>,
-    #[prop(optional, into, default = 480.into())] width_px: Signal<u32>,
-    #[prop(optional, into, default = 270.into())] height_px: Signal<u32>,
     #[prop(optional, into, default = false.into())] autoplay: Signal<bool>,
     #[prop(optional, into, default = false.into())] loop_video: Signal<bool>,
     #[prop(optional, into, default = false.into())] muted: Signal<bool>,
@@ -543,8 +713,6 @@ fn VideoOverlayBody(
     view! {
         <video
             node_ref=video_ref
-            width=move || width_px.get().to_string()
-            height=move || height_px.get().to_string()
             autoplay=move || autoplay.get()
             controls=move || controls.get() || hover_controls.get()
             muted=move || muted.get()
@@ -556,7 +724,7 @@ fn VideoOverlayBody(
             src=move || src.get()
             on:mouseenter=move |_| hover_controls.set(true)
             on:mouseleave=move |_| hover_controls.set(false)
-            style="border: 0; border-radius: 14px; background: #000; box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38);"
+            style="display:block; width:100%; height:100%; border:0; border-radius:14px; background:#000; box-shadow:0 18px 48px rgba(0, 0, 0, 0.38);"
         ></video>
     }
 }
@@ -564,8 +732,6 @@ fn VideoOverlayBody(
 #[component]
 fn YouTubeOverlayBody(
     #[prop(into)] video_id: Signal<String>,
-    #[prop(optional, into, default = 480.into())] width_px: Signal<u32>,
-    #[prop(optional, into, default = 270.into())] height_px: Signal<u32>,
     #[prop(optional, into, default = false.into())] autoplay: Signal<bool>,
     #[prop(optional, into, default = false.into())] mute: Signal<bool>,
     #[prop(optional, into, default = true.into())] controls: Signal<bool>,
@@ -573,8 +739,6 @@ fn YouTubeOverlayBody(
 ) -> impl IntoView {
     view! {
         <iframe
-            width=move || width_px.get().to_string()
-            height=move || height_px.get().to_string()
             title=move || format!("YouTube video {}", video_id.get())
             src=move || {
                 build_youtube_embed_url(
@@ -588,27 +752,19 @@ fn YouTubeOverlayBody(
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             referrerpolicy="strict-origin-when-cross-origin"
             allowfullscreen=true
-            style="border: 0; border-radius: 14px; background: #000; box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38);"
+            style="display:block; width:100%; height:100%; border:0; border-radius:14px; background:#000; box-shadow:0 18px 48px rgba(0, 0, 0, 0.38);"
         ></iframe>
     }
 }
 
 #[cfg(feature = "rerun")]
 #[component]
-fn RerunOverlayBody(
-    #[prop(into)] src: Signal<String>,
-    #[prop(optional, into, default = 480.into())] width_px: Signal<u32>,
-    #[prop(optional, into, default = 270.into())] height_px: Signal<u32>,
-) -> impl IntoView {
+fn RerunOverlayBody(#[prop(into)] src: Signal<String>) -> impl IntoView {
     let follow_if_http = Signal::derive(move || rerun_follow_if_http(&src.get()));
 
     view! {
         <div
-            style=move || format!(
-                "width:{}px;height:{}px;overflow:hidden;border:1px solid rgba(160, 198, 214, 0.14);border-radius:14px;background:rgba(8, 17, 29, 0.94);box-shadow:0 18px 48px rgba(0, 0, 0, 0.38);",
-                width_px.get(),
-                height_px.get()
-            )
+            style="width:100%;height:100%;overflow:hidden;border:1px solid rgba(160, 198, 214, 0.14);border-radius:14px;background:rgba(8, 17, 29, 0.94);box-shadow:0 18px 48px rgba(0, 0, 0, 0.38);"
         >
             <RerunViewer
                 class="leptos-cesium-rerun-overlay".to_string()
@@ -630,6 +786,34 @@ fn RerunOverlayBody(
             />
         </div>
     }
+}
+
+#[cfg_attr(not(any(target_arch = "wasm32", test)), allow(dead_code))]
+fn overlay_aspect_ratio(size: OverlayFrameSize) -> f64 {
+    f64::from(size.width_px) / f64::from(size.height_px.max(1))
+}
+
+#[cfg_attr(not(any(target_arch = "wasm32", test)), allow(dead_code))]
+fn resize_overlay_size_from_corner(
+    start_size: OverlayFrameSize,
+    delta_x: f64,
+    delta_y: f64,
+    min_width_px: u32,
+) -> OverlayFrameSize {
+    let aspect_ratio = overlay_aspect_ratio(start_size);
+    let width_delta_from_y = delta_y * aspect_ratio;
+    let width_delta = if width_delta_from_y.abs() > delta_x.abs() {
+        width_delta_from_y
+    } else {
+        delta_x
+    };
+
+    let width_px = (f64::from(start_size.width_px) + width_delta)
+        .round()
+        .max(f64::from(min_width_px));
+    let height_px = (width_px / aspect_ratio).round().max(1.0);
+
+    OverlayFrameSize::new(width_px as u32, height_px as u32)
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -1032,7 +1216,10 @@ fn is_anchor_visible_from_camera(
 
 #[cfg(test)]
 mod tests {
-    use super::{build_youtube_embed_url, overlay_z_index_from_view_depth};
+    use super::{
+        OverlayFrameSize, build_youtube_embed_url, overlay_z_index_from_view_depth,
+        resize_overlay_size_from_corner,
+    };
 
     #[test]
     fn youtube_embed_url_includes_default_inline_playback() {
@@ -1063,5 +1250,29 @@ mod tests {
     fn non_positive_view_depth_hides_overlay_z_index() {
         assert_eq!(overlay_z_index_from_view_depth(0.0), 0);
         assert_eq!(overlay_z_index_from_view_depth(-15.0), 0);
+    }
+
+    #[test]
+    fn resize_overlay_prefers_horizontal_drag_when_it_is_dominant() {
+        let resized =
+            resize_overlay_size_from_corner(OverlayFrameSize::new(420, 236), 84.0, 10.0, 160);
+
+        assert_eq!(resized, OverlayFrameSize::new(504, 283));
+    }
+
+    #[test]
+    fn resize_overlay_prefers_vertical_drag_when_it_is_dominant() {
+        let resized =
+            resize_overlay_size_from_corner(OverlayFrameSize::new(420, 236), 12.0, 50.0, 160);
+
+        assert_eq!(resized, OverlayFrameSize::new(509, 286));
+    }
+
+    #[test]
+    fn resize_overlay_clamps_to_minimum_width() {
+        let resized =
+            resize_overlay_size_from_corner(OverlayFrameSize::new(320, 180), -500.0, -500.0, 160);
+
+        assert_eq!(resized, OverlayFrameSize::new(160, 90));
     }
 }

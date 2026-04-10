@@ -19,6 +19,10 @@ fn App() -> impl IntoView {
                 <small>
                     "The iframe stays aligned to a lon/lat/height position while the globe moves."
                 </small>
+                <br />
+                <small>
+                    "Drag the lower-right corner of the overlay to resize it."
+                </small>
             </div>
 
             <ViewerContainer
@@ -41,6 +45,7 @@ fn App() -> impl IntoView {
                     position=DVec3::new(anchor.x, anchor.y, 140.0)
                     width_px=420_u32
                     height_px=236_u32
+                    resizable=true
                 />
 
                 <CameraSetView destination=Some(DVec3::new(anchor.x, anchor.y, 3800.0).into()) />

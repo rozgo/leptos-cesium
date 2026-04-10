@@ -19,6 +19,10 @@ fn App() -> impl IntoView {
                 <small>
                     "The browser renders the <img> element while Cesium keeps the anchor aligned to lon/lat/height."
                 </small>
+                <br />
+                <small>
+                    "Drag the lower-right corner of the overlay to resize it."
+                </small>
             </div>
 
             <ViewerContainer
@@ -41,6 +45,7 @@ fn App() -> impl IntoView {
                     position=DVec3::new(anchor.x, anchor.y, 150.0)
                     width_px=160_u32
                     height_px=200_u32
+                    resizable=true
                     alt=Some("Gradient location pin".to_string())
                 />
 

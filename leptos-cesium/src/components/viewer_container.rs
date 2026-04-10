@@ -20,17 +20,12 @@ use wasm_bindgen::{JsCast, JsValue};
 #[cfg(all(target_arch = "wasm32", not(feature = "ssr")))]
 use web_sys::HtmlElement;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum ViewerBaseLayer {
+    #[default]
     CesiumWorldImagery,
     OpenStreetMap,
     None,
-}
-
-impl Default for ViewerBaseLayer {
-    fn default() -> Self {
-        Self::CesiumWorldImagery
-    }
 }
 
 /// Minimal Cesium viewer container component.

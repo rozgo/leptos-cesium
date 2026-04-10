@@ -236,6 +236,16 @@ pipeline, `YouTubeOverlay` embeds the official iframe player, and `RerunOverlay`
 interactive Rerun viewer when the optional `rerun` feature is enabled. All of them stay aligned
 to globe positions while Cesium continues rendering terrain, imagery, paths, and entities below.
 
+Direct media overlays also support `resizable=true`, which adds a bottom-right drag handle and
+keeps the original aspect ratio while the overlay stays anchored to the globe.
+
+Enable resizing from user code in one of two ways:
+
+- Direct overlay components: pass `resizable=true` to `ImageOverlay`, `VideoOverlay`,
+  `YouTubeOverlay`, or `RerunOverlay`.
+- CZML-driven media overlays: set `properties.media_resizable = true` alongside
+  `media_kind`, `media_width`, and `media_height`.
+
 ```rust
 use leptos::prelude::*;
 use leptos_cesium::prelude::*;
@@ -266,6 +276,7 @@ view! {
             position=DVec3::new(-122.4465, 37.8050, 140.0)
             width_px=420_u32
             height_px=236_u32
+            resizable=true
         />
     </ViewerContainer>
 }
@@ -279,6 +290,7 @@ view! {
 - `properties.media_uri`
 - `properties.media_width`
 - `properties.media_height`
+- `properties.media_resizable` (optional)
 
 This media overlay surface supports `image`, `video`, and `youtube` out of the box. When the
 optional `rerun` feature is enabled, `media_kind = "rerun"` becomes an additional anchored
@@ -305,6 +317,7 @@ leptos-cesium = { version = "0.0.1", default-features = false, features = ["csr"
   "properties": {
     "media_kind": "rerun",
     "media_uri": "https://app.rerun.io/version/0.31.2/examples/dna.rrd",
+    "media_resizable": true,
     "media_width": 360,
     "media_height": 224
   }
@@ -323,6 +336,7 @@ view! {
             position=DVec3::new(-122.4465, 37.8050, 140.0)
             width_px=420_u32
             height_px=236_u32
+            resizable=true
             autoplay=true
             muted=true
             loop_video=true

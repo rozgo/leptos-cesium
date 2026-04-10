@@ -54,6 +54,10 @@ fn App() -> impl IntoView {
                 <small>
                     "Each overlay follows the entity.position samples instead of mutating Cesium billboard or rectangle graphics."
                 </small>
+                <br />
+                <small>
+                    "Drag the lower-right corner of any media card to resize it."
+                </small>
             </div>
 
             <ViewerContainer
