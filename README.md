@@ -230,6 +230,12 @@ view! {
 Use HTML overlays when you need DOM content to track a globe position instead of becoming a
 Cesium material or billboard texture.
 
+The overlay surface is intentionally broader than a single wrapper component:
+`ImageOverlay` pins static images, `VideoOverlay` keeps native HTML video in the browser media
+pipeline, `YouTubeOverlay` embeds the official iframe player, and `RerunOverlay` mounts an
+interactive Rerun viewer when the optional `rerun` feature is enabled. All of them stay aligned
+to globe positions while Cesium continues rendering terrain, imagery, paths, and entities below.
+
 ```rust
 use leptos::prelude::*;
 use leptos_cesium::prelude::*;
@@ -265,7 +271,7 @@ view! {
 }
 ```
 
-## Rerun Overlays
+## Media Overlays
 
 `leptos-cesium` keeps anchored media under one flattened CZML contract:
 
@@ -274,10 +280,16 @@ view! {
 - `properties.media_width`
 - `properties.media_height`
 
-When the optional `rerun` feature is enabled, `media_kind = "rerun"` becomes a first-class
-anchored overlay alongside `image`, `video`, and `youtube`.
+This media overlay surface supports `image`, `video`, and `youtube` out of the box. When the
+optional `rerun` feature is enabled, `media_kind = "rerun"` becomes an additional anchored
+overlay kind under the same contract.
 
-![Anchored media overlays with Rerun support](docs/cesium-media-overlays.png)
+![Anchored media overlays with image, video, YouTube, and Rerun content](docs/cesium-media-overlays.jpg)
+
+The screenshot below is from `examples/czml-overlay-media`. It shows the full anchored media
+stack in one scene: a static image card, a native HTML video overlay, a YouTube iframe, and a
+Rerun viewer, each following animated CZML `entity.position` samples instead of mutating Cesium
+billboards or rectangle materials.
 
 ```toml
 [dependencies]
