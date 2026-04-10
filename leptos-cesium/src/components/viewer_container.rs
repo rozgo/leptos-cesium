@@ -20,6 +20,19 @@ use wasm_bindgen::{JsCast, JsValue};
 #[cfg(all(target_arch = "wasm32", not(feature = "ssr")))]
 use web_sys::HtmlElement;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ViewerBaseLayer {
+    CesiumWorldImagery,
+    OpenStreetMap,
+    None,
+}
+
+impl Default for ViewerBaseLayer {
+    fn default() -> Self {
+        Self::CesiumWorldImagery
+    }
+}
+
 /// Minimal Cesium viewer container component.
 ///
 /// This sets up the viewer context for descendants and creates a Cesium Viewer instance.
@@ -44,6 +57,7 @@ use web_sys::HtmlElement;
 /// * `should_animate` - Whether animations should play automatically. Defaults to true. Required for CZML animations.
 /// * `automatically_track_data_source_clocks` - Whether viewer clock auto-tracks newly added data sources. Defaults to true.
 /// * `allow_data_sources_to_suspend_animation` - Whether data sources may temporarily suspend animation while loading. Defaults to true.
+/// * `base_layer` - Selects the initial imagery layer. Defaults to Cesium world imagery.
 /// * `children` - Child components (entities, data sources, etc.)
 #[component]
 pub fn ViewerContainer(
@@ -64,9 +78,13 @@ pub fn ViewerContainer(
     #[prop(optional, default = true)] should_animate: bool,
     #[prop(optional, default = true)] automatically_track_data_source_clocks: bool,
     #[prop(optional, default = true)] allow_data_sources_to_suspend_animation: bool,
+    #[prop(optional, default = ViewerBaseLayer::default())] base_layer: ViewerBaseLayer,
     #[prop(optional, into, default = true.into())] globe: Signal<bool>,
     #[prop(optional)] children: Option<Children>,
 ) -> impl IntoView {
+    #[cfg(feature = "ssr")]
+    let _ = base_layer;
+
     let viewer_context = provide_cesium_context();
     let overlay_host_ref = NodeRef::<Div>::new();
     let _overlay_context = provide_cesium_overlay_context(overlay_host_ref);
@@ -161,6 +179,7 @@ pub fn ViewerContainer(
                 &JsValue::from_str("automaticallyTrackDataSourceClocks"),
                 &JsValue::from_bool(automatically_track_data_source_clocks),
             );
+            apply_base_layer_option(&options, base_layer);
 
             let viewer = Viewer::new(&element, &options.into());
             viewer.set_allow_data_sources_to_suspend_animation(
@@ -196,6 +215,7 @@ pub fn ViewerContainer(
                 should_animate,
                 automatically_track_data_source_clocks,
                 allow_data_sources_to_suspend_animation,
+                base_layer,
             );
         }
     });
@@ -322,4 +342,52 @@ pub fn ViewerContainer(
             ></div>
         </div>
     }
+}
+
+#[cfg(all(target_arch = "wasm32", not(feature = "ssr")))]
+fn apply_base_layer_option(options: &js_sys::Object, base_layer: ViewerBaseLayer) {
+    match base_layer {
+        ViewerBaseLayer::CesiumWorldImagery => {}
+        ViewerBaseLayer::OpenStreetMap => {
+            if let Some(layer) = openstreetmap_base_layer() {
+                let _ = js_sys::Reflect::set(options, &JsValue::from_str("baseLayer"), &layer);
+            }
+        }
+        ViewerBaseLayer::None => {
+            let _ = js_sys::Reflect::set(
+                options,
+                &JsValue::from_str("baseLayer"),
+                &JsValue::from_bool(false),
+            );
+        }
+    }
+}
+
+#[cfg(all(target_arch = "wasm32", not(feature = "ssr")))]
+fn openstreetmap_base_layer() -> Option<JsValue> {
+    let window = web_sys::window()?;
+    let cesium = js_sys::Reflect::get(&window, &JsValue::from_str("Cesium")).ok()?;
+
+    let provider_ctor =
+        js_sys::Reflect::get(&cesium, &JsValue::from_str("OpenStreetMapImageryProvider"))
+            .ok()?
+            .dyn_into::<js_sys::Function>()
+            .ok()?;
+    let provider_options = js_sys::Object::new();
+    let _ = js_sys::Reflect::set(
+        &provider_options,
+        &JsValue::from_str("url"),
+        &JsValue::from_str("https://tile.openstreetmap.org/"),
+    );
+    let provider = js_sys::Reflect::construct(
+        &provider_ctor,
+        &js_sys::Array::of1(&provider_options.into()),
+    )
+    .ok()?;
+
+    let imagery_layer_ctor = js_sys::Reflect::get(&cesium, &JsValue::from_str("ImageryLayer"))
+        .ok()?
+        .dyn_into::<js_sys::Function>()
+        .ok()?;
+    js_sys::Reflect::construct(&imagery_layer_ctor, &js_sys::Array::of1(&provider)).ok()
 }

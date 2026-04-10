@@ -11,6 +11,8 @@ use super::czml_overlay_media::{CzmlMediaError, CzmlMediaResolver};
 use super::czml_overlay_media::{
     CzmlOverlayBinding, CzmlOverlayMedia, reconcile_data_source_overlay_media,
 };
+#[cfg(all(target_arch = "wasm32", feature = "rerun"))]
+use super::overlay::TrackedEntityRerunOverlay;
 #[cfg(target_arch = "wasm32")]
 use super::overlay::{
     TrackedEntityImageOverlay, TrackedEntityVideoOverlay, TrackedEntityYouTubeOverlay,
@@ -427,12 +429,9 @@ pub fn CzmlDataSource(
                                 let _ = current_data_source.try_set(Some(data_source_js.clone()));
                                 if created_new_data_source {
                                     let _ = loaded_data_source.try_update_value(|owned| {
-                                        owned.replace_with(
-                                            data_source_js.clone(),
-                                            |existing| {
-                                                let _ = v.data_sources().remove(existing);
-                                            },
-                                        );
+                                        owned.replace_with(data_source_js.clone(), |existing| {
+                                            let _ = v.data_sources().remove(existing);
+                                        });
                                     });
                                 }
 
@@ -616,6 +615,23 @@ pub fn CzmlDataSource(
                                     mute=mute
                                     controls=controls
                                     start_seconds=start_seconds
+                                />
+                            }
+                                .into_any()
+                        }
+                        #[cfg(feature = "rerun")]
+                        CzmlOverlayMedia::Rerun {
+                            src,
+                            width_px,
+                            height_px,
+                        } => {
+                            view! {
+                                <TrackedEntityRerunOverlay
+                                    entity=entity
+                                    show=show
+                                    src=src
+                                    width_px=width_px
+                                    height_px=height_px
                                 />
                             }
                                 .into_any()

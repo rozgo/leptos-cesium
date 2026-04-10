@@ -34,6 +34,7 @@ tracing = { workspace = true, optional = true }
 thiserror = { workspace = true }
 serde_json = { workspace = true, optional = true }
 url = { workspace = true }
+leptos-rerun = { git = "https://github.com/rozgo/leptos-rerun.git", rev = "db547b53c6722fa917fddcbf0c0debf1e1d774b6", default-features = false, optional = true }
 
 # Standard Rust types for component props
 geo-types = "0.7"
@@ -46,9 +47,10 @@ log = { workspace = true }
 
 [features]
 default = []
-csr = ["leptos/csr"]
-hydrate = ["leptos/hydrate"]
-ssr = ["leptos/ssr", "leptos_meta/ssr"]
+csr = ["leptos/csr", "leptos-rerun?/csr"]
+hydrate = ["leptos/hydrate", "leptos-rerun?/hydrate"]
+ssr = ["leptos/ssr", "leptos_meta/ssr", "leptos-rerun?/ssr"]
+rerun = ["dep:leptos-rerun"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 gloo-timers = { version = "0.3", features = ["futures"] }

@@ -22,6 +22,7 @@ pub enum CzmlMediaKind {
     Image,
     Video,
     Youtube,
+    Rerun,
 }
 
 /// Parsed `properties.media_*` descriptor for one entity.
@@ -94,6 +95,12 @@ pub(crate) enum CzmlOverlayMedia {
         mute: bool,
         controls: bool,
         start_seconds: Option<u32>,
+    },
+    #[cfg(feature = "rerun")]
+    Rerun {
+        src: String,
+        width_px: u32,
+        height_px: u32,
     },
 }
 
@@ -172,7 +179,10 @@ pub(crate) fn reconcile_data_source_overlay_media(
             }
         }
 
-        if matches!(descriptor.kind, CzmlMediaKind::Image | CzmlMediaKind::Video) {
+        if matches!(
+            descriptor.kind,
+            CzmlMediaKind::Image | CzmlMediaKind::Video | CzmlMediaKind::Rerun
+        ) {
             let Some(media_uri) = descriptor.media_uri.as_deref() else {
                 emit_media_error(
                     on_error,
@@ -271,6 +281,7 @@ fn overlay_media_from_descriptor(
             controls: descriptor.controls,
             start_seconds: descriptor.start_seconds,
         }),
+        CzmlMediaKind::Rerun => rerun_overlay_media_from_descriptor(descriptor),
     }
 }
 
@@ -280,6 +291,7 @@ fn media_uri_required_error(kind: CzmlMediaKind) -> &'static str {
         CzmlMediaKind::Image => "Image overlay media requires `properties.media_uri`",
         CzmlMediaKind::Video => "Video overlay media requires `properties.media_uri`",
         CzmlMediaKind::Youtube => "YouTube overlay media does not use `properties.media_uri`",
+        CzmlMediaKind::Rerun => "Rerun overlay media requires `properties.media_uri`",
     }
 }
 
@@ -415,9 +427,10 @@ fn parse_media_descriptor(entity: &JsValue) -> Result<Option<CzmlMediaDescriptor
         "image" => CzmlMediaKind::Image,
         "video" => CzmlMediaKind::Video,
         "youtube" => CzmlMediaKind::Youtube,
+        "rerun" => CzmlMediaKind::Rerun,
         other => {
             return Err(format!(
-                "Unsupported properties.media_kind '{}' (expected 'image', 'video' or 'youtube')",
+                "Unsupported properties.media_kind '{}' (expected 'image', 'video', 'youtube' or 'rerun')",
                 other
             ));
         }
@@ -480,6 +493,12 @@ fn parse_media_descriptor(entity: &JsValue) -> Result<Option<CzmlMediaDescriptor
                 );
             };
             (None, Some(youtube_id))
+        }
+        CzmlMediaKind::Rerun => {
+            let Some(rerun_uri) = media_uri else {
+                return Err(media_uri_required_error(CzmlMediaKind::Rerun).to_string());
+            };
+            (Some(rerun_uri), None)
         }
     };
 
@@ -666,6 +685,46 @@ fn resolved_media_uri(media_source: &MediaSource) -> Result<String, String> {
             "Custom CZML overlay media resolvers must return MediaSource::Url or MediaSource::DataUrl"
                 .to_string(),
         ),
+    }
+}
+
+#[cfg(all(target_arch = "wasm32", feature = "rerun"))]
+fn rerun_overlay_media_from_descriptor(
+    descriptor: &CzmlMediaDescriptor,
+) -> Result<CzmlOverlayMedia, String> {
+    let src = descriptor
+        .media_uri
+        .clone()
+        .ok_or_else(|| media_uri_required_error(CzmlMediaKind::Rerun).to_string())?;
+
+    Ok(CzmlOverlayMedia::Rerun {
+        src: absolutize_browser_url(&src),
+        width_px: descriptor.width_px,
+        height_px: descriptor.height_px,
+    })
+}
+
+#[cfg(all(target_arch = "wasm32", not(feature = "rerun")))]
+fn rerun_overlay_media_from_descriptor(
+    _descriptor: &CzmlMediaDescriptor,
+) -> Result<CzmlOverlayMedia, String> {
+    Err("Rerun overlay media requires the `rerun` feature on `leptos-cesium`".to_string())
+}
+
+#[cfg(target_arch = "wasm32")]
+fn absolutize_browser_url(url: &str) -> String {
+    if url.contains("://") || url.starts_with("//") {
+        return url.to_string();
+    }
+
+    let Some(origin) = web_sys::window().and_then(|window| window.location().origin().ok()) else {
+        return url.to_string();
+    };
+
+    if url.starts_with('/') {
+        format!("{origin}{url}")
+    } else {
+        format!("{origin}/{url}")
     }
 }
 

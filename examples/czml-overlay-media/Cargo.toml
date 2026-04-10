@@ -7,7 +7,7 @@ publish = false
 [dependencies]
 console_error_panic_hook.workspace = true
 leptos = { workspace = true, default-features = false, features = ["csr"] }
-leptos-cesium = { path = "../../leptos-cesium", default-features = false, features = ["csr"] }
+leptos-cesium = { path = "../../leptos-cesium", default-features = false, features = ["csr", "rerun"] }
 serde_json.workspace = true
 wasm-bindgen.workspace = true
 js-sys.workspace = true

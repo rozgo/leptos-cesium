@@ -5,6 +5,8 @@ use leptos::{
     html::{Div, Video},
     prelude::*,
 };
+#[cfg(feature = "rerun")]
+use leptos_rerun::prelude::*;
 
 #[cfg(target_arch = "wasm32")]
 use crate::bindings::{Cartesian3, Entity, Event, SceneTransforms, Viewer};
@@ -323,6 +325,37 @@ pub fn YouTubeOverlay(
     }
 }
 
+/// Rerun viewer overlay pinned to a Cesium world position.
+#[cfg(feature = "rerun")]
+#[component]
+pub fn RerunOverlay(
+    /// Source URL for a `.rrd` recording or supported Rerun HTTP-backed source.
+    #[prop(into)]
+    src: Signal<String>,
+    /// World anchor as (longitude, latitude, height).
+    #[prop(into)]
+    position: Signal<DVec3>,
+    /// Embedded viewer width in CSS pixels.
+    #[prop(optional, into, default = 480.into())]
+    width_px: Signal<u32>,
+    /// Embedded viewer height in CSS pixels.
+    #[prop(optional, into, default = 270.into())]
+    height_px: Signal<u32>,
+    /// Show or hide the overlay.
+    #[prop(optional, into, default = true.into())]
+    show: Signal<bool>,
+) -> impl IntoView {
+    view! {
+        <GeoAnchoredHtmlOverlay position=position show=show pointer_events=true>
+            <RerunOverlayBody
+                src=src
+                width_px=width_px
+                height_px=height_px
+            />
+        </GeoAnchoredHtmlOverlay>
+    }
+}
+
 #[cfg(target_arch = "wasm32")]
 #[component]
 pub(crate) fn TrackedEntityImageOverlay(
@@ -416,6 +449,28 @@ pub(crate) fn TrackedEntityYouTubeOverlay(
                 mute=mute
                 controls=controls
                 start_seconds=start_seconds
+            />
+        </TrackedEntityHtmlOverlay>
+    }
+}
+
+#[cfg(all(target_arch = "wasm32", feature = "rerun"))]
+#[component]
+pub(crate) fn TrackedEntityRerunOverlay(
+    entity: ThreadSafeJsValue<Entity>,
+    #[prop(into)] show: Signal<bool>,
+    src: String,
+    width_px: u32,
+    height_px: u32,
+) -> impl IntoView {
+    let src = RwSignal::new(src);
+
+    view! {
+        <TrackedEntityHtmlOverlay entity=entity show=show pointer_events=true>
+            <RerunOverlayBody
+                src=src
+                width_px=width_px
+                height_px=height_px
             />
         </TrackedEntityHtmlOverlay>
     }
@@ -535,6 +590,45 @@ fn YouTubeOverlayBody(
             allowfullscreen=true
             style="border: 0; border-radius: 14px; background: #000; box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38);"
         ></iframe>
+    }
+}
+
+#[cfg(feature = "rerun")]
+#[component]
+fn RerunOverlayBody(
+    #[prop(into)] src: Signal<String>,
+    #[prop(optional, into, default = 480.into())] width_px: Signal<u32>,
+    #[prop(optional, into, default = 270.into())] height_px: Signal<u32>,
+) -> impl IntoView {
+    let follow_if_http = Signal::derive(move || rerun_follow_if_http(&src.get()));
+
+    view! {
+        <div
+            style=move || format!(
+                "width:{}px;height:{}px;overflow:hidden;border:1px solid rgba(160, 198, 214, 0.14);border-radius:14px;background:rgba(8, 17, 29, 0.94);box-shadow:0 18px 48px rgba(0, 0, 0, 0.38);",
+                width_px.get(),
+                height_px.get()
+            )
+        >
+            <RerunViewer
+                class="leptos-cesium-rerun-overlay".to_string()
+                style="width:100%;height:100%;min-height:0;".to_string()
+                rrd=Signal::derive(move || {
+                    let value = src.get();
+                    if value.trim().is_empty() {
+                        Vec::<String>::new()
+                    } else {
+                        vec![value]
+                    }
+                })
+                panel_state_overrides=rerun_overlay_panel_overrides()
+                hide_welcome_screen=true
+                theme=Theme::Dark
+                render_backend=RenderBackend::Webgl
+                allow_fullscreen=false
+                follow_if_http=follow_if_http
+            />
+        </div>
     }
 }
 
@@ -706,6 +800,23 @@ fn build_youtube_embed_url(
         video_id,
         serializer.finish()
     )
+}
+
+#[cfg(feature = "rerun")]
+fn rerun_overlay_panel_overrides() -> [(Panel, PanelState); 4] {
+    [
+        (Panel::Top, PanelState::Hidden),
+        (Panel::Blueprint, PanelState::Hidden),
+        (Panel::Selection, PanelState::Hidden),
+        (Panel::Time, PanelState::Collapsed),
+    ]
+}
+
+#[cfg(feature = "rerun")]
+fn rerun_follow_if_http(url: &str) -> bool {
+    let value = url.trim().to_ascii_lowercase();
+    let value = value.split('?').next().unwrap_or(value.as_str());
+    value.ends_with(".mcap")
 }
 
 #[cfg(target_arch = "wasm32")]

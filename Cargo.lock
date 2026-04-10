@@ -1132,6 +1132,7 @@ dependencies = [
  "gloo-timers",
  "js-sys",
  "leptos",
+ "leptos-rerun",
  "leptos_meta",
  "log",
  "palette",
@@ -1145,6 +1146,21 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-bindgen-test",
+ "web-sys",
+]
+
+[[package]]
+name = "leptos-rerun"
+version = "0.1.0"
+source = "git+https://github.com/rozgo/leptos-rerun.git?rev=db547b53c6722fa917fddcbf0c0debf1e1d774b6#db547b53c6722fa917fddcbf0c0debf1e1d774b6"
+dependencies = [
+ "js-sys",
+ "leptos",
+ "send_wrapper",
+ "serde",
+ "serde-wasm-bindgen",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
  "web-sys",
 ]
 

@@ -117,7 +117,7 @@ Demonstrates an official YouTube iframe visually pinned to a globe position via 
 cd examples/czml-overlay-media
 trunk serve --open
 ```
-Demonstrates overlay-based CZML media tracking from flattened `properties.media_*` fields using moving image, video, and YouTube entity positions.
+Demonstrates overlay-based CZML media tracking from flattened `properties.media_*` fields using moving image, video, YouTube, and Rerun entity positions.
 
 **GeoJSON data loading (maps, geographic features):**
 ```bash
@@ -223,6 +223,7 @@ view! {
 - **GeoAnchoredHtmlOverlay** - Screen-space HTML aligned to world coordinates
 - **VideoOverlay** - Native HTML video wrapper built on globe-anchored HTML overlay support
 - **YouTubeOverlay** - YouTube iframe wrapper built on globe-anchored HTML overlay support
+- **RerunOverlay** - Optional Rerun viewer wrapper built on the same anchored overlay support when the `rerun` feature is enabled
 
 ### HTML Overlays
 
@@ -263,6 +264,42 @@ view! {
     </ViewerContainer>
 }
 ```
+
+## Rerun Overlays
+
+`leptos-cesium` keeps anchored media under one flattened CZML contract:
+
+- `properties.media_kind`
+- `properties.media_uri`
+- `properties.media_width`
+- `properties.media_height`
+
+When the optional `rerun` feature is enabled, `media_kind = "rerun"` becomes a first-class
+anchored overlay alongside `image`, `video`, and `youtube`.
+
+![Anchored media overlays with Rerun support](docs/cesium-media-overlays.png)
+
+```toml
+[dependencies]
+leptos-cesium = { version = "0.0.1", default-features = false, features = ["csr", "rerun"] }
+```
+
+```json
+{
+  "id": "rerun_demo",
+  "position": {
+    "cartographicDegrees": [-122.456, 37.811, 44.0]
+  },
+  "properties": {
+    "media_kind": "rerun",
+    "media_uri": "https://app.rerun.io/version/0.31.2/examples/dna.rrd",
+    "media_width": 360,
+    "media_height": 224
+  }
+}
+```
+
+The `czml-overlay-media` example now demonstrates the full anchored media set, including Rerun.
 
 For native DOM video, use `VideoOverlay`:
 
