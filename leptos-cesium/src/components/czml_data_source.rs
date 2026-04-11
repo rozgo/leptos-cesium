@@ -129,6 +129,9 @@ pub fn CzmlDataSource(
     /// Whether `properties.media_*` overlay media should be rendered from `entity.position`.
     #[prop(optional, into, default = true.into())]
     media_overlays: Signal<bool>,
+    /// Whether rendered CZML media overlays should receive pointer events.
+    #[prop(optional, into, default = false.into())]
+    media_overlay_pointer_events: Signal<bool>,
     /// Optional custom media resolver.
     #[prop(optional)]
     resolve_media: Option<CzmlMediaResolver>,
@@ -561,6 +564,7 @@ pub fn CzmlDataSource(
                                     height_px=height_px
                                     resizable=resizable
                                     cross_origin=cross_origin
+                                    pointer_events=media_overlay_pointer_events
                                 />
                             }
                                 .into_any()
@@ -595,6 +599,7 @@ pub fn CzmlDataSource(
                                     cross_origin=cross_origin
                                     poster=poster
                                     preload=preload
+                                    pointer_events=media_overlay_pointer_events
                                 />
                             }
                                 .into_any()
@@ -621,6 +626,7 @@ pub fn CzmlDataSource(
                                     mute=mute
                                     controls=controls
                                     start_seconds=start_seconds
+                                    pointer_events=media_overlay_pointer_events
                                 />
                             }
                                 .into_any()
@@ -640,6 +646,7 @@ pub fn CzmlDataSource(
                                     width_px=width_px
                                     height_px=height_px
                                     resizable=resizable
+                                    pointer_events=media_overlay_pointer_events
                                 />
                             }
                                 .into_any()
@@ -665,6 +672,7 @@ pub fn CzmlDataSource(
             credit,
             clustering,
             media_overlays,
+            media_overlay_pointer_events,
             resolve_media,
             on_loading,
             on_media_loading,

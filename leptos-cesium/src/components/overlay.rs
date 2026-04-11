@@ -250,6 +250,7 @@ fn MediaOverlayFrame(
     #[prop(optional, into)] width_px: Signal<u32>,
     #[prop(optional, into)] height_px: Signal<u32>,
     #[prop(optional, into, default = false.into())] resizable: Signal<bool>,
+    #[prop(optional, into, default = true.into())] interactive: Signal<bool>,
     children: Children,
 ) -> impl IntoView {
     let initial_size = OverlayFrameSize::new(width_px.get_untracked(), height_px.get_untracked());
@@ -278,7 +279,7 @@ fn MediaOverlayFrame(
             }
         >
             {children()}
-            <Show when=move || resizable.get()>
+            <Show when=move || resize_handle_visible(resizable.get(), interactive.get())>
                 <div
                     node_ref=resize_handle_ref
                     on:pointerdown=move |_ev| {
@@ -528,17 +529,19 @@ pub(crate) fn TrackedEntityImageOverlay(
     height_px: u32,
     resizable: bool,
     cross_origin: Option<String>,
+    #[prop(optional, into, default = false.into())] pointer_events: Signal<bool>,
 ) -> impl IntoView {
     let src = RwSignal::new(src);
     let alt = RwSignal::new(None::<String>);
     let cross_origin = RwSignal::new(cross_origin);
 
     view! {
-        <TrackedEntityHtmlOverlay entity=entity show=show>
+        <TrackedEntityHtmlOverlay entity=entity show=show pointer_events=pointer_events>
             <MediaOverlayFrame
                 width_px=width_px
                 height_px=height_px
                 resizable=resizable
+                interactive=pointer_events
             >
                 <ImageOverlayBody src=src alt=alt cross_origin=cross_origin />
             </MediaOverlayFrame>
@@ -563,6 +566,7 @@ pub(crate) fn TrackedEntityVideoOverlay(
     cross_origin: Option<String>,
     poster: Option<String>,
     preload: Option<String>,
+    #[prop(optional, into, default = false.into())] pointer_events: Signal<bool>,
 ) -> impl IntoView {
     let src = RwSignal::new(src);
     let cross_origin = RwSignal::new(cross_origin);
@@ -570,11 +574,12 @@ pub(crate) fn TrackedEntityVideoOverlay(
     let preload = RwSignal::new(preload);
 
     view! {
-        <TrackedEntityHtmlOverlay entity=entity show=show pointer_events=true>
+        <TrackedEntityHtmlOverlay entity=entity show=show pointer_events=pointer_events>
             <MediaOverlayFrame
                 width_px=width_px
                 height_px=height_px
                 resizable=resizable
+                interactive=pointer_events
             >
                 <VideoOverlayBody
                     src=src
@@ -605,15 +610,17 @@ pub(crate) fn TrackedEntityYouTubeOverlay(
     mute: bool,
     controls: bool,
     start_seconds: Option<u32>,
+    #[prop(optional, into, default = false.into())] pointer_events: Signal<bool>,
 ) -> impl IntoView {
     let video_id = RwSignal::new(video_id);
 
     view! {
-        <TrackedEntityHtmlOverlay entity=entity show=show pointer_events=true>
+        <TrackedEntityHtmlOverlay entity=entity show=show pointer_events=pointer_events>
             <MediaOverlayFrame
                 width_px=width_px
                 height_px=height_px
                 resizable=resizable
+                interactive=pointer_events
             >
                 <YouTubeOverlayBody
                     video_id=video_id
@@ -636,15 +643,17 @@ pub(crate) fn TrackedEntityRerunOverlay(
     width_px: u32,
     height_px: u32,
     resizable: bool,
+    #[prop(optional, into, default = false.into())] pointer_events: Signal<bool>,
 ) -> impl IntoView {
     let src = RwSignal::new(src);
 
     view! {
-        <TrackedEntityHtmlOverlay entity=entity show=show pointer_events=true>
+        <TrackedEntityHtmlOverlay entity=entity show=show pointer_events=pointer_events>
             <MediaOverlayFrame
                 width_px=width_px
                 height_px=height_px
                 resizable=resizable
+                interactive=pointer_events
             >
                 <RerunOverlayBody src=src />
             </MediaOverlayFrame>
@@ -814,6 +823,11 @@ fn resize_overlay_size_from_corner(
     let height_px = (width_px / aspect_ratio).round().max(1.0);
 
     OverlayFrameSize::new(width_px as u32, height_px as u32)
+}
+
+#[cfg_attr(not(any(target_arch = "wasm32", test)), allow(dead_code))]
+fn resize_handle_visible(resizable: bool, interactive: bool) -> bool {
+    resizable && interactive
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -1218,7 +1232,7 @@ fn is_anchor_visible_from_camera(
 mod tests {
     use super::{
         OverlayFrameSize, build_youtube_embed_url, overlay_z_index_from_view_depth,
-        resize_overlay_size_from_corner,
+        resize_handle_visible, resize_overlay_size_from_corner,
     };
 
     #[test]
@@ -1274,5 +1288,13 @@ mod tests {
             resize_overlay_size_from_corner(OverlayFrameSize::new(320, 180), -500.0, -500.0, 160);
 
         assert_eq!(resized, OverlayFrameSize::new(160, 90));
+    }
+
+    #[test]
+    fn resize_handle_requires_interactive_resizable_overlay() {
+        assert!(!resize_handle_visible(false, false));
+        assert!(!resize_handle_visible(false, true));
+        assert!(!resize_handle_visible(true, false));
+        assert!(resize_handle_visible(true, true));
     }
 }

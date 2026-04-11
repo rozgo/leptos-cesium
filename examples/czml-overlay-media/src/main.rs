@@ -15,6 +15,7 @@ fn main() {
 fn App() -> impl IntoView {
     let ion_token = option_env!("CESIUM_ION_TOKEN").map(|s| s.to_string());
     let packet = media_demo_czml();
+    let media_pointer_events = RwSignal::new(false);
     let loaded_target = JsRwSignal::new_local(None::<ViewerTarget>);
     let (focus_trigger, set_focus_trigger) = signal(());
 
@@ -56,8 +57,27 @@ fn App() -> impl IntoView {
                 </small>
                 <br />
                 <small>
-                    "Drag the lower-right corner of any media card to resize it."
+                    {move || {
+                        if media_pointer_events.get() {
+                            "Overlay pointer is on: resize handles are visible and draggable."
+                        } else {
+                            "Overlay pointer is off: handles are hidden so map drag stays unobstructed."
+                        }
+                    }}
                 </small>
+                <br />
+                <button
+                    on:click=move |_| media_pointer_events.update(|value| *value = !*value)
+                    style="margin-top: 8px;"
+                >
+                    {move || {
+                        if media_pointer_events.get() {
+                            "Disable overlay pointer"
+                        } else {
+                            "Enable overlay pointer"
+                        }
+                    }}
+                </button>
             </div>
 
             <ViewerContainer
@@ -68,6 +88,7 @@ fn App() -> impl IntoView {
             >
                 <CzmlDataSource
                     data=Some(packet)
+                    media_overlay_pointer_events=media_pointer_events
                     on_error=on_packet_error
                     on_media_error=on_media_error
                     on_loaded=on_packet_loaded
