@@ -44,55 +44,65 @@ pub fn Entity(
                 return;
             }
 
-            viewer_context.with_viewer(|viewer: Viewer| {
-                let entities = viewer.entities();
-                let entity_options = Object::new();
+            let Some(viewer) = viewer_context.viewer() else {
+                return;
+            };
 
-                // Set name if provided
-                if let Some(n) = name.get() {
-                    let _ = Reflect::set(
-                        &entity_options,
-                        &JsValue::from_str("name"),
-                        &JsValue::from_str(&n),
-                    );
-                }
-
-                // Set position if provided - convert DVec3 to Cartesian3
-                if let Some(pos) = position.get() {
-                    let cartesian: Cartesian3 = pos.into();
-                    let _ = Reflect::set(
-                        &entity_options,
-                        &JsValue::from_str("position"),
-                        &JsValue::from(cartesian),
-                    );
-                }
-
-                // Set description if provided
-                if let Some(desc) = description.get() {
-                    let _ = Reflect::set(
-                        &entity_options,
-                        &JsValue::from_str("description"),
-                        &JsValue::from_str(&desc),
-                    );
-                }
-
-                // Set show if provided
-                if let Some(s) = show.get() {
-                    let _ = Reflect::set(
-                        &entity_options,
-                        &JsValue::from_str("show"),
-                        &JsValue::from_bool(s),
-                    );
-                }
-
-                let entity = entities.add_with_options(&entity_options.into());
-                entity_context.set_entity(entity);
-            });
+            let entity = viewer.entities().add_with_options(&Object::new().into());
+            entity_context.set_entity(entity);
         }
 
         #[cfg(not(target_arch = "wasm32"))]
         {
             let _ = (name, position, description, show);
+        }
+    });
+
+    Effect::new(move |_| {
+        #[cfg(target_arch = "wasm32")]
+        {
+            let value = name.get();
+            entity_context.with_entity(|entity: CesiumEntity| {
+                set_optional_string_property(&entity, "name", value.as_deref());
+            });
+        }
+    });
+
+    Effect::new(move |_| {
+        #[cfg(target_arch = "wasm32")]
+        {
+            let value = position.get();
+            entity_context.with_entity(|entity: CesiumEntity| {
+                let value = value.map(|position| {
+                    let cartesian: Cartesian3 = position.into();
+                    JsValue::from(cartesian)
+                });
+                set_optional_js_property(&entity, "position", value.as_ref());
+            });
+        }
+    });
+
+    Effect::new(move |_| {
+        #[cfg(target_arch = "wasm32")]
+        {
+            let value = description.get();
+            entity_context.with_entity(|entity: CesiumEntity| {
+                set_optional_string_property(&entity, "description", value.as_deref());
+            });
+        }
+    });
+
+    Effect::new(move |_| {
+        #[cfg(target_arch = "wasm32")]
+        {
+            let value = show.get().unwrap_or(true);
+            entity_context.with_entity(|entity: CesiumEntity| {
+                let _ = Reflect::set(
+                    &entity,
+                    &JsValue::from_str("show"),
+                    &JsValue::from_bool(value),
+                );
+            });
         }
     });
 
@@ -109,4 +119,29 @@ pub fn Entity(
     });
 
     view! { <>{children()}</> }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn set_optional_string_property(entity: &CesiumEntity, property: &str, value: Option<&str>) {
+    match value {
+        Some(value) => {
+            let _ = Reflect::set(
+                entity,
+                &JsValue::from_str(property),
+                &JsValue::from_str(value),
+            );
+        }
+        None => {
+            let _ = Reflect::set(entity, &JsValue::from_str(property), &JsValue::UNDEFINED);
+        }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn set_optional_js_property(entity: &CesiumEntity, property: &str, value: Option<&JsValue>) {
+    let _ = Reflect::set(
+        entity,
+        &JsValue::from_str(property),
+        value.unwrap_or(&JsValue::UNDEFINED),
+    );
 }
