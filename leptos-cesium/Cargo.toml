@@ -34,7 +34,7 @@ tracing = { workspace = true, optional = true }
 thiserror = { workspace = true }
 serde_json = { workspace = true, optional = true }
 url = { workspace = true }
-leptos-rerun = { git = "https://github.com/rozgo/leptos-rerun.git", rev = "9d32d707b004a34c20d3c655fcaaf6b5731fc874", default-features = false, optional = true }
+leptos-rerun = { git = "https://github.com/rozgo/leptos-rerun.git", rev = "9da9f08948409da9fa9b340218d0e7d4c6b4b2c7", default-features = false, optional = true }
 
 # Standard Rust types for component props
 geo-types = "0.7"
