@@ -16,7 +16,7 @@ const MEDIA_RERUN_ROUTE_ENTITY_ID: &str = "media_rerun_expected_route";
 const IMAGE_URI: &str = "pin.svg";
 const VIDEO_URI: &str = "https://cesium.com/public/SandcastleSampleData/big-buck-bunny_trailer.mp4";
 const YOUTUBE_VIDEO_ID: &str = "M7lc1UVf-VE";
-const RERUN_URI: &str = "https://app.rerun.io/version/0.31.3/examples/dna.rrd";
+const RERUN_URI: &str = "https://app.rerun.io/version/0.31.4/examples/dna.rrd";
 
 fn total_steps() -> usize {
     DEMO_INTERVAL_SECONDS

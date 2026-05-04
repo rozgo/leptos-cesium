@@ -316,7 +316,7 @@ leptos-cesium = { version = "0.0.1", default-features = false, features = ["csr"
   },
   "properties": {
     "media_kind": "rerun",
-    "media_uri": "https://app.rerun.io/version/0.31.2/examples/dna.rrd",
+    "media_uri": "https://app.rerun.io/version/0.31.4/examples/dna.rrd",
     "media_resizable": true,
     "media_width": 360,
     "media_height": 224
