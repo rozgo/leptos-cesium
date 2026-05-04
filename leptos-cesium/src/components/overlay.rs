@@ -791,6 +791,8 @@ fn RerunOverlayBody(#[prop(into)] src: Signal<String>) -> impl IntoView {
                 theme=Theme::Dark
                 render_backend=RenderBackend::Webgl
                 allow_fullscreen=false
+                autoplay=true
+                loop_playback=true
                 follow_if_http=follow_if_http
             />
         </div>
