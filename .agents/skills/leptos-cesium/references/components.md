@@ -16,6 +16,7 @@ Root component that creates the Cesium Viewer.
 | `node_ref` | `NodeRef<leptos::html::Div>` | fresh node ref | Optional handle to the container div |
 | `animation` | `bool` | `true` | Show animation widget |
 | `timeline` | `bool` | `true` | Show timeline widget |
+| `geocoder` | `bool` | `true` | Show geocoder/search widget |
 | `base_layer_picker` | `bool` | `true` | Show base layer picker |
 | `home_button` | `bool` | `true` | Show home button |
 | `scene_mode_picker` | `bool` | `true` | Show scene mode picker |
@@ -24,6 +25,9 @@ Root component that creates the Cesium Viewer.
 | `info_box` | `bool` | `true` | Show info box on selection |
 | `selection_indicator` | `bool` | `true` | Show selection indicator |
 | `should_animate` | `bool` | `true` | Auto-play animations |
+| `automatically_track_data_source_clocks` | `bool` | `true` | Viewer clock follows newly added data sources |
+| `allow_data_sources_to_suspend_animation` | `bool` | `true` | Let loading data sources pause animation |
+| `base_layer` | `ViewerBaseLayer` | `CesiumWorldImagery` | Initial imagery: `CesiumWorldImagery`, `OpenStreetMap`, or `None` |
 | `globe` | `Signal<bool>` | `true` | Show/hide globe |
 
 ## Entity
@@ -249,12 +253,26 @@ Reset viewer clock.
 
 ### CzmlDataSource
 
-Load CZML data.
+Load CZML data. Set one of `source`, `url`, or `data`.
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `url` | `Signal<String>` | required | CZML file URL |
+| `source` | `Signal<Option<CzmlSource>>` | `None` | Source selector; takes precedence over `url` and `data` |
+| `url` | `Signal<Option<String>>` | `None` | CZML file URL |
+| `data` | `Signal<Option<String>>` | `None` | Inline CZML JSON |
+| `mode` | `Signal<CzmlLoadMode>` | `Replace` | `Replace` (`load`) or append (`process`) |
+| `trigger` | `Signal<()>` | `()` | Re-run processing, e.g. to replay the same payload |
 | `clear_existing` | `Signal<bool>` | `true` | Eagerly remove this component's previously loaded source before re-load |
+| `show` | `Signal<bool>` | `true` | Data source visibility |
+| `name` / `source_uri` / `credit` | `Signal<Option<String>>` | `None` | Name override, base URI for relative links, credit text |
+| `clustering` | `JsSignal<Option<EntityCluster>>` | `None` | Entity clustering |
+| `media_overlays` | `Signal<bool>` | `true` | Render `properties.media_*` entities as anchored overlays |
+| `media_overlay_pointer_events` | `Signal<bool>` | `false` | Let media overlays receive pointer events |
+| `resolve_media` | `Option<CzmlMediaResolver>` | `None` | Custom media resolver |
+| `on_loading` / `on_media_loading` | `Option<Callback<bool>>` | `None` | Load and media reconciliation state |
+| `on_error` | `Option<Callback<String>>` | `None` | Load/runtime errors |
+| `on_media_error` | `Option<Callback<CzmlMediaError>>` | `None` | Media parse/reconciliation errors |
+| `on_changed` / `on_loaded` | `Option<Callback<JsValue>>` | `None` | Data source changed / load completed |
 
 ### GeoJsonDataSource
 
@@ -272,6 +290,43 @@ Load GeoJSON/TopoJSON data.
 | `marker_symbol` | `Signal<Option<String>>` | `None` | Marker symbol (Maki id or single char) |
 | `clamp_to_ground` | `Signal<Option<bool>>` | `None` | Clamp to terrain |
 | `credit` | `Signal<Option<String>>` | `None` | Data attribution string |
+
+## Overlays
+
+DOM content anchored to a globe position. Must be inside `ViewerContainer`.
+`position` is `(longitude, latitude, height)`.
+
+### GeoAnchoredHtmlOverlay
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `position` | `Signal<DVec3>` | required | World anchor |
+| `show` | `Signal<bool>` | `true` | Show/hide |
+| `offset_px` | `Signal<(f64, f64)>` | `(0.0, 0.0)` | Screen-space offset from the projected anchor |
+| `hide_when_offscreen` | `Signal<bool>` | `true` | Hide when the anchor leaves the viewer |
+| `hide_when_behind_globe` | `Signal<bool>` | `true` | Hide when the anchor is behind the horizon |
+| `pointer_events` | `Signal<bool>` | `false` | Allow pointer interaction |
+| `children` | `ChildrenFn` | required | Overlay content |
+
+### Media overlays
+
+`ImageOverlay`, `VideoOverlay`, `YouTubeOverlay`, and `RerunOverlay` share these props:
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `position` | `Signal<DVec3>` | required | World anchor |
+| `width_px` / `height_px` | `Signal<u32>` | `320`x`180` (image), `480`x`270` (others) | Size in CSS pixels |
+| `show` | `Signal<bool>` | `true` | Show/hide |
+| `resizable` | `Signal<bool>` | `false` | Bottom-right resize handle, keeps aspect ratio |
+
+Component-specific props:
+
+| Component | Props |
+|-----------|-------|
+| `ImageOverlay` | `src` (required), `alt`, `cross_origin` |
+| `VideoOverlay` | `src` (required), `autoplay`, `loop_video`, `muted`, `plays_inline` (default `true`), `controls`, `cross_origin`, `poster`, `preload` |
+| `YouTubeOverlay` | `video_id` (required), `autoplay`, `mute`, `controls` (default `true`), `start_seconds` |
+| `RerunOverlay` | `src` (required, `.rrd` or Rerun HTTP source). Requires the `rerun` feature. Autoplays and loops. |
 
 ## 3D Tiles
 

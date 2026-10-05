@@ -1,6 +1,6 @@
 ---
 name: leptos
-description: "Guidance for editing code in this Leptos repository (0.8.15): idiomatic components/signals/router/server functions, SSR/hydrate/CSR feature hygiene, and common pitfalls. Use when changing Leptos crates or examples in this repo."
+description: "Guidance for editing code in this Leptos repository (0.8.17): idiomatic components/signals/router/server functions, SSR/hydrate/CSR feature hygiene, and common pitfalls. Use when changing Leptos crates or examples in this repo."
 ---
 
 # Leptos Skill

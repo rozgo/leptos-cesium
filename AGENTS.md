@@ -2,9 +2,9 @@
 
 ## Context
 
-This repository houses `leptos-cesium`, a Leptos component library targeting CesiumJS. Built for **Leptos 0.8.15**, it uses standard Rust ecosystem types (glam, geo-types, palette) for SSR compatibility.
+This repository houses `leptos-cesium`, a Leptos component library targeting CesiumJS. Built for **Leptos 0.8.17**, it uses standard Rust ecosystem types (glam, geo-types, palette) for SSR compatibility.
 
-**Leptos Claude Skill**: See `.claude/skills/leptos/` for comprehensive Leptos 0.8.x guidance including signals, routing, SSR setup, and common pitfalls.
+**Leptos Skill**: See `.agents/skills/leptos/` for comprehensive Leptos 0.8.x guidance including signals, routing, SSR setup, and common pitfalls.
 
 ## Local Tooling
 
@@ -100,9 +100,17 @@ pub fn App() -> impl IntoView {
 ## Cesium CDN
 
 Cesium assets (JS, CSS, Workers, Assets) are loaded from the official Cesium CDN:
-- Base URL: `https://cesium.com/downloads/cesiumjs/releases/1.140/Build/Cesium/`
+- Base URL: `https://cesium.com/downloads/cesiumjs/releases/1.146/Build/Cesium/`
 - The `ViewerContainer` component automatically configures the base URL for Workers and Assets
 - Internet connectivity is required at runtime
+- When bumping Cesium, update `CESIUM_CDN_BASE` in `viewer_container.rs`, every example `index.html`, `examples/with-server/src/app.rs`, this file, and the baseline in `.agents/skills/leptos-cesium/SKILL.md`
+
+## Rerun Feature
+
+The optional `rerun` feature enables `RerunOverlay` and `media_kind = "rerun"` CZML overlays through
+`leptos-rerun`, pinned by git `rev` in `leptos-cesium/Cargo.toml`. The Rerun web viewer version
+comes from that crate's `DEFAULT_RERUN_CDN_VERSION`. To upgrade, push `leptos-rerun` first, then bump
+the `rev` and run `cargo update -p leptos-rerun`.
 
 ## Example Structure
 
@@ -121,8 +129,8 @@ examples/my-example/
 **Required HTML structure:**
 ```html
 <head>
-  <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.140/Build/Cesium/Widgets/widgets.css" />
-  <script src="https://cesium.com/downloads/cesiumjs/releases/1.140/Build/Cesium/Cesium.js"></script>
+  <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.146/Build/Cesium/Widgets/widgets.css" />
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.146/Build/Cesium/Cesium.js"></script>
 </head>
 <body>
   <link data-trunk rel="rust" data-bindgen-target="web" />
@@ -189,8 +197,8 @@ view! {
 4. **Update HTML to load Cesium from CDN:**
 ```html
 <head>
-  <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.140/Build/Cesium/Widgets/widgets.css" />
-  <script src="https://cesium.com/downloads/cesiumjs/releases/1.140/Build/Cesium/Cesium.js"></script>
+  <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.146/Build/Cesium/Widgets/widgets.css" />
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.146/Build/Cesium/Cesium.js"></script>
 </head>
 ```
 

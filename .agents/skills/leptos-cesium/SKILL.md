@@ -11,10 +11,12 @@ Declarative CesiumJS components for Leptos. Uses standard Rust types (glam, geo-
 
 ## Current Baseline
 
-- Cesium CDN/runtime target: `1.140`
+- Cesium CDN/runtime target: `1.146`
 - Primary integration surface: `ViewerContainer`, `Entity` + graphics, camera controls, data sources, 3D tiles
 - Media surface: `BillboardGraphics`, `ImageMaterialPropertyBuilder`, `Material::image`, `MediaSource`
-- CZML media support: `CzmlDataSource` auto-bridges flattened `properties.media_*` custom fields into billboard/rectangle/polygon media
+- Anchored DOM overlays: `GeoAnchoredHtmlOverlay`, `ImageOverlay`, `VideoOverlay`, `YouTubeOverlay`, and `RerunOverlay` (behind the optional `rerun` feature)
+- CZML media support: `CzmlDataSource` turns flattened `properties.media_*` fields into anchored overlays that follow `entity.position`
+- Optional `rerun` feature: pulls in `leptos-rerun` (git rev pin in `leptos-cesium/Cargo.toml`), which loads the Rerun web viewer `0.38.1` from jsDelivr
 - Viewer events available via `ViewerEvents` and `cesium_events!`
 - Strict lifecycle ownership is implemented for async loads/listeners:
   - stale async requests are gated (`RequestGate`)
@@ -110,6 +112,7 @@ Root component. Creates Cesium Viewer and provides context.
     animation=false       // Hide animation widget
     timeline=false        // Hide timeline widget
     info_box=false        // Hide info box on selection
+    base_layer=ViewerBaseLayer::OpenStreetMap  // or CesiumWorldImagery (default), None
     style="width: 100%; height: 100%;".to_string()
 >
     // children
@@ -265,6 +268,39 @@ Use `BillboardGraphics` for pinned image/media markers:
 </Entity>
 ```
 
+## Anchored HTML Overlays
+
+Use overlays when DOM content (images, native video, iframes, a Rerun viewer) should track a
+globe position. Use `BillboardGraphics` or `Material::image` instead when the media must
+become a Cesium texture.
+
+```rust
+<GeoAnchoredHtmlOverlay
+    position=DVec3::new(-122.4465, 37.8050, 120.0)
+    pointer_events=true
+>
+    <div>"DOM content pinned to the globe"</div>
+</GeoAnchoredHtmlOverlay>
+
+<VideoOverlay
+    src="https://cesium.com/public/SandcastleSampleData/big-buck-bunny_trailer.mp4".to_string()
+    position=DVec3::new(-122.4465, 37.8050, 140.0)
+    width_px=420_u32
+    height_px=236_u32
+    resizable=true
+    autoplay=true
+    muted=true
+    loop_video=true
+/>
+```
+
+- All overlays must be descendants of `ViewerContainer`; they portal into its overlay host.
+- `GeoAnchoredHtmlOverlay` hides its content when the anchor is offscreen or behind the globe. Both checks are on by default (`hide_when_offscreen`, `hide_when_behind_globe`).
+- `resizable=true` on the media overlays adds a bottom-right handle that keeps the aspect ratio.
+- `RerunOverlay` needs `features = ["rerun"]`. It mounts `leptos_rerun::RerunViewer` with autoplay and looping, and with the top, blueprint and selection panels hidden.
+- Rerun 0.35 removed file tailing, so `RerunOverlay` sources load once. There is no `follow_if_http` anymore.
+- Since Rerun 0.38, a collapsed time panel only shows when the viewer is at least 600px wide. Narrower Rerun overlays show no playback bar.
+
 ## Data Sources
 
 ### CZML
@@ -365,10 +401,19 @@ Treat trigger-driven components as edge-triggered actions.
 
 ### CZML Media Through `CzmlDataSource`
 
-Use `CzmlDataSource` directly for CZML-driven image/video binding.
+`CzmlDataSource` renders anchored overlays for entities that carry flattened
+`properties.media_*` fields. Each overlay follows that entity's sampled `position`.
 
-- Encode media intent with flattened custom properties such as `media_uri`, `media_kind`, and `media_target`.
-- Do not rely on nested `properties.media = { ... }` objects for media metadata. In Cesium CZML parsing, objects containing typed keys like `uri` can be coerced into specialized property types, which loses the rest of the nested object shape.
+- `media_kind`: `image`, `video`, `youtube`, or `rerun` (`rerun` requires the `rerun` feature)
+- `media_uri` (image, video, rerun) or `media_youtube_id` (youtube)
+- `media_width` / `media_height`: CSS pixels, defaulting to `320` x `180`
+- Optional: `media_resizable`, `media_autoplay`, `media_loop`, `media_muted`,
+  `media_plays_inline`, `media_controls`, `media_cross_origin`, `media_poster`,
+  `media_preload`, `media_start_seconds`
+- Rejected legacy fields: `media_target`, `media_url`, and `media_start` all produce a
+  `CzmlMediaError`.
+- Keep the fields flat. Do not nest them under `properties.media = { ... }`. Cesium's CZML parser
+  coerces objects with typed keys like `uri` into specialized property types and drops the rest.
 
 ```rust
 let on_media_error = Callback::new(move |error: CzmlMediaError| {
@@ -380,18 +425,19 @@ view! {
         data=packet
         mode=packet_mode
         clear_existing=false
+        media_overlay_pointer_events=pointer_enabled
         on_media_error=on_media_error
     />
 }
 ```
 
-If a video rectangle is blank with no console error, inspect:
+- `media_overlays` (default `true`) turns overlay rendering on or off.
+- `media_overlay_pointer_events` (default `false`) keeps map dragging unobstructed. Turn it on
+  to make resize handles and embedded players interactive.
+- `resolve_media` accepts a custom `CzmlMediaResolver`.
 
-- `entity.rectangle.material.getValue(viewer.clock.currentTime).image`
-- `HTMLVideoElement` means the bridge created a video texture correctly
-- a string URL means the metadata was parsed as image/URI data instead of video data
-
-For non-CZML media, prefer direct graphics/material APIs (`BillboardGraphics`, `RectangleGraphics` + `Material::image`) instead of CZML media plumbing.
+For non-CZML media, use the overlay components directly, or the graphics/material APIs
+(`BillboardGraphics`, `RectangleGraphics` + `Material::image`) for true globe textures.
 
 ### GeoJSON
 
@@ -530,8 +576,9 @@ Use these commands when changing integrations/components:
 # Workspace compile
 cargo check --workspace
 
-# Native unit tests
+# Native unit tests (with and without the optional Rerun overlay)
 cargo test -p leptos-cesium --lib
+cargo test -p leptos-cesium --lib --features rerun
 
 # Wasm test compilation (harness wiring)
 cargo test -p leptos-cesium --lib --target wasm32-unknown-unknown --no-run
@@ -546,8 +593,11 @@ for d in \
   examples/czml-viewer \
   examples/czml-streaming \
   examples/pinned-image \
+  examples/pinned-image-overlay \
   examples/pinned-video-material \
-  examples/czml-media-bridge \
+  examples/pinned-video-overlay \
+  examples/pinned-youtube-overlay \
+  examples/czml-overlay-media \
   examples/geojson \
   examples/custom-selection \
   examples/google-3d-tiles \
@@ -568,8 +618,11 @@ cargo check --manifest-path examples/with-server/Cargo.toml --features hydrate
   - `examples/czml-viewer`
   - `examples/czml-streaming`
   - `examples/pinned-image`
+  - `examples/pinned-image-overlay`
   - `examples/pinned-video-material`
-  - `examples/czml-media-bridge`
+  - `examples/pinned-video-overlay`
+  - `examples/pinned-youtube-overlay`
+  - `examples/czml-overlay-media` (requires the `rerun` feature)
   - `examples/geojson`
   - `examples/custom-selection`
   - `examples/google-3d-tiles`
