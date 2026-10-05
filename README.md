@@ -1,6 +1,6 @@
 # leptos-cesium
 
-`leptos-cesium` provides a CesiumJS component library for the [Leptos](https://github.com/leptos-rs/leptos) framework (0.8.15). It uses standard Rust types (glam, geo-types, palette) for SSR compatibility, exposing Cesium concepts (viewer, entities, data sources, 3D tiles) through idiomatic Leptos components.
+`leptos-cesium` provides a CesiumJS component library for the [Leptos](https://github.com/leptos-rs/leptos) framework (0.8.17). It uses standard Rust types (glam, geo-types, palette) for SSR compatibility, exposing Cesium concepts (viewer, entities, data sources, 3D tiles) through idiomatic Leptos components.
 
 ![cesium-with-entities](docs/cesium-with-entities.jpg)
 
@@ -316,7 +316,7 @@ leptos-cesium = { version = "0.0.1", default-features = false, features = ["csr"
   },
   "properties": {
     "media_kind": "rerun",
-    "media_uri": "https://app.rerun.io/version/0.31.4/examples/dna.rrd",
+    "media_uri": "https://app.rerun.io/version/0.38.1/examples/dna.rrd",
     "media_resizable": true,
     "media_width": 360,
     "media_height": 224
@@ -625,7 +625,7 @@ Loads Google's photorealistic 3D tiles via Cesium Ion or directly with a Google 
 ## Project Status
 
 **Implemented:**
-- ✅ **Leptos 0.8.15** compatibility with standard Rust types (glam, geo-types, palette)
+- ✅ **Leptos 0.8.17** compatibility with standard Rust types (glam, geo-types, palette)
 - ✅ ViewerContainer with Ion token support and configurable UI widgets
 - ✅ Entity component with declarative graphics
 - ✅ 2D Graphics: Rectangle, Polygon, Ellipse

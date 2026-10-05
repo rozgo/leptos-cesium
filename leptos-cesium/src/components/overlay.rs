@@ -769,8 +769,6 @@ fn YouTubeOverlayBody(
 #[cfg(feature = "rerun")]
 #[component]
 fn RerunOverlayBody(#[prop(into)] src: Signal<String>) -> impl IntoView {
-    let follow_if_http = Signal::derive(move || rerun_follow_if_http(&src.get()));
-
     view! {
         <div
             style="width:100%;height:100%;overflow:hidden;border:1px solid rgba(160, 198, 214, 0.14);border-radius:14px;background:rgba(8, 17, 29, 0.94);box-shadow:0 18px 48px rgba(0, 0, 0, 0.38);"
@@ -793,7 +791,6 @@ fn RerunOverlayBody(#[prop(into)] src: Signal<String>) -> impl IntoView {
                 allow_fullscreen=false
                 autoplay=true
                 loop_playback=true
-                follow_if_http=follow_if_http
             />
         </div>
     }
@@ -1010,13 +1007,6 @@ fn rerun_overlay_panel_overrides() -> [(Panel, PanelState); 4] {
         (Panel::Selection, PanelState::Hidden),
         (Panel::Time, PanelState::Collapsed),
     ]
-}
-
-#[cfg(feature = "rerun")]
-fn rerun_follow_if_http(url: &str) -> bool {
-    let value = url.trim().to_ascii_lowercase();
-    let value = value.split('?').next().unwrap_or(value.as_str());
-    value.ends_with(".mcap")
 }
 
 #[cfg(target_arch = "wasm32")]

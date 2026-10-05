@@ -1124,7 +1124,7 @@ dependencies = [
 [[package]]
 name = "leptos-rerun"
 version = "0.1.0"
-source = "git+https://github.com/rozgo/leptos-rerun.git?rev=388b9ac0c084bd94d4e23f88e3344812db3092a3#388b9ac0c084bd94d4e23f88e3344812db3092a3"
+source = "git+https://github.com/rozgo/leptos-rerun.git?rev=be9cd10a7cc4026b3c7ad919f7726f50502ed1ce#be9cd10a7cc4026b3c7ad919f7726f50502ed1ce"
 dependencies = [
  "js-sys",
  "leptos",
